@@ -16,16 +16,15 @@
 
 **Smart Fashion Assistant** is a web-based intelligent system designed to solve decision paralysis in online fashion shopping. Unlike traditional platforms that rely on static filters or generic popularity metrics, this system integrates **four interconnected machine learning engines** to provide a holistic shopping assistant.
 
-[cite_start]The system addresses the gap between **user personalization**, **real-time market trends**, and **outfit-level compatibility**, offering a solution that not only recommends individual items but also continuously learns from user behavior and suggests coordinated looks[cite: 65, 67].
+The system addresses the gap between **user personalization**, **real-time market trends**, and **outfit-level compatibility**, offering a solution that not only recommends individual items but also continuously learns from user behavior and suggests coordinated looks.
 
 ---
 
 ## 🏗️ Conceptual Architecture
 
 ![System Architecture](assets/architecture_diagram.png)
-*(Please place your generated diagram screenshot in an 'assets' folder and name it 'architecture_diagram.png')*
 
-[cite_start]The system operates on a modular architecture where four distinct ML components interact to process user data and market signals[cite: 70, 72].
+The system operates on a modular architecture where four distinct ML components interact to process user data and market signals.
 
 ---
 
@@ -36,7 +35,7 @@ The project is divided into four specialized research modules, each addressing a
 ### 👤 Module 01: User Profiling & Preference Modeling
 **Developer:** Ramanayake A.R.M.C.N.K (IT22247636)
 
-> **Novelty:** Introduces a **Dynamic Preference Model** that evolves beyond static onboarding data. [cite_start]It continuously updates user feature vectors based on real-time interaction behavior, ensuring the profile remains accurate over time[cite: 109].
+> **Novelty:** Introduces a **Dynamic Preference Model** that evolves beyond static onboarding data. It continuously updates user feature vectors based on real-time interaction behavior, ensuring the profile remains accurate over time.
 
 * **Key Tasks:**
     * Design of onboarding logic to capture style, climate, and body-type context.
@@ -46,7 +45,7 @@ The project is divided into four specialized research modules, each addressing a
 ### 🧠 Module 02: Personalized Recommendation & Learning Engine (Core)
 **Developer:** Gunathilake T.M.P.G.K.N (IT22189608)
 
-> **Novelty:** Implements a **Real-Time Adaptive Learning** mechanism. [cite_start]Unlike offline models that update periodically, this engine adapts its ranking logic instantly using implicit feedback signals (clicks, dwell time, favorites)[cite: 109].
+> **Novelty:** Implements a **Real-Time Adaptive Learning** mechanism. Unlike offline models that update periodically, this engine adapts its ranking logic instantly using implicit feedback signals (clicks, dwell time, favorites).
 
 * **Key Tasks:**
     * Hybrid matching of User Profiles $\leftrightarrow$ Clothing Items.
@@ -56,7 +55,7 @@ The project is divided into four specialized research modules, each addressing a
 ### 📈 Module 03: Data Collection & Trend Analysis
 **Developer:** G.D. Elladeniya (IT22202840)
 
-> **Novelty:** Features **Automated Trend–Preference Fusion**. [cite_start]Instead of treating trends as manual inputs, this module automatically scrapes and analyzes market data to detect rising styles, fusing these "trend signals" into the personalized feed[cite: 109].
+> **Novelty:** Features **Automated Trend–Preference Fusion**. Instead of treating trends as manual inputs, this module automatically scrapes and analyzes market data to detect rising styles, fusing these "trend signals" into the personalized feed.
 
 * **Key Tasks:**
     * Automated extraction of clothing metadata from external fashion platforms.
@@ -66,7 +65,7 @@ The project is divided into four specialized research modules, each addressing a
 ### 🧥 Module 04: Outfit Matching & Style Compatibility
 **Developer:** Rajapaksha P.D.S.S (IT22218476)
 
-> **Novelty:** Focuses on **Outfit-Level Compatibility**. [cite_start]Moving beyond single-item suggestions, this component analyzes visual and textual attributes to recommend complementary garments (e.g., matching a selected top with compatible bottoms)[cite: 109].
+> **Novelty:** Focuses on **Outfit-Level Compatibility**. Moving beyond single-item suggestions, this component analyzes visual and textual attributes to recommend complementary garments (e.g., matching a selected top with compatible bottoms).
 
 * **Key Tasks:**
     * Visual attribute extraction for compatibility scoring.
@@ -87,7 +86,7 @@ The project is divided into four specialized research modules, each addressing a
 **Supervision:**
 * **Supervisor:** Ms. Dushanthi Kuruppu
 * **Co-Supervisor:** Mr. Kavinga Yapa Abeywardena
-* [cite_start]**External Supervisor:** Mr. Naleen Karunarathne (Technical Manager, Kelly Felder) [cite: 120]
+* **External Supervisor:** Mr. Naleen Karunarathne (Technical Manager, Kelly Felder)
 
 ---
 
@@ -124,7 +123,7 @@ This repository is organized as a monorepo containing the 4 core research module
 ---
 
 ## ⚖️ Ethical & Sustainability Note
-[cite_start]This project contributes to **UN SDG 12 (Responsible Consumption)** by reducing decision error and minimizing the return rates associated with poor online clothing purchases[cite: 32, 42].
+This project contributes to **UN SDG 12 (Responsible Consumption)** by reducing decision error and minimizing the return rates associated with poor online clothing purchases.
 
 ---
 *© 2026 Smart Fashion Assistant Research Group. All Rights Reserved.*
