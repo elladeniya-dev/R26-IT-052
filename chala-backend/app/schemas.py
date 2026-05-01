@@ -67,3 +67,24 @@ class ProfileResponse(BaseModel):
     user: UserResponse
     onboarding_preferences: Optional[OnboardingResponse] = None
     learned_preferences: Optional[LearnedPreferenceResponse] = None
+
+
+class InteractionRequest(BaseModel):
+    item_id: str
+    interaction_type: str
+    interaction_value: Optional[float] = None
+
+
+class InteractionResponse(BaseModel):
+    interaction_id: int
+    user_id: int
+    item_id: str
+    interaction_type: str
+    interaction_value: float
+
+    class Config:
+        from_attributes = True
+
+
+
+
