@@ -2,10 +2,15 @@ from datetime import datetime, timedelta, timezone
 import os
 
 from dotenv import load_dotenv
-from jose import jwt
+from jose import jwt, JWTError
 from google.oauth2 import id_token
 from google.auth.transport import requests
-from fastapi import HTTPException, status
+from fastapi import HTTPException, status, Depends
+from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from sqlalchemy.orm import Session
+
+from app.database import get_db
+from app.models import User
 
 
 load_dotenv()
@@ -14,6 +19,8 @@ GOOGLE_CLIENT_ID = os.getenv("GOOGLE_CLIENT_ID")
 JWT_SECRET_KEY = os.getenv("JWT_SECRET_KEY")
 JWT_ALGORITHM = os.getenv("JWT_ALGORITHM", "HS256")
 JWT_ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("JWT_ACCESS_TOKEN_EXPIRE_MINUTES", "60"))
+
+bearer_scheme = HTTPBearer()
 
 
 if not GOOGLE_CLIENT_ID:
@@ -27,7 +34,7 @@ def verify_google_token(token: str):
     """
     Verifies the Google ID token sent from frontend/mobile app.
 
-    If the token is valid, Google returns user details like:
+    If the token is valid, Google returns user details:
     - sub
     - email
     - name
@@ -59,7 +66,7 @@ def create_access_token(data: dict):
     """
     Creates our own backend JWT token.
 
-    This token will be used later for protected APIs like:
+    This token is used for protected APIs:
     - onboarding
     - profile
     - interactions
@@ -83,3 +90,44 @@ def create_access_token(data: dict):
     )
 
     return encoded_jwt
+
+
+def get_current_user(
+    credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
+    db: Session = Depends(get_db)
+):
+    
+    """
+    Reads the JWT token from the Authorization header,
+    verifies it, extracts the user_id, and returns the logged-in user.
+    """
+
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate authentication credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+    token = credentials.credentials
+
+    try:
+        payload = jwt.decode(
+            token,
+            JWT_SECRET_KEY,
+            algorithms=[JWT_ALGORITHM]
+        )
+
+        user_id = payload.get("sub")
+
+        if user_id is None:
+            raise credentials_exception
+
+    except JWTError:
+        raise credentials_exception
+
+    user = db.query(User).filter(User.user_id == int(user_id)).first()
+
+    if user is None:
+        raise credentials_exception
+
+    return user

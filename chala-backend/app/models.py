@@ -32,12 +32,13 @@ class UserOnboardingPreference(Base):
     preferred_categories = Column(JSONB, nullable=False)
     preferred_colors = Column(JSONB, nullable=False)
     preferred_styles = Column(JSONB, nullable=False)
-    preferred_brands = Column(JSONB, nullable=True)
 
     price_min = Column(Float, nullable=True)
     price_max = Column(Float, nullable=True)
 
     occasions = Column(JSONB, nullable=False)
+    preferred_patterns = Column(JSONB, nullable=True)
+    extra_preferences = Column(JSONB, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
