@@ -3,7 +3,7 @@ from typing import Dict, List
 
 from sqlalchemy.orm import Session
 
-from app.models import OutfitSuggestion, OutfitItem, Product
+from app.models import OutfitSuggestion, OutfitItem
 
 
 def create_unique_batch_id(user_id: str, selected_item_id: str) -> str:
@@ -118,6 +118,7 @@ def save_generated_outfits(
         raise e
 
 
+<<<<<<< HEAD
 def product_to_full_response(product: Product, role: str) -> Dict:
     """
     Converts a Product database row into a full API response object.
@@ -182,6 +183,11 @@ def outfit_record_to_response(db: Session, outfit: OutfitSuggestion) -> Dict:
 def get_saved_outfits_by_user(db: Session, user_id: str) -> List[Dict]:
     """
     Reads all saved outfits for one user.
+=======
+def get_saved_outfits_by_user(db: Session, user_id: str) -> List[Dict]:
+    """
+    Reads previously saved outfits for one user.
+>>>>>>> parent of 84fbb9d (Enhance outfit retrieval to include full product details and improve response format)
     """
 
     outfit_records = db.query(OutfitSuggestion).filter(
@@ -195,6 +201,7 @@ def get_saved_outfits_by_user(db: Session, user_id: str) -> List[Dict]:
         for outfit in outfit_records
     ]
 
+<<<<<<< HEAD
 
 def get_latest_outfit_batch_by_user(db: Session, user_id: str) -> Dict:
     """
@@ -211,6 +218,24 @@ def get_latest_outfit_batch_by_user(db: Session, user_id: str) -> Dict:
     ).order_by(
         OutfitSuggestion.generated_at.desc()
     ).first()
+=======
+    for outfit in outfit_records:
+        saved_outfits.append({
+            "outfit_id": outfit.outfit_id,
+            "user_id": outfit.user_id,
+            "selected_item_id": outfit.selected_item_id,
+            "compatibility_score": outfit.compatibility_score,
+            "reason_tags": outfit.reason_tags,
+            "generated_at": outfit.generated_at.isoformat() if outfit.generated_at else None,
+            "items": [
+                {
+                    "item_id": item.item_id,
+                    "role": item.role
+                }
+                for item in outfit.items
+            ]
+        })
+>>>>>>> parent of 84fbb9d (Enhance outfit retrieval to include full product details and improve response format)
 
     if not latest_outfit:
         return {
