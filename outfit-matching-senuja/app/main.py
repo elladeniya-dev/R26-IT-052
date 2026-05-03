@@ -8,6 +8,7 @@ from app.database import engine, Base, get_db
 from app import models
 from app.schemas import OutfitGenerateRequest
 from app.outfit_generator import generate_outfits_for_selected_item
+from app.outfit_storage import save_generated_outfits, get_saved_outfits_by_user
 
 
 Base.metadata.create_all(bind=engine)
@@ -95,9 +96,33 @@ def generate_outfits(
             "generated_at": datetime.now(timezone.utc).isoformat()
         }
 
+    saved_outfits = save_generated_outfits(
+        db=db,
+        user_id=result["user_id"],
+        selected_item_id=result["selected_item_id"],
+        outfits=result["outfits"]
+    )
+
     return {
         "user_id": result["user_id"],
         "selected_item_id": result["selected_item_id"],
-        "outfits": result["outfits"],
+        "outfits": saved_outfits,
         "generated_at": datetime.now(timezone.utc).isoformat()
+    }
+
+
+@app.get("/outfits/{user_id}")
+def get_user_outfits(
+    user_id: str,
+    db: Session = Depends(get_db)
+):
+    saved_outfits = get_saved_outfits_by_user(
+        db=db,
+        user_id=user_id
+    )
+
+    return {
+        "user_id": user_id,
+        "total_outfits": len(saved_outfits),
+        "outfits": saved_outfits
     }
