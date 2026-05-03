@@ -6,14 +6,45 @@ from sqlalchemy.orm import Session
 from app.models import OutfitSuggestion, OutfitItem, Product
 
 
-def create_unique_outfit_id(user_id: str, index: int) -> str:
+def create_unique_batch_id(user_id: str, selected_item_id: str) -> str:
     """
-    Creates a simple unique outfit ID using user_id, timestamp, and index.
-    Example:
-    OUT_USR001_20260430103045_001
+    Creates one batch ID for one outfit generation request.
+    All outfits generated in the same request will share this batch ID.
     """
     timestamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S%f")
-    return f"OUT_{user_id}_{timestamp}_{index:03d}"
+    return f"BATCH_{user_id}_{selected_item_id}_{timestamp}"
+
+
+def create_unique_outfit_id(user_id: str, batch_id: str, index: int) -> str:
+    """
+    Creates a unique outfit ID.
+    Example:
+    OUT_USR001_BATCH_USR001_P001_20260430103045_001
+    """
+    return f"OUT_{user_id}_{batch_id}_{index:03d}"
+
+
+def delete_existing_outfits_for_selected_item(
+    db: Session,
+    user_id: str,
+    selected_item_id: str
+):
+    """
+    Deletes old saved outfits for the same user and selected item.
+
+    This prevents duplicate saved outfits when the user generates outfits
+    multiple times for the same selected product.
+    """
+
+    existing_outfits = db.query(OutfitSuggestion).filter(
+        OutfitSuggestion.user_id == user_id,
+        OutfitSuggestion.selected_item_id == selected_item_id
+    ).all()
+
+    for outfit in existing_outfits:
+        db.delete(outfit)
+
+    db.flush()
 
 
 def save_generated_outfits(
@@ -27,17 +58,36 @@ def save_generated_outfits(
     1. outfit_suggestions table
     2. outfit_items table
 
-    Returns the same outfits with database-safe outfit IDs.
+    Improvement:
+    - Deletes old outfits for same user + selected item
+    - Creates one generation_batch_id for the new request
+    - Saves the new outfits under that batch
     """
 
     saved_outfits = []
 
     try:
+        delete_existing_outfits_for_selected_item(
+            db=db,
+            user_id=user_id,
+            selected_item_id=selected_item_id
+        )
+
+        batch_id = create_unique_batch_id(
+            user_id=user_id,
+            selected_item_id=selected_item_id
+        )
+
         for index, outfit in enumerate(outfits, start=1):
-            new_outfit_id = create_unique_outfit_id(user_id=user_id, index=index)
+            new_outfit_id = create_unique_outfit_id(
+                user_id=user_id,
+                batch_id=batch_id,
+                index=index
+            )
 
             outfit_suggestion = OutfitSuggestion(
                 outfit_id=new_outfit_id,
+                generation_batch_id=batch_id,
                 user_id=user_id,
                 selected_item_id=selected_item_id,
                 compatibility_score=outfit["compatibility_score"],
@@ -57,6 +107,7 @@ def save_generated_outfits(
 
             copied_outfit = outfit.copy()
             copied_outfit["outfit_id"] = new_outfit_id
+            copied_outfit["generation_batch_id"] = batch_id
             saved_outfits.append(copied_outfit)
 
         db.commit()
@@ -67,31 +118,22 @@ def save_generated_outfits(
         raise e
 
 
-def product_to_response(product: Product, role: str) -> Dict:
+def product_to_full_response(product: Product, role: str) -> Dict:
     """
-    Converts saved product data into mobile-app-friendly response format.
+    Converts a Product database row into a full API response object.
     """
 
     if not product:
         return {
             "item_id": None,
             "role": role,
-            "title": "Product not found",
-            "category": role,
-            "subcategory": None,
-            "color": [],
-            "style": [],
-            "brand": None,
-            "price": None,
-            "currency": None,
-            "image_url": None,
-            "product_url": None
+            "message": "Product details not found"
         }
 
     return {
         "item_id": product.item_id,
-        "role": role,
         "title": product.title,
+        "role": role,
         "category": product.category,
         "subcategory": product.subcategory,
         "color": product.color,
@@ -100,14 +142,46 @@ def product_to_response(product: Product, role: str) -> Dict:
         "price": product.price,
         "currency": product.currency,
         "image_url": product.image_url,
-        "product_url": product.product_url
+        "product_url": product.product_url,
+        "availability": product.availability
+    }
+
+
+def outfit_record_to_response(db: Session, outfit: OutfitSuggestion) -> Dict:
+    """
+    Converts one saved OutfitSuggestion record into API response format.
+    Includes full product details for each outfit item.
+    """
+
+    full_items = []
+
+    for outfit_item in outfit.items:
+        product = db.query(Product).filter(
+            Product.item_id == outfit_item.item_id
+        ).first()
+
+        full_items.append(
+            product_to_full_response(
+                product=product,
+                role=outfit_item.role
+            )
+        )
+
+    return {
+        "outfit_id": outfit.outfit_id,
+        "generation_batch_id": outfit.generation_batch_id,
+        "user_id": outfit.user_id,
+        "selected_item_id": outfit.selected_item_id,
+        "compatibility_score": outfit.compatibility_score,
+        "reason_tags": outfit.reason_tags,
+        "generated_at": outfit.generated_at.isoformat() if outfit.generated_at else None,
+        "items": full_items
     }
 
 
 def get_saved_outfits_by_user(db: Session, user_id: str) -> List[Dict]:
     """
-    Reads previously saved outfits for one user.
-    Now returns full product details for each outfit item.
+    Reads all saved outfits for one user.
     """
 
     outfit_records = db.query(OutfitSuggestion).filter(
@@ -116,31 +190,49 @@ def get_saved_outfits_by_user(db: Session, user_id: str) -> List[Dict]:
         OutfitSuggestion.generated_at.desc()
     ).all()
 
-    saved_outfits = []
+    return [
+        outfit_record_to_response(db=db, outfit=outfit)
+        for outfit in outfit_records
+    ]
 
-    for outfit in outfit_records:
-        full_items = []
 
-        for saved_item in outfit.items:
-            product = db.query(Product).filter(
-                Product.item_id == saved_item.item_id
-            ).first()
+def get_latest_outfit_batch_by_user(db: Session, user_id: str) -> Dict:
+    """
+    Reads only the latest outfit generation batch for one user.
 
-            full_items.append(
-                product_to_response(
-                    product=product,
-                    role=saved_item.role
-                )
-            )
+    Example:
+    If user generated outfits for P001 at 10:00
+    and then generated outfits for P007 at 10:10,
+    this returns only the P007 batch.
+    """
 
-        saved_outfits.append({
-            "outfit_id": outfit.outfit_id,
-            "user_id": outfit.user_id,
-            "selected_item_id": outfit.selected_item_id,
-            "compatibility_score": outfit.compatibility_score,
-            "reason_tags": outfit.reason_tags,
-            "generated_at": outfit.generated_at.isoformat() if outfit.generated_at else None,
-            "items": full_items
-        })
+    latest_outfit = db.query(OutfitSuggestion).filter(
+        OutfitSuggestion.user_id == user_id
+    ).order_by(
+        OutfitSuggestion.generated_at.desc()
+    ).first()
 
-    return saved_outfits
+    if not latest_outfit:
+        return {
+            "generation_batch_id": None,
+            "selected_item_id": None,
+            "outfits": []
+        }
+
+    latest_batch_id = latest_outfit.generation_batch_id
+
+    latest_batch_outfits = db.query(OutfitSuggestion).filter(
+        OutfitSuggestion.user_id == user_id,
+        OutfitSuggestion.generation_batch_id == latest_batch_id
+    ).order_by(
+        OutfitSuggestion.compatibility_score.desc()
+    ).all()
+
+    return {
+        "generation_batch_id": latest_batch_id,
+        "selected_item_id": latest_outfit.selected_item_id,
+        "outfits": [
+            outfit_record_to_response(db=db, outfit=outfit)
+            for outfit in latest_batch_outfits
+        ]
+    }
