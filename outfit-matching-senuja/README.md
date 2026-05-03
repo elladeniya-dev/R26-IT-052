@@ -38,7 +38,3 @@ Senu Outfit Compatibility Engine
 Compatible outfit suggestions
         ↓
 Flutter mobile app displays outfits
-
-- Duplicate saved outfits are prevented for the same user and selected item
-- Each outfit generation request is stored with a generation batch ID
-- Latest outfit batch can be retrieved using GET /outfits/{user_id}/latest
