@@ -1,2 +1,2 @@
 # smart-fashion-assistant
-# senuja-Rajapaksha
+# senuja-rajapaksha
