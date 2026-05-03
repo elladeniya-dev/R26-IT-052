@@ -3,7 +3,7 @@ from typing import Dict, List
 
 from sqlalchemy.orm import Session
 
-from app.models import OutfitSuggestion, OutfitItem
+from app.models import OutfitSuggestion, OutfitItem, Product
 
 
 def create_unique_outfit_id(user_id: str, index: int) -> str:
@@ -67,9 +67,47 @@ def save_generated_outfits(
         raise e
 
 
+def product_to_response(product: Product, role: str) -> Dict:
+    """
+    Converts saved product data into mobile-app-friendly response format.
+    """
+
+    if not product:
+        return {
+            "item_id": None,
+            "role": role,
+            "title": "Product not found",
+            "category": role,
+            "subcategory": None,
+            "color": [],
+            "style": [],
+            "brand": None,
+            "price": None,
+            "currency": None,
+            "image_url": None,
+            "product_url": None
+        }
+
+    return {
+        "item_id": product.item_id,
+        "role": role,
+        "title": product.title,
+        "category": product.category,
+        "subcategory": product.subcategory,
+        "color": product.color,
+        "style": product.style,
+        "brand": product.brand,
+        "price": product.price,
+        "currency": product.currency,
+        "image_url": product.image_url,
+        "product_url": product.product_url
+    }
+
+
 def get_saved_outfits_by_user(db: Session, user_id: str) -> List[Dict]:
     """
     Reads previously saved outfits for one user.
+    Now returns full product details for each outfit item.
     """
 
     outfit_records = db.query(OutfitSuggestion).filter(
@@ -81,6 +119,20 @@ def get_saved_outfits_by_user(db: Session, user_id: str) -> List[Dict]:
     saved_outfits = []
 
     for outfit in outfit_records:
+        full_items = []
+
+        for saved_item in outfit.items:
+            product = db.query(Product).filter(
+                Product.item_id == saved_item.item_id
+            ).first()
+
+            full_items.append(
+                product_to_response(
+                    product=product,
+                    role=saved_item.role
+                )
+            )
+
         saved_outfits.append({
             "outfit_id": outfit.outfit_id,
             "user_id": outfit.user_id,
@@ -88,13 +140,7 @@ def get_saved_outfits_by_user(db: Session, user_id: str) -> List[Dict]:
             "compatibility_score": outfit.compatibility_score,
             "reason_tags": outfit.reason_tags,
             "generated_at": outfit.generated_at.isoformat() if outfit.generated_at else None,
-            "items": [
-                {
-                    "item_id": item.item_id,
-                    "role": item.role
-                }
-                for item in outfit.items
-            ]
+            "items": full_items
         })
 
     return saved_outfits
