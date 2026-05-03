@@ -1,9 +1,13 @@
-from fastapi import FastAPI
+from datetime import datetime, timezone
+
+from fastapi import FastAPI, Depends
 from sqlalchemy import text
 from sqlalchemy.orm import Session
 
 from app.database import engine, Base, get_db
 from app import models
+from app.schemas import OutfitGenerateRequest
+from app.outfit_generator import generate_outfits_for_selected_item
 
 
 Base.metadata.create_all(bind=engine)
@@ -44,32 +48,56 @@ def test_database_connection():
 
 
 @app.get("/products")
-def get_all_products():
-    db: Session = next(get_db())
+def get_all_products(db: Session = Depends(get_db)):
+    products = db.query(models.Product).all()
 
-    try:
-        products = db.query(models.Product).all()
+    return {
+        "total_products": len(products),
+        "products": [
+            {
+                "item_id": product.item_id,
+                "title": product.title,
+                "category": product.category,
+                "subcategory": product.subcategory,
+                "color": product.color,
+                "style": product.style,
+                "brand": product.brand,
+                "price": product.price,
+                "currency": product.currency,
+                "image_url": product.image_url,
+                "product_url": product.product_url,
+                "availability": product.availability
+            }
+            for product in products
+        ]
+    }
 
+
+@app.post("/outfits/generate")
+def generate_outfits(
+    request: OutfitGenerateRequest,
+    db: Session = Depends(get_db)
+):
+    result = generate_outfits_for_selected_item(
+        db=db,
+        user_id=request.user_id,
+        selected_item_id=request.selected_item_id,
+        occasion=request.occasion,
+        max_outfits=request.max_outfits
+    )
+
+    if not result["success"]:
         return {
-            "total_products": len(products),
-            "products": [
-                {
-                    "item_id": product.item_id,
-                    "title": product.title,
-                    "category": product.category,
-                    "subcategory": product.subcategory,
-                    "color": product.color,
-                    "style": product.style,
-                    "brand": product.brand,
-                    "price": product.price,
-                    "currency": product.currency,
-                    "image_url": product.image_url,
-                    "product_url": product.product_url,
-                    "availability": product.availability
-                }
-                for product in products
-            ]
+            "user_id": request.user_id,
+            "selected_item_id": request.selected_item_id,
+            "outfits": [],
+            "message": result["message"],
+            "generated_at": datetime.now(timezone.utc).isoformat()
         }
 
-    finally:
-        db.close()
+    return {
+        "user_id": result["user_id"],
+        "selected_item_id": result["selected_item_id"],
+        "outfits": result["outfits"],
+        "generated_at": datetime.now(timezone.utc).isoformat()
+    }
