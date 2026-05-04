@@ -14,9 +14,6 @@ app = FastAPI(
 
 @app.on_event("startup")
 def startup_event():
-    """
-    Creates database tables when the FastAPI app starts.
-    """
     Base.metadata.create_all(bind=engine)
 
 
