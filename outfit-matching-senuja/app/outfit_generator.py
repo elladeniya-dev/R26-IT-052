@@ -10,7 +10,6 @@ from app.compatibility import calculate_compatibility_score
 def product_to_dict(product: Product) -> Dict:
     """
     Converts a SQLAlchemy Product object into a normal Python dictionary.
-    This makes it easier to use inside scoring and API response.
     """
     return {
         "item_id": product.item_id,
@@ -27,16 +26,59 @@ def product_to_dict(product: Product) -> Dict:
     }
 
 
+def normalize_list(values) -> List[str]:
+    """
+    Converts list or string values into lowercase list.
+    """
+    if not values:
+        return []
+
+    if isinstance(values, str):
+        return [values.strip().lower()]
+
+    return [str(value).strip().lower() for value in values]
+
+
+def product_matches_preferred_colors(
+    product: Product,
+    preferred_colors: Optional[List[str]]
+) -> bool:
+    """
+    Checks whether product color matches preferred colors.
+    If no preferred colors are given, all colors are accepted.
+    """
+    if not preferred_colors:
+        return True
+
+    product_colors = normalize_list(product.color)
+    preferred_colors = normalize_list(preferred_colors)
+
+    for color in product_colors:
+        if color in preferred_colors:
+            return True
+
+    return False
+
+
 def get_available_products_by_category(
     db: Session,
     category: str,
-    exclude_item_id: Optional[str] = None
+    exclude_item_id: Optional[str] = None,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    preferred_colors: Optional[List[str]] = None,
+    max_items_per_category: int = 10
 ) -> List[Product]:
     """
     Reads available products by category from the products table.
-    Example:
-    category = bottom → returns all available bottoms.
+
+    Filters added:
+    - min_price
+    - max_price
+    - preferred_colors
+    - max_items_per_category
     """
+
     query = db.query(Product).filter(
         Product.category == category,
         Product.availability == True
@@ -45,16 +87,28 @@ def get_available_products_by_category(
     if exclude_item_id:
         query = query.filter(Product.item_id != exclude_item_id)
 
-    return query.all()
+    if min_price is not None:
+        query = query.filter(Product.price >= min_price)
+
+    if max_price is not None:
+        query = query.filter(Product.price <= max_price)
+
+    products = query.limit(max_items_per_category).all()
+
+    filtered_products = [
+        product for product in products
+        if product_matches_preferred_colors(
+            product=product,
+            preferred_colors=preferred_colors
+        )
+    ]
+
+    return filtered_products
 
 
 def get_required_categories(selected_category: str) -> Dict:
     """
     Decides what item categories are needed based on selected item category.
-
-    Example:
-    selected top → need bottom, optional outerwear
-    selected dress → optional outerwear
     """
     selected_category = selected_category.lower()
 
@@ -88,16 +142,48 @@ def get_required_categories(selected_category: str) -> Dict:
     }
 
 
+def apply_excluded_categories(
+    category_rules: Dict,
+    excluded_categories: Optional[List[str]]
+) -> Dict:
+    """
+    Removes categories that the user wants to exclude.
+
+    Important:
+    - Optional categories can be removed safely.
+    - Required categories should not be removed because they are needed to form a complete outfit.
+    """
+
+    if not excluded_categories:
+        return category_rules
+
+    excluded_categories = normalize_list(excluded_categories)
+
+    required_categories = category_rules["required"]
+    optional_categories = category_rules["optional"]
+
+    filtered_optional_categories = [
+        category for category in optional_categories
+        if category not in excluded_categories
+    ]
+
+    filtered_required_categories = [
+        category for category in required_categories
+        if category not in excluded_categories
+    ]
+
+    return {
+        "required": filtered_required_categories,
+        "optional": filtered_optional_categories
+    }
+
+
 def build_basic_outfit_items(
     selected_item: Dict,
     required_product_groups: List[List[Product]]
 ) -> List[List[Dict]]:
     """
     Builds basic outfits using selected item + required category items.
-
-    Example:
-    selected top + all bottoms
-    selected outerwear + all tops + all bottoms
     """
     outfits = []
 
@@ -122,14 +208,9 @@ def add_optional_items_to_outfits(
 ) -> List[List[Dict]]:
     """
     Adds optional items to outfits.
-
-    Example:
-    selected top + bottom
-    selected top + bottom + outerwear
-
-    This keeps both versions:
-    - without optional item
-    - with optional item
+    Keeps both:
+    - outfit without optional item
+    - outfit with optional item
     """
     final_outfits = []
 
@@ -149,7 +230,12 @@ def generate_outfits_for_selected_item(
     user_id: str,
     selected_item_id: str,
     occasion: str,
-    max_outfits: int
+    max_outfits: int,
+    min_price: Optional[float] = None,
+    max_price: Optional[float] = None,
+    preferred_colors: Optional[List[str]] = None,
+    excluded_categories: Optional[List[str]] = None,
+    max_items_per_category: int = 10
 ) -> Dict:
     """
     Main outfit generation function.
@@ -157,10 +243,10 @@ def generate_outfits_for_selected_item(
     Steps:
     1. Find selected item
     2. Decide required and optional categories
-    3. Generate outfit combinations
-    4. Calculate compatibility score
-    5. Rank highest score outfits
-    6. Return response
+    3. Apply filters
+    4. Generate outfit combinations
+    5. Calculate compatibility score
+    6. Rank outfits
     """
 
     selected_product = db.query(Product).filter(
@@ -180,19 +266,28 @@ def generate_outfits_for_selected_item(
 
     category_rules = get_required_categories(selected_category)
 
+    category_rules = apply_excluded_categories(
+        category_rules=category_rules,
+        excluded_categories=excluded_categories
+    )
+
     required_product_groups = []
 
     for category in category_rules["required"]:
         products = get_available_products_by_category(
             db=db,
             category=category,
-            exclude_item_id=selected_item_id
+            exclude_item_id=selected_item_id,
+            min_price=min_price,
+            max_price=max_price,
+            preferred_colors=preferred_colors,
+            max_items_per_category=max_items_per_category
         )
 
         if not products:
             return {
                 "success": False,
-                "message": f"No available products found for required category: {category}",
+                "message": f"No available products found for required category after applying filters: {category}",
                 "outfits": []
             }
 
@@ -204,7 +299,11 @@ def generate_outfits_for_selected_item(
         products = get_available_products_by_category(
             db=db,
             category=category,
-            exclude_item_id=selected_item_id
+            exclude_item_id=selected_item_id,
+            min_price=min_price,
+            max_price=max_price,
+            preferred_colors=preferred_colors,
+            max_items_per_category=max_items_per_category
         )
 
         optional_products.extend(products)
@@ -245,7 +344,14 @@ def generate_outfits_for_selected_item(
             ],
             "compatibility_score": score_result["compatibility_score"],
             "reason_tags": score_result["reason_tags"],
-            "score_breakdown": score_result["score_breakdown"]
+            "score_breakdown": score_result["score_breakdown"],
+            "applied_filters": {
+                "min_price": min_price,
+                "max_price": max_price,
+                "preferred_colors": preferred_colors,
+                "excluded_categories": excluded_categories,
+                "max_items_per_category": max_items_per_category
+            }
         }
 
         scored_outfits.append(outfit)
