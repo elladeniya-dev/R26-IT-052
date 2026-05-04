@@ -35,6 +35,8 @@ class OutfitSuggestion(Base):
     __tablename__ = "outfit_suggestions"
 
     outfit_id = Column(String, primary_key=True, index=True)
+    generation_batch_id = Column(String, nullable=True, index=True)
+
     user_id = Column(String, nullable=False, index=True)
     selected_item_id = Column(String, nullable=False)
 
