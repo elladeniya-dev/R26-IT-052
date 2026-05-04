@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas import OutfitGenerateRequest
 from app.outfit_generator import generate_outfits_for_selected_item
-from app.outfit_storage import save_generated_outfits, get_saved_outfits_by_user
+from app.outfit_storage import save_generated_outfits, get_latest_outfit_batch_by_user
 
 
 router = APIRouter(
@@ -72,23 +72,21 @@ def get_user_outfits(
     db: Session = Depends(get_db)
 ):
     try:
-        saved_outfits = get_saved_outfits_by_user(
+        latest_batch = get_latest_outfit_batch_by_user(
             db=db,
             user_id=user_id
         )
-
         return {
             "user_id": user_id,
-            "total_outfits": len(saved_outfits),
-            "outfits": saved_outfits
+            "generation_batch_id": latest_batch["generation_batch_id"],
+            "selected_item_id": latest_batch["selected_item_id"],
+            "outfits": latest_batch["outfits"]
         }
-
     except SQLAlchemyError as e:
         raise HTTPException(
             status_code=500,
             detail=f"Database error while reading saved outfits: {str(e)}"
         )
-
     except Exception as e:
         raise HTTPException(
             status_code=500,
