@@ -12,6 +12,7 @@ router = APIRouter(
 @router.get("/")
 def home():
     return {
+        "status": "success",
         "message": "Senu Outfit Compatibility Engine is running successfully"
     }
 
@@ -24,6 +25,7 @@ def test_database_connection():
             value = result.scalar()
 
         return {
+            "status": "success",
             "database_connected": True,
             "test_result": value,
             "message": "PostgreSQL connection successful"
@@ -31,6 +33,7 @@ def test_database_connection():
 
     except Exception as e:
         return {
+            "status": "error",
             "database_connected": False,
             "error": str(e),
             "message": "PostgreSQL connection failed"
