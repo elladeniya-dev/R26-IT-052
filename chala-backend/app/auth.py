@@ -33,17 +33,13 @@ if not JWT_SECRET_KEY:
 def verify_google_token(token: str):
     """
     Verifies the Google ID token sent from frontend/mobile app.
-
-    If the token is valid, Google returns user details:
-    - sub
-    - email
-    - name
-    - picture
     """
 
     try:
+        clean_token = token.strip()
+
         google_user = id_token.verify_oauth2_token(
-            token,
+            clean_token,
             requests.Request(),
             GOOGLE_CLIENT_ID
         )
@@ -55,22 +51,16 @@ def verify_google_token(token: str):
             "profile_picture": google_user.get("picture")
         }
 
-    except ValueError:
+    except ValueError as error:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Invalid Google token"
+            detail=f"Invalid Google token: {str(error)}"
         )
 
 
 def create_access_token(data: dict):
     """
-    Creates our own backend JWT token.
-
-    This token is used for protected APIs:
-    - onboarding
-    - profile
-    - interactions
-    - learning update
+    Creates backend JWT token for protected APIs.
     """
 
     to_encode = data.copy()
@@ -96,10 +86,9 @@ def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer_scheme),
     db: Session = Depends(get_db)
 ):
-    
     """
-    Reads the JWT token from the Authorization header,
-    verifies it, extracts the user_id, and returns the logged-in user.
+    Reads JWT token from Authorization header,
+    verifies it, extracts user_id, and returns logged-in user.
     """
 
     credentials_exception = HTTPException(
@@ -108,7 +97,7 @@ def get_current_user(
         headers={"WWW-Authenticate": "Bearer"},
     )
 
-    token = credentials.credentials
+    token = credentials.credentials.strip()
 
     try:
         payload = jwt.decode(
