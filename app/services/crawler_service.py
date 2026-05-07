@@ -123,6 +123,62 @@ def extract_title(text):
 
     return remove_emojis(clean_text(text))
 
+def extract_product_detail_data(product_url):
+    """
+    Opens a Carnage product detail page and extracts more accurate product data.
+    This improves collection-page crawling by getting exact color and description.
+    """
+
+    try:
+        response = requests.get(
+            product_url,
+            timeout=15,
+            headers={
+                "User-Agent": "Mozilla/5.0"
+            }
+        )
+        response.raise_for_status()
+
+        soup = BeautifulSoup(response.text, "html.parser")
+        page_text = clean_text(soup.get_text(" ", strip=True))
+
+        # Extract exact color from text like "Color: Mocha Brown"
+        color_match = re.search(
+            r"Color:\s*([A-Za-z\s]+?)(?:\s+Select size|\s+S\s+M\s+L|\s+Add to cart)",
+            page_text,
+            flags=re.IGNORECASE
+        )
+
+        extracted_color_text = None
+        if color_match:
+            extracted_color_text = clean_text(color_match.group(1))
+
+        # Extract useful description from Product details section
+        description = None
+        description_match = re.search(
+            r"Product details\s+(.*?)(?:Key Features|Material Composition|Care Details|Free standard shipping|Size guide)",
+            page_text,
+            flags=re.IGNORECASE
+        )
+
+        if description_match:
+            description = clean_text(description_match.group(1))
+
+        # Check availability
+        is_sold_out = "sold out" in page_text.lower()
+
+        return {
+            "color_text": extracted_color_text,
+            "description": description,
+            "availability": not is_sold_out
+        }
+
+    except Exception:
+        return {
+            "color_text": None,
+            "description": None,
+            "availability": True
+        }
 
 def crawl_carnage_crop_tops(max_items=10):
     response = requests.get(
@@ -181,12 +237,17 @@ def crawl_carnage_crop_tops(max_items=10):
     crawled_products = []
 
     for item in unique_products[:max_items]:
+        detail_data = extract_product_detail_data(item["product_url"])
+
+        color_source_text = detail_data["color_text"] or item["title"]
+        description = detail_data["description"] or f"Carnage women's crop top: {item['title']}"
+
         crawled_products.append({
             "item_id": create_item_id(item["product_url"]),
             "title": item["title"],
             "category": "top",
             "subcategory": "crop_top",
-            "color": infer_color_from_title(item["title"]),
+            "color": infer_color_from_title(color_source_text),
             "style": ["casual"],
             "brand": "Carnage",
             "price": item["price"],
@@ -194,9 +255,9 @@ def crawl_carnage_crop_tops(max_items=10):
             "image_url": "https://example.com/carnage-placeholder.jpg",
             "product_url": item["product_url"],
             "source": "carnage",
-            "description": f"Carnage women's crop top: {item['title']}",
-            "availability": item["availability"]
-        })
+            "description": description,
+            "availability": item["availability"] and detail_data["availability"]
+    })
 
     return crawled_products
 
