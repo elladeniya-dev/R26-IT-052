@@ -2,7 +2,7 @@ from fastapi import FastAPI
 
 from app.database import engine, Base
 from app.models.product import Product
-from app.routes import product_routes,  recommendation_routes
+from app.routes import product_routes,  recommendation_routes, crawler_routes
 
 Base.metadata.create_all(bind=engine)
 
@@ -14,6 +14,7 @@ app = FastAPI(
 
 app.include_router(product_routes.router)
 app.include_router(recommendation_routes.router)
+app.include_router(crawler_routes.router)
 
 
 @app.get("/")
