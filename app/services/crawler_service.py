@@ -11,6 +11,7 @@ CARNAGE_CROP_TOPS_URL = "https://incarnage.com/collections/womens-crop-tops"
 def save_crawled_products(db, products):
     inserted_count = 0
     skipped_count = 0
+    updated_count = 0
 
     for product_data in products:
         existing_product = db.query(Product).filter(
@@ -18,7 +19,21 @@ def save_crawled_products(db, products):
         ).first()
 
         if existing_product:
-            skipped_count += 1
+            existing_product.title = product_data["title"]
+            existing_product.category = product_data["category"]
+            existing_product.subcategory = product_data["subcategory"]
+            existing_product.color = product_data["color"]
+            existing_product.style = product_data["style"]
+            existing_product.brand = product_data["brand"]
+            existing_product.price = product_data["price"]
+            existing_product.currency = product_data["currency"]
+            existing_product.image_url = product_data["image_url"]
+            existing_product.product_url = product_data["product_url"]
+            existing_product.source = product_data["source"]
+            existing_product.description = product_data["description"]
+            existing_product.availability = product_data["availability"]
+
+            updated_count += 1
             continue
 
         product = Product(**product_data)
@@ -27,11 +42,46 @@ def save_crawled_products(db, products):
 
     db.commit()
 
-    return inserted_count, skipped_count
+    return inserted_count, skipped_count, updated_count
 
 
 def clean_text(text):
     return re.sub(r"\s+", " ", text).strip()
+
+def remove_emojis(text):
+    return re.sub(
+        r"[^\w\s.,/&'()-]",
+        "",
+        text
+    ).strip()
+
+
+def infer_color_from_title(title):
+    title_lower = title.lower()
+
+    color_keywords = {
+        "black": ["black", "jet black"],
+        "white": ["white", "off white"],
+        "brown": ["brown", "mocha"],
+        "grey": ["grey", "gray", "slate grey"],
+        "green": ["green", "olive"],
+        "blue": ["blue", "navy"],
+        "red": ["red"],
+        "pink": ["pink"],
+        "beige": ["beige", "cream"],
+        "purple": ["purple"],
+        "yellow": ["yellow"]
+    }
+
+    matched_colors = []
+
+    for color, keywords in color_keywords.items():
+        for keyword in keywords:
+            if keyword in title_lower:
+                matched_colors.append(color)
+                break
+
+    return matched_colors if matched_colors else ["unknown"]
 
 
 def create_item_id(product_url):
@@ -71,7 +121,7 @@ def extract_title(text):
     # Remove price and everything after first price
     text = re.split(r"LKR\s*[\d,]+(?:\.\d{2})?", text)[0]
 
-    return clean_text(text)
+    return remove_emojis(clean_text(text))
 
 
 def crawl_carnage_crop_tops(max_items=10):
@@ -108,10 +158,13 @@ def crawl_carnage_crop_tops(max_items=10):
         if not title:
             continue
 
+        is_sold_out = "sold out" in text.lower()
+
         product_links.append({
             "title": title,
             "price": price,
-            "product_url": full_url
+            "product_url": full_url,
+            "availability": not is_sold_out
         })
 
     # remove duplicates by product_url
@@ -133,7 +186,7 @@ def crawl_carnage_crop_tops(max_items=10):
             "title": item["title"],
             "category": "top",
             "subcategory": "crop_top",
-            "color": ["unknown"],
+            "color": infer_color_from_title(item["title"]),
             "style": ["casual"],
             "brand": "Carnage",
             "price": item["price"],
@@ -142,7 +195,7 @@ def crawl_carnage_crop_tops(max_items=10):
             "product_url": item["product_url"],
             "source": "carnage",
             "description": f"Carnage women's crop top: {item['title']}",
-            "availability": True
+            "availability": item["availability"]
         })
 
     return crawled_products

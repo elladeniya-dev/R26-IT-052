@@ -21,13 +21,13 @@ def run_crawler(
 ):
     crawled_products = generate_sample_crawled_products(request)
 
-    inserted_count, skipped_count = save_crawled_products(
+    inserted_count, skipped_count, updated_count = save_crawled_products(
         db=db,
         products=crawled_products
     )
 
     return {
-        "message": "Crawler completed successfully",
+        "message": f"Crawler completed successfully. Updated {updated_count} existing products.",
         "inserted_count": inserted_count,
         "skipped_count": skipped_count
     }
