@@ -62,6 +62,8 @@ class TrendObservationCreate(BaseModel):
     rank_position: Optional[int] = None
     collected_at: Optional[datetime] = None
 
+class BulkTrendObservationCreate(BaseModel):
+    observations: List[TrendObservationCreate]
 
 class TrendObservationResponse(TrendObservationCreate):
     observation_id: int

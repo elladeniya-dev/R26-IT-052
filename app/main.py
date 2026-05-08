@@ -133,6 +133,44 @@ def get_all_product_metrics(db: Session = Depends(get_db)):
         "metrics": metrics
     }
 
+@app.post("/trend-observations/bulk")
+def create_bulk_trend_observations(
+    bulk_data: schemas.BulkTrendObservationCreate,
+    db: Session = Depends(get_db)
+):
+    if not bulk_data.observations:
+        raise HTTPException(
+            status_code=400,
+            detail="Observation list cannot be empty"
+        )
+
+    new_observations = []
+
+    for observation in bulk_data.observations:
+        new_observation = models.TrendObservation(
+            source_name=observation.source_name,
+            source_type=observation.source_type,
+            attribute_type=observation.attribute_type,
+            attribute_value=observation.attribute_value,
+            keyword=observation.keyword,
+            mention_count=observation.mention_count,
+            rank_position=observation.rank_position,
+            collected_at=observation.collected_at
+        )
+
+        db.add(new_observation)
+        new_observations.append(new_observation)
+
+    db.commit()
+
+    for observation in new_observations:
+        db.refresh(observation)
+
+    return {
+        "message": "Bulk trend observations inserted successfully",
+        "inserted_count": len(new_observations),
+        "observations": new_observations
+    }
 
 @app.post("/trend-observations/", response_model=schemas.TrendObservationResponse)
 def create_trend_observation(
@@ -186,12 +224,18 @@ def analyze_trends(db: Session = Depends(get_db)):
 
     current_counts = {}
     previous_counts = {}
+    current_ranks = {}
 
     for obs in observations:
         key = (obs.attribute_type.lower(), obs.attribute_value.lower())
 
         if current_start <= obs.collected_at <= current_end:
             current_counts[key] = current_counts.get(key, 0) + obs.mention_count
+
+            if obs.rank_position is not None:
+                if key not in current_ranks:
+                    current_ranks[key] = []
+                current_ranks[key].append(obs.rank_position)
 
         elif previous_start <= obs.collected_at < previous_end:
             previous_counts[key] = previous_counts.get(key, 0) + obs.mention_count
@@ -204,6 +248,15 @@ def analyze_trends(db: Session = Depends(get_db)):
             detail="No observations found in current or previous analysis windows."
         )
 
+    max_current_count = max(current_counts.values()) if current_counts else 1
+
+    # Prevent duplicate trend signals for the same weekly period
+    db.query(models.TrendSignal).filter(
+        models.TrendSignal.time_window == "weekly",
+        models.TrendSignal.start_date == current_start,
+        models.TrendSignal.end_date == current_end
+    ).delete(synchronize_session=False)
+
     analyzed_results = []
 
     for key in all_keys:
@@ -213,17 +266,35 @@ def analyze_trends(db: Session = Depends(get_db)):
         previous_count = previous_counts.get(key, 0)
 
         if previous_count == 0:
-            if current_count > 0:
-                growth_rate = 1.0
-            else:
-                growth_rate = 0.0
+            growth_rate = 1.0 if current_count > 0 else 0.0
         else:
             growth_rate = (current_count - previous_count) / previous_count
 
-        count_score = min(current_count / 100, 1.0)
+        # 1. Growth score
         growth_score = max(min(growth_rate, 1.0), 0.0)
 
-        trend_score = round((0.6 * count_score) + (0.4 * growth_score), 2)
+        # 2. Count score normalized based on highest count in this batch
+        count_score = current_count / max_current_count if max_current_count > 0 else 0.0
+        count_score = max(min(count_score, 1.0), 0.0)
+
+        # 3. Rank score: lower rank_position means stronger trend
+        ranks = current_ranks.get(key, [])
+
+        if ranks:
+            average_rank = sum(ranks) / len(ranks)
+            rank_score = 1 - ((average_rank - 1) / 20)
+            rank_score = max(min(rank_score, 1.0), 0.0)
+        else:
+            average_rank = None
+            rank_score = 0.5
+
+        trend_score = round(
+            (0.50 * growth_score) +
+            (0.30 * count_score) +
+            (0.20 * rank_score),
+            2
+        )
+
         growth_rate = round(growth_rate, 2)
 
         new_signal = models.TrendSignal(
@@ -244,6 +315,10 @@ def analyze_trends(db: Session = Depends(get_db)):
             "current_count": current_count,
             "previous_count": previous_count,
             "growth_rate": growth_rate,
+            "growth_score": round(growth_score, 2),
+            "count_score": round(count_score, 2),
+            "rank_score": round(rank_score, 2),
+            "average_rank": average_rank,
             "trend_score": trend_score,
             "time_window": "weekly",
             "start_date": current_start,
@@ -260,6 +335,7 @@ def analyze_trends(db: Session = Depends(get_db)):
     return {
         "message": "Trend analysis completed successfully",
         "total_trends_analyzed": len(analyzed_results),
+        "formula": "trend_score = 0.50 * growth_score + 0.30 * count_score + 0.20 * rank_score",
         "current_period": {
             "start_date": current_start,
             "end_date": current_end
@@ -279,6 +355,29 @@ def get_all_trends(db: Session = Depends(get_db)):
     ).all()
 
     return {
+        "total_trends": len(trends),
+        "trends": trends
+    }
+
+@app.get("/trends/{attribute_type}")
+def get_trends_by_attribute_type(
+    attribute_type: str,
+    db: Session = Depends(get_db)
+):
+    trends = db.query(models.TrendSignal).filter(
+        models.TrendSignal.attribute_type == attribute_type.lower()
+    ).order_by(
+        models.TrendSignal.trend_score.desc()
+    ).all()
+
+    if not trends:
+        raise HTTPException(
+            status_code=404,
+            detail=f"No trends found for attribute_type: {attribute_type}"
+        )
+
+    return {
+        "attribute_type": attribute_type.lower(),
         "total_trends": len(trends),
         "trends": trends
     }
