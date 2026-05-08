@@ -1,0 +1,146 @@
+# =========================
+# Python / FastAPI Backend
+# =========================
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+
+# Python build files
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Logs
+*.log
+logs/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# ML model files
+*.pkl
+*.joblib
+*.h5
+*.pt
+*.pth
+*.onnx
+
+# Local datasets / generated data
+*.csv
+*.xlsx
+*.xls
+*.json
+*.parquet
+*.sqlite
+*.db
+
+# But allow useful sample/example files if needed
+!sample_*.json
+!sample_*.csv
+!example_*.json
+!example_*.csv
+
+
+# =========================
+# Flutter App
+# =========================
+
+# Flutter/Dart build output
+trend_analysis_app/build/
+trend_analysis_app/.dart_tool/
+trend_analysis_app/.flutter-plugins
+trend_analysis_app/.flutter-plugins-dependencies
+trend_analysis_app/.packages
+trend_analysis_app/pubspec.lock
+
+# Flutter generated files
+trend_analysis_app/android/.gradle/
+trend_analysis_app/android/local.properties
+trend_analysis_app/android/app/debug/
+trend_analysis_app/android/app/profile/
+trend_analysis_app/android/app/release/
+
+# iOS / macOS generated files if created later
+trend_analysis_app/ios/Pods/
+trend_analysis_app/ios/.symlinks/
+trend_analysis_app/ios/Flutter/Flutter.framework
+trend_analysis_app/ios/Flutter/Flutter.podspec
+trend_analysis_app/ios/Flutter/Generated.xcconfig
+trend_analysis_app/ios/Flutter/ephemeral/
+trend_analysis_app/macos/Flutter/ephemeral/
+
+# Web generated files
+trend_analysis_app/web/.dart_tool/
+
+# Android signing files
+*.jks
+*.keystore
+key.properties
+
+
+# =========================
+# IDE / Editor
+# =========================
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# PyCharm / IntelliJ / Android Studio
+.idea/
+*.iml
+
+# But keep shared VS Code settings if you intentionally want them later
+!.vscode/settings.json
+!.vscode/extensions.json
+
+
+# =========================
+# OS Files
+# =========================
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+
+# =========================
+# Docker / Local Runtime
+# =========================
+
+# Docker volumes or local postgres data folders if created
+postgres_data/
+pgdata/
+docker-data/
+
+
+# =========================
+# Misc
+# =========================
+
+*.tmp
+*.bak
+*.swp
