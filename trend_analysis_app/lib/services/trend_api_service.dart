@@ -63,4 +63,17 @@ class TrendApiService {
       );
     }
   }
+    Future<Map<String, dynamic>> analyzeTrends() async {
+    final Uri url = Uri.parse('$baseUrl/trends/analyze');
+
+    final response = await http.get(url);
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    } else {
+      throw Exception(
+        'Failed to analyze trends. Status code: ${response.statusCode}',
+      );
+    }
+  }
 }

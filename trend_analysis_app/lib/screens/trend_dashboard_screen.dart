@@ -86,6 +86,38 @@ class _TrendDashboardScreenState extends State<TrendDashboardScreen> {
   Future<void> _refreshTrends() async {
     _loadTrends(selectedFilter);
   }
+  Future<void> _runTrendAnalysis() async {
+  try {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Running trend analysis...'),
+        backgroundColor: Color(0xFF00796B),
+      ),
+    );
+
+    await _trendApiService.analyzeTrends();
+
+    _loadTrends(selectedFilter);
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Trend analysis completed successfully'),
+        backgroundColor: Color(0xFF00796B),
+      ),
+    );
+  } catch (error) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Failed to analyze trends: $error'),
+        backgroundColor: Color(0xFFFF3045),
+      ),
+    );
+  }
+}
 
   void _openTrendDetails(TrendModel trend) {
     Navigator.push(
@@ -122,6 +154,10 @@ class _TrendDashboardScreenState extends State<TrendDashboardScreen> {
                 const DashboardHeader(),
                 const SizedBox(height: 22),
                 const SearchFilterBar(),
+                const SizedBox(height: 14),
+                RunAnalysisButton(
+                  onTap: _runTrendAnalysis,
+                ),
                 const SizedBox(height: 18),
                 FilterChipsRow(
                   filters: filters,
@@ -309,6 +345,55 @@ class EmptyView extends StatelessWidget {
             color: Color(0xFF7A7A7A),
             fontSize: 15,
           ),
+        ),
+      ),
+    );
+  }
+}
+class RunAnalysisButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const RunAnalysisButton({
+    super.key,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF00796B),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF00796B).withValues(alpha: 0.20),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.auto_graph,
+              color: Colors.white,
+              size: 20,
+            ),
+            SizedBox(width: 8),
+            Text(
+              'Run Trend Analysis',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 15,
+                fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
         ),
       ),
     );
