@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../models/outfit_model.dart';
+import '../screens/outfit_detail_screen.dart';
 
 class OutfitCard extends StatelessWidget {
   final OutfitModel outfit;
@@ -15,33 +16,47 @@ class OutfitCard extends StatelessWidget {
     final int scorePercentage =
         (outfit.compatibilityScore * 100).round().clamp(0, 100);
 
-    return Container(
-      margin: const EdgeInsets.only(bottom: 18),
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withValues(alpha: 0.08),
-            blurRadius: 14,
-            offset: const Offset(0, 7),
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => OutfitDetailScreen(
+              outfit: outfit,
+            ),
           ),
-        ],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _buildHeader(scorePercentage),
-          const SizedBox(height: 14),
-          _buildItemImages(),
-          const SizedBox(height: 14),
-          _buildItemNames(),
-          const SizedBox(height: 14),
-          _buildReasonTags(),
-          const SizedBox(height: 14),
-          _buildScoreBreakdown(),
-        ],
+        );
+      },
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 18),
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(22),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 14,
+              offset: const Offset(0, 7),
+            ),
+          ],
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildHeader(scorePercentage),
+            const SizedBox(height: 14),
+            _buildItemImages(),
+            const SizedBox(height: 14),
+            _buildItemNames(),
+            const SizedBox(height: 14),
+            _buildReasonTags(),
+            const SizedBox(height: 14),
+            _buildScoreBreakdown(),
+            const SizedBox(height: 14),
+            _buildViewDetailsButton(),
+          ],
+        ),
       ),
     );
   }
@@ -271,6 +286,37 @@ class OutfitCard extends StatelessWidget {
               fontWeight: FontWeight.w700,
               color: Color(0xFF111827),
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildViewDetailsButton() {
+    return Container(
+      width: double.infinity,
+      height: 46,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: const Color(0xFF111827),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: const Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Text(
+            'View Outfit Details',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          SizedBox(width: 8),
+          Icon(
+            Icons.arrow_forward_ios,
+            size: 14,
+            color: Colors.white,
           ),
         ],
       ),
