@@ -350,7 +350,36 @@ def analyze_trends(db: Session = Depends(get_db)):
 
 @app.get("/trends")
 def get_all_trends(db: Session = Depends(get_db)):
+    latest_trend = db.query(models.TrendSignal).order_by(
+        models.TrendSignal.end_date.desc()
+    ).first()
+
+    if not latest_trend:
+        return {
+            "total_trends": 0,
+            "trends": []
+        }
+
+    trends = db.query(models.TrendSignal).filter(
+        models.TrendSignal.time_window == latest_trend.time_window,
+        models.TrendSignal.start_date == latest_trend.start_date,
+        models.TrendSignal.end_date == latest_trend.end_date
+    ).order_by(
+        models.TrendSignal.trend_score.desc()
+    ).all()
+
+    return {
+        "time_window": latest_trend.time_window,
+        "start_date": latest_trend.start_date,
+        "end_date": latest_trend.end_date,
+        "total_trends": len(trends),
+        "trends": trends
+    }
+
+@app.get("/trends/history")
+def get_trend_history(db: Session = Depends(get_db)):
     trends = db.query(models.TrendSignal).order_by(
+        models.TrendSignal.end_date.desc(),
         models.TrendSignal.trend_score.desc()
     ).all()
 
@@ -364,8 +393,21 @@ def get_trends_by_attribute_type(
     attribute_type: str,
     db: Session = Depends(get_db)
 ):
+    latest_trend = db.query(models.TrendSignal).order_by(
+        models.TrendSignal.end_date.desc()
+    ).first()
+
+    if not latest_trend:
+        raise HTTPException(
+            status_code=404,
+            detail="No trend data found"
+        )
+
     trends = db.query(models.TrendSignal).filter(
-        models.TrendSignal.attribute_type == attribute_type.lower()
+        models.TrendSignal.attribute_type == attribute_type.lower(),
+        models.TrendSignal.time_window == latest_trend.time_window,
+        models.TrendSignal.start_date == latest_trend.start_date,
+        models.TrendSignal.end_date == latest_trend.end_date
     ).order_by(
         models.TrendSignal.trend_score.desc()
     ).all()
@@ -373,11 +415,14 @@ def get_trends_by_attribute_type(
     if not trends:
         raise HTTPException(
             status_code=404,
-            detail=f"No trends found for attribute_type: {attribute_type}"
+            detail=f"No latest trends found for attribute_type: {attribute_type}"
         )
 
     return {
         "attribute_type": attribute_type.lower(),
+        "time_window": latest_trend.time_window,
+        "start_date": latest_trend.start_date,
+        "end_date": latest_trend.end_date,
         "total_trends": len(trends),
         "trends": trends
     }
