@@ -3,8 +3,10 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/interaction_history_service.dart';
 import 'my_preferences_screen.dart';
 import 'my_learning_profile_screen.dart';
+import 'interaction_history_screen.dart';
 import '../auth/welcome_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -15,6 +17,45 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final InteractionHistoryService _interactionHistoryService =
+      InteractionHistoryService();
+
+  String _selectedCount = '0';
+  String _savedCount = '0';
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileStats();
+  }
+
+  Future<void> _loadProfileStats() async {
+    try {
+      final historyData =
+          await _interactionHistoryService.getInteractionHistory();
+
+      final Map<String, dynamic> stats =
+          Map<String, dynamic>.from(historyData['stats'] ?? {});
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _selectedCount = '${stats['select_count'] ?? 0}';
+        _savedCount = '${stats['save_count'] ?? 0}';
+      });
+    } catch (_) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _selectedCount = '0';
+        _savedCount = '0';
+      });
+    }
+  }
 
   Future<void> _handleLogout(BuildContext context) async {
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
@@ -26,12 +67,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
     }
 
     Navigator.pushAndRemoveUntil(
-  context,
-  MaterialPageRoute(
-    builder: (context) => const WelcomeScreen(),
-  ),
-  (route) => false,
-);
+      context,
+      MaterialPageRoute(
+        builder: (context) => const WelcomeScreen(),
+      ),
+      (route) => false,
+    );
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
@@ -62,47 +103,47 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       profilePicture: user?.profilePicture,
                     ),
                     const SizedBox(height: 20),
-    
                     _buildMenuItem(
-  icon: Icons.tune_rounded,
-  title: 'My Preferences',
-  subtitle: 'Style, colors and fashion preferences',
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const MyPreferencesScreen(),
-      ),
-    );
-  },
-),
-
-
-_buildMenuItem(
-  icon: Icons.psychology_alt_rounded,
-  title: 'My Learning Profile',
-  subtitle: 'Preferences learned from your interactions',
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const MyLearningProfileScreen(),
-      ),
-    );
-  },
-),
+                      icon: Icons.tune_rounded,
+                      title: 'My Preferences',
+                      subtitle: 'Style, colors and fashion preferences',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => const MyPreferencesScreen(),
+                          ),
+                        );
+                      },
+                    ),
+                    _buildMenuItem(
+                      icon: Icons.psychology_alt_rounded,
+                      title: 'My Learning Profile',
+                      subtitle: 'Preferences learned from your interactions',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const MyLearningProfileScreen(),
+                          ),
+                        );
+                      },
+                    ),
                     _buildMenuItem(
                       icon: Icons.history_rounded,
                       title: 'Interaction History',
-                      subtitle: 'Viewed, selected and saved fashion items',
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Interaction history will be added later.',
-                            ),
+                      subtitle: 'Clicked, selected and saved fashion items',
+                      onTap: () async {
+                        await Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const InteractionHistoryScreen(),
                           ),
                         );
+
+                        _loadProfileStats();
                       },
                     ),
                     _buildMenuItem(
@@ -207,10 +248,10 @@ _buildMenuItem(
               CircleAvatar(
                 radius: 33,
                 backgroundColor: Colors.white.withOpacity(0.18),
-                backgroundImage: profilePicture != null &&
-                        profilePicture.isNotEmpty
-                    ? NetworkImage(profilePicture)
-                    : null,
+                backgroundImage:
+                    profilePicture != null && profilePicture.isNotEmpty
+                        ? NetworkImage(profilePicture)
+                        : null,
                 child: profilePicture == null || profilePicture.isEmpty
                     ? const Icon(
                         Icons.person_rounded,
@@ -274,25 +315,25 @@ _buildMenuItem(
             thickness: 1,
           ),
           const SizedBox(height: 16),
-          const Row(
+          Row(
             children: [
-              Expanded(
+              const Expanded(
                 child: _ProfileStat(
                   value: '6',
                   label: 'Preferences',
                 ),
               ),
-              _VerticalDivider(),
+              const _VerticalDivider(),
               Expanded(
                 child: _ProfileStat(
-                  value: '0',
-                  label: 'Viewed',
+                  value: _selectedCount,
+                  label: 'Selected',
                 ),
               ),
-              _VerticalDivider(),
+              const _VerticalDivider(),
               Expanded(
                 child: _ProfileStat(
-                  value: '0',
+                  value: _savedCount,
                   label: 'Saved',
                 ),
               ),

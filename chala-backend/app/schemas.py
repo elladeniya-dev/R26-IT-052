@@ -1,5 +1,6 @@
 from pydantic import BaseModel, EmailStr
 from typing import List, Optional, Dict, Any
+from datetime import datetime
 
 
 class GoogleLoginRequest(BaseModel):
@@ -87,4 +88,32 @@ class InteractionResponse(BaseModel):
 
 
 
+class InteractionHistoryItem(BaseModel):
+    interaction_id: int
+    item_id: str
+    interaction_type: str
+    interaction_value: float
+    created_at: datetime
+
+    product_name: Optional[str] = None
+    category: Optional[str] = None
+    color: Optional[List[str]] = None
+    style: Optional[List[str]] = None
+    brand: Optional[str] = None
+    image_url: Optional[str] = None
+    product_url: Optional[str] = None
+
+
+class InteractionStatsResponse(BaseModel):
+    total_interactions: int
+    view_count: int
+    click_count: int
+    save_count: int
+    select_count: int
+    dislike_count: int
+
+
+class InteractionHistoryResponse(BaseModel):
+    stats: InteractionStatsResponse
+    interactions: List[InteractionHistoryItem]
 
