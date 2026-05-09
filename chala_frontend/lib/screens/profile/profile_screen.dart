@@ -4,6 +4,7 @@ import 'package:provider/provider.dart';
 import '../../core/theme.dart';
 import '../../providers/auth_provider.dart';
 import 'my_preferences_screen.dart';
+import 'my_learning_profile_screen.dart';
 import '../auth/welcome_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -71,6 +72,21 @@ class _ProfileScreenState extends State<ProfileScreen> {
       context,
       MaterialPageRoute(
         builder: (context) => const MyPreferencesScreen(),
+      ),
+    );
+  },
+),
+
+
+_buildMenuItem(
+  icon: Icons.psychology_alt_rounded,
+  title: 'My Learning Profile',
+  subtitle: 'Preferences learned from your interactions',
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const MyLearningProfileScreen(),
       ),
     );
   },

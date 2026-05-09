@@ -1,37 +1,46 @@
 import 'package:flutter/material.dart';
 
 import '../../core/theme.dart';
+import '../../services/interaction_service.dart';
+import '../../services/learning_service.dart';
 import '../profile/profile_screen.dart';
 
 class HomeScreen extends StatelessWidget {
-  const HomeScreen({super.key});
+  HomeScreen({super.key});
 
-  final List<Map<String, String>> _recommendedItems = const [
-    {
-      'title': 'White Cotton T-Shirt',
-      'price': 'LKR 3,500',
-      'tag': 'Casual',
-      'rating': '4.8',
-    },
-    {
-      'title': 'Grey Hoodie',
-      'price': 'LKR 6,900',
-      'tag': 'Comfort',
-      'rating': '4.7',
-    },
-    {
-      'title': 'Blue Denim Jeans',
-      'price': 'LKR 7,500',
-      'tag': 'Trendy',
-      'rating': '4.6',
-    },
-    {
-      'title': 'Black Blazer',
-      'price': 'LKR 12,000',
-      'tag': 'Formal',
-      'rating': '4.9',
-    },
-  ];
+  final InteractionService _interactionService = InteractionService();
+  final LearningService _learningService = LearningService();
+
+  final List<Map<String, dynamic>> _recommendedItems = const [
+  {
+    'itemId': 'P001',
+    'title': 'White Cotton T-Shirt',
+    'price': 'LKR 3,500',
+    'tag': 'Casual',
+    'rating': '4.8',
+  },
+  {
+    'itemId': 'P002',
+    'title': 'Grey Hoodie',
+    'price': 'LKR 6,900',
+    'tag': 'Comfort',
+    'rating': '4.7',
+  },
+  {
+    'itemId': 'P003',
+    'title': 'Blue Denim Jeans',
+    'price': 'LKR 7,500',
+    'tag': 'Trendy',
+    'rating': '4.6',
+  },
+  {
+    'itemId': 'P004',
+    'title': 'Black Blazer',
+    'price': 'LKR 12,000',
+    'tag': 'Formal',
+    'rating': '4.9',
+  },
+];
 
   final List<Map<String, dynamic>> _styleCategories = const [
     {
@@ -55,6 +64,45 @@ class HomeScreen extends StatelessWidget {
       'icon': Icons.directions_run,
     },
   ];
+
+  Future<void> _handleInteraction({
+  required BuildContext context,
+  required String itemId,
+  required String interactionType,
+}) async {
+  try {
+    await _interactionService.sendInteraction(
+      itemId: itemId,
+      interactionType: interactionType,
+    );
+
+    final learningResponse =
+        await _learningService.updateLearningPreferences();
+
+    final String learningMessage =
+        learningResponse['message'] ?? 'Learning updated successfully';
+
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          '$interactionType interaction saved. $learningMessage',
+        ),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  } catch (e) {
+    if (!context.mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(e.toString()),
+        duration: const Duration(seconds: 3),
+      ),
+    );
+  }
+}
 
   @override
   Widget build(BuildContext context) {
@@ -130,21 +178,20 @@ class HomeScreen extends StatelessWidget {
           ),
         ),
         IconButton(
-  onPressed: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const ProfileScreen(),
-      ),
-    );
-  },
-  icon: const Icon(
-    Icons.person_outline_rounded,
-    color: AppTheme.darkTextColor,
-    size: 26,
-  ),
-),
-
+          onPressed: () {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (context) => const ProfileScreen(),
+              ),
+            );
+          },
+          icon: const Icon(
+            Icons.person_outline_rounded,
+            color: AppTheme.darkTextColor,
+            size: 26,
+          ),
+        ),
       ],
     );
   }
@@ -310,28 +357,36 @@ class HomeScreen extends StatelessWidget {
   }
 
   Widget _buildRecommendedGrid() {
-  return GridView.builder(
-    itemCount: _recommendedItems.length,
-    shrinkWrap: true,
-    physics: const NeverScrollableScrollPhysics(),
-    gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-      crossAxisCount: 2,
-      crossAxisSpacing: 14,
-      mainAxisSpacing: 14,
-      mainAxisExtent: 285,
-    ),
-    itemBuilder: (context, index) {
-      final item = _recommendedItems[index];
+    return GridView.builder(
+      itemCount: _recommendedItems.length,
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 14,
+        mainAxisSpacing: 14,
+        mainAxisExtent: 330,
+      ),
+      itemBuilder: (context, index) {
+        final item = _recommendedItems[index];
 
-      return _ProductCard(
-        title: item['title']!,
-        price: item['price']!,
-        tag: item['tag']!,
-        rating: item['rating']!,
-      );
-    },
-  );
-}
+        return _ProductCard(
+          itemId: item['itemId'],
+          title: item['title'],
+          price: item['price'],
+          tag: item['tag'],
+          rating: item['rating'],
+          onInteraction: (interactionType) {
+            _handleInteraction(
+              context: context,
+              itemId: item['itemId'],
+              interactionType: interactionType,
+            );
+          },
+        );
+      },
+    );
+  }
 
   Widget _buildBottomNavigation(BuildContext context) {
     return Container(
@@ -365,20 +420,20 @@ class HomeScreen extends StatelessWidget {
             isActive: false,
           ),
           GestureDetector(
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => const ProfileScreen(),
-      ),
-    );
-  },
-  child: _buildNavItem(
-    icon: Icons.person_outline_rounded,
-    label: 'Profile',
-    isActive: false,
-  ),
-),
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => const ProfileScreen(),
+                ),
+              );
+            },
+            child: _buildNavItem(
+              icon: Icons.person_outline_rounded,
+              label: 'Profile',
+              isActive: false,
+            ),
+          ),
         ],
       ),
     );
@@ -437,16 +492,20 @@ class _BannerButton extends StatelessWidget {
 }
 
 class _ProductCard extends StatelessWidget {
+  final String itemId;
   final String title;
   final String price;
   final String tag;
   final String rating;
+  final void Function(String interactionType) onInteraction;
 
   const _ProductCard({
+    required this.itemId,
     required this.title,
     required this.price,
     required this.tag,
     required this.rating,
+    required this.onInteraction,
   });
 
   @override
@@ -463,45 +522,62 @@ class _ProductCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Container(
-            height: 110,
-            width: double.infinity,
-            decoration: BoxDecoration(
-              color: AppTheme.primaryColor.withOpacity(0.10),
-              borderRadius: const BorderRadius.vertical(
-                top: Radius.circular(18),
+          GestureDetector(
+            onTap: () {
+              onInteraction('click');
+            },
+            child: Container(
+              height: 105,
+              width: double.infinity,
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withOpacity(0.10),
+                borderRadius: const BorderRadius.vertical(
+                  top: Radius.circular(18),
+                ),
               ),
-            ),
-            child: const Icon(
-              Icons.checkroom,
-              color: AppTheme.primaryColor,
-              size: 54,
+              child: const Icon(
+                Icons.checkroom,
+                color: AppTheme.primaryColor,
+                size: 52,
+              ),
             ),
           ),
           Padding(
-            padding: const EdgeInsets.fromLTRB(12, 12, 12, 10),
+            padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 9,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withOpacity(0.10),
-                    borderRadius: BorderRadius.circular(20),
-                  ),
-                  child: Text(
-                    tag,
-                    style: const TextStyle(
-                      color: AppTheme.primaryColor,
-                      fontSize: 11,
-                      fontWeight: FontWeight.bold,
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 9,
+                        vertical: 4,
+                      ),
+                      decoration: BoxDecoration(
+                        color: AppTheme.primaryColor.withOpacity(0.10),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        tag,
+                        style: const TextStyle(
+                          color: AppTheme.primaryColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
                     ),
-                  ),
+                    const Spacer(),
+                    Text(
+                      '#$itemId',
+                      style: const TextStyle(
+                        fontSize: 10,
+                        color: AppTheme.lightTextColor,
+                      ),
+                    ),
+                  ],
                 ),
-                const SizedBox(height: 9),
+                const SizedBox(height: 8),
                 Text(
                   title,
                   maxLines: 2,
@@ -548,7 +624,7 @@ class _ProductCard extends StatelessWidget {
                   height: 32,
                   child: OutlinedButton(
                     onPressed: () {
-                      // Later this will open the original product website URL.
+                      onInteraction('click');
                     },
                     style: OutlinedButton.styleFrom(
                       foregroundColor: AppTheme.primaryColor,
@@ -568,6 +644,55 @@ class _ProductCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                const SizedBox(height: 8),
+                Row(
+                  children: [
+                    Expanded(
+                      child: _SmallActionButton(
+                        icon: Icons.bookmark_border_rounded,
+                        label: 'Save',
+                        onTap: () {
+                          onInteraction('save');
+                        },
+                      ),
+                    ),
+                    const SizedBox(width: 7),
+                    Expanded(
+                      child: _SmallActionButton(
+                        icon: Icons.check_circle_outline_rounded,
+                        label: 'Select',
+                        onTap: () {
+                          onInteraction('select');
+                        },
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 7),
+                SizedBox(
+                  width: double.infinity,
+                  height: 30,
+                  child: TextButton.icon(
+                    onPressed: () {
+                      onInteraction('dislike');
+                    },
+                    icon: const Icon(
+                      Icons.thumb_down_alt_outlined,
+                      size: 15,
+                    ),
+                    label: const Text(
+                      'Dislike',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    style: TextButton.styleFrom(
+                      foregroundColor: Colors.redAccent,
+                      padding: EdgeInsets.zero,
+                    ),
+                  ),
+                ),
               ],
             ),
           ),
@@ -577,5 +702,45 @@ class _ProductCard extends StatelessWidget {
   }
 }
 
+class _SmallActionButton extends StatelessWidget {
+  final IconData icon;
+  final String label;
+  final VoidCallback onTap;
 
+  const _SmallActionButton({
+    required this.icon,
+    required this.label,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 30,
+      child: ElevatedButton.icon(
+        onPressed: onTap,
+        icon: Icon(
+          icon,
+          size: 14,
+        ),
+        label: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 10,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: AppTheme.primaryColor,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(horizontal: 4),
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(18),
+          ),
+        ),
+      ),
+    );
+  }
+}
 
