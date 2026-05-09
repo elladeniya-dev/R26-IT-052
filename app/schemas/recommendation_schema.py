@@ -20,6 +20,7 @@ class RecommendedProduct(BaseModel):
     color: List[str]
     style: List[str]
     brand: Optional[str] = None
+    source: str
     price: Optional[float] = None
     image_url: str
     product_url: str

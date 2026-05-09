@@ -185,6 +185,7 @@ def generate_recommendations(db, request):
                 "color": product.color,
                 "style": product.style,
                 "brand": product.brand,
+                "source": product.source,
                 "price": product.price,
                 "image_url": product.image_url,
                 "product_url": product.product_url,
