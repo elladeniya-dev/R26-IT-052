@@ -29,8 +29,6 @@ class OnboardingRequest(BaseModel):
     preferred_categories: List[str]
     preferred_colors: List[str]
     preferred_styles: List[str]
-    price_min: Optional[float] = None
-    price_max: Optional[float] = None
     occasions: List[str]
     preferred_patterns: Optional[List[str]] = None
     extra_preferences: Optional[Dict[str, Any]] = None
@@ -42,8 +40,6 @@ class OnboardingResponse(BaseModel):
     preferred_categories: List[str]
     preferred_colors: List[str]
     preferred_styles: List[str]
-    price_min: Optional[float] = None
-    price_max: Optional[float] = None
     occasions: List[str]
     preferred_patterns: Optional[List[str]] = None
     extra_preferences: Optional[Dict[str, Any]] = None

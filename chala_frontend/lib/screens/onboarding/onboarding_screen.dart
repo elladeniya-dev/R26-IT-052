@@ -14,6 +14,8 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final OnboardingService _onboardingService = OnboardingService();
 
+  static const int _totalSteps = 5;
+
   int _currentStep = 0;
   bool _isSubmitting = false;
 
@@ -22,7 +24,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final Set<String> _selectedStyles = {};
   final Set<String> _selectedOccasions = {};
   final Set<String> _selectedPatterns = {};
-  String? _selectedBudget;
 
   final List<String> _categories = [
     'Tops',
@@ -82,14 +83,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     'Special events',
   ];
 
-  final List<String> _budgets = [
-    'Below 2,000 LKR',
-    '2,000 - 5,000 LKR',
-    '5,000 - 10,000 LKR',
-    '10,000 - 20,000 LKR',
-    'Above 20,000 LKR',
-  ];
-
   final List<String> _patterns = [
     'Plain / solid',
     'Floral',
@@ -112,8 +105,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       case 3:
         return _selectedOccasions.isNotEmpty;
       case 4:
-        return _selectedBudget != null;
-      case 5:
         return _selectedPatterns.isNotEmpty;
       default:
         return false;
@@ -131,8 +122,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       case 3:
         return 'What occasions do you dress for?';
       case 4:
-        return 'What is your usual budget range?';
-      case 5:
         return 'What patterns do you prefer?';
       default:
         return '';
@@ -150,8 +139,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       case 3:
         return _occasions;
       case 4:
-        return _budgets;
-      case 5:
         return _patterns;
       default:
         return [];
@@ -168,7 +155,7 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         return _selectedStyles;
       case 3:
         return _selectedOccasions;
-      case 5:
+      case 4:
         return _selectedPatterns;
       default:
         return {};
@@ -177,11 +164,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
 
   void _toggleOption(String option) {
     setState(() {
-      if (_currentStep == 4) {
-        _selectedBudget = option;
-        return;
-      }
-
       final selectedSet = _currentSelectedSet;
 
       if (selectedSet.contains(option)) {
@@ -193,74 +175,77 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   bool _isSelected(String option) {
-    if (_currentStep == 4) {
-      return _selectedBudget == option;
-    }
-
     return _currentSelectedSet.contains(option);
   }
 
-  Future<void> _goNext() async {
-  if (!_canGoNext || _isSubmitting) {
-    return;
-  }
-
-  if (_currentStep < 5) {
-    setState(() {
-      _currentStep++;
-    });
-    return;
-  }
-
-  setState(() {
-    _isSubmitting = true;
-  });
-
-  try {
-    await _onboardingService.submitOnboarding(
-      preferredCategories: _selectedCategories.toList(),
-      preferredColors: _selectedColors.toList(),
-      preferredStyles: _selectedStyles.toList(),
-      occasions: _selectedOccasions.toList(),
-      budgetRange: _selectedBudget!,
-      preferredPatterns: _selectedPatterns.toList(),
-    );
-
-    if (!mounted) {
-      return;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-  const SnackBar(
-    content: Text('Preferences saved successfully.'),
-  ),
-);
-
-Navigator.pushReplacement(
-  context,
-  MaterialPageRoute(
-    builder: (context) => HomeScreen(),
-  ),
-);
-
-  } catch (e) {
-    if (!mounted) {
-      return;
-    }
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(e.toString()),
+  void _skipOnboarding() {
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) => HomeScreen(),
       ),
     );
-  } finally {
-    if (mounted) {
+  }
+
+  Future<void> _goNext() async {
+    if (!_canGoNext || _isSubmitting) {
+      return;
+    }
+
+    if (_currentStep < _totalSteps - 1) {
       setState(() {
-        _isSubmitting = false;
+        _currentStep++;
       });
+      return;
+    }
+
+    setState(() {
+      _isSubmitting = true;
+    });
+
+    try {
+      await _onboardingService.submitOnboarding(
+        preferredCategories: _selectedCategories.toList(),
+        preferredColors: _selectedColors.toList(),
+        preferredStyles: _selectedStyles.toList(),
+        occasions: _selectedOccasions.toList(),
+        preferredPatterns: _selectedPatterns.toList(),
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Preferences saved successfully.'),
+        ),
+      );
+
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (context) => HomeScreen(),
+        ),
+      );
+    } catch (e) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(e.toString()),
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmitting = false;
+        });
+      }
     }
   }
-}
 
   void _goBack() {
     if (_currentStep == 0) {
@@ -277,7 +262,7 @@ Navigator.pushReplacement(
     final options = _currentOptions;
 
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppTheme.backgroundColor,
       body: SafeArea(
         child: Column(
           children: [
@@ -314,6 +299,8 @@ Navigator.pushReplacement(
   }
 
   Widget _buildHeader() {
+    final bool showSkip = _currentStep == 0;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(12, 12, 18, 8),
       child: Row(
@@ -335,6 +322,19 @@ Navigator.pushReplacement(
               color: AppTheme.darkTextColor,
             ),
           ),
+          const Spacer(),
+          if (showSkip)
+            TextButton(
+              onPressed: _skipOnboarding,
+              child: const Text(
+                'Skip',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
+                  color: AppTheme.primaryColor,
+                ),
+              ),
+            ),
         ],
       ),
     );
@@ -347,14 +347,14 @@ Navigator.pushReplacement(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: List.generate(6, (index) {
+            children: List.generate(_totalSteps, (index) {
               final bool isActive = index <= _currentStep;
 
               return Expanded(
                 child: Container(
                   height: 4,
                   margin: EdgeInsets.only(
-                    right: index == 5 ? 0 : 5,
+                    right: index == _totalSteps - 1 ? 0 : 5,
                   ),
                   decoration: BoxDecoration(
                     color: isActive
@@ -368,7 +368,7 @@ Navigator.pushReplacement(
           ),
           const SizedBox(height: 10),
           Text(
-            'Step ${_currentStep + 1} of 6',
+            'Step ${_currentStep + 1} of $_totalSteps',
             style: const TextStyle(
               fontSize: 13,
               color: AppTheme.lightTextColor,
@@ -456,35 +456,34 @@ Navigator.pushReplacement(
               borderRadius: BorderRadius.circular(28),
             ),
           ),
-          
           child: _isSubmitting
-    ? const SizedBox(
-        width: 22,
-        height: 22,
-        child: CircularProgressIndicator(
-          strokeWidth: 2.4,
-          color: Colors.white,
-        ),
-      )
-    : Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            _currentStep == 5 ? 'Finish' : 'Next',
-            style: const TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Icon(
-            _currentStep == 5
-                ? Icons.check_rounded
-                : Icons.arrow_forward_ios_rounded,
-            size: 16,
-          ),
-        ],
-      ),
+              ? const SizedBox(
+                  width: 22,
+                  height: 22,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2.4,
+                    color: Colors.white,
+                  ),
+                )
+              : Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      _currentStep == _totalSteps - 1 ? 'Finish' : 'Next',
+                      style: const TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Icon(
+                      _currentStep == _totalSteps - 1
+                          ? Icons.check_rounded
+                          : Icons.arrow_forward_ios_rounded,
+                      size: 16,
+                    ),
+                  ],
+                ),
         ),
       ),
     );

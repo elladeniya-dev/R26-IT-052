@@ -63,17 +63,6 @@ class ProfilePreferencesSection extends StatelessWidget {
     final List<String> patterns =
         List<String>.from(onboarding['preferred_patterns'] ?? []);
 
-    final dynamic priceMin = onboarding['price_min'];
-    final dynamic priceMax = onboarding['price_max'];
-
-    String budgetText = 'Not selected';
-
-    if (priceMin != null && priceMax != null) {
-      budgetText = 'LKR $priceMin - LKR $priceMax';
-    } else if (priceMin != null && priceMax == null) {
-      budgetText = 'Above LKR $priceMin';
-    }
-
     return _buildContainer(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -106,27 +95,6 @@ class ProfilePreferencesSection extends StatelessWidget {
           _PreferenceGroup(
             title: 'Patterns',
             values: patterns,
-          ),
-          const SizedBox(height: 8),
-          Row(
-            children: [
-              const Icon(
-                Icons.payments_outlined,
-                size: 18,
-                color: AppTheme.primaryColor,
-              ),
-              const SizedBox(width: 8),
-              Expanded(
-                child: Text(
-                  'Budget: $budgetText',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    color: AppTheme.darkTextColor,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-            ],
           ),
         ],
       ),

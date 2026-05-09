@@ -122,8 +122,6 @@ def save_onboarding_preferences(
         existing_preferences.preferred_categories = request.preferred_categories
         existing_preferences.preferred_colors = request.preferred_colors
         existing_preferences.preferred_styles = request.preferred_styles
-        existing_preferences.price_min = request.price_min
-        existing_preferences.price_max = request.price_max
         existing_preferences.occasions = request.occasions
         existing_preferences.preferred_patterns = request.preferred_patterns
         existing_preferences.extra_preferences = request.extra_preferences
@@ -138,8 +136,8 @@ def save_onboarding_preferences(
         preferred_categories=request.preferred_categories,
         preferred_colors=request.preferred_colors,
         preferred_styles=request.preferred_styles,
-        price_min=request.price_min,
-        price_max=request.price_max,
+        price_min=None,
+        price_max=None,
         occasions=request.occasions,
         preferred_patterns=request.preferred_patterns,
         extra_preferences=request.extra_preferences

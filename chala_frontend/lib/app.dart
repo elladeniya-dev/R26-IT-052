@@ -9,7 +9,7 @@ class SmartFashionApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Smart Fashion Assistant',
+      title: 'OutfitIQ',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       home: const WelcomeScreen(),

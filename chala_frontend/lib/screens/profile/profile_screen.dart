@@ -98,7 +98,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 child: Column(
                   children: [
                     _buildProfileCard(
-                      fullName: user?.fullName ?? 'Wearify User',
+                      fullName: user?.fullName ?? 'OutfitIQ User',
                       email: user?.email ?? 'No email available',
                       profilePicture: user?.profilePicture,
                     ),
@@ -319,7 +319,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               const Expanded(
                 child: _ProfileStat(
-                  value: '6',
+                  value: '5',
                   label: 'Preferences',
                 ),
               ),

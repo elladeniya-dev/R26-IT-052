@@ -76,7 +76,7 @@ class WelcomeScreen extends StatelessWidget {
                       ),
                       const SizedBox(width: 10),
                       const Text(
-                        'Wearify',
+                        'OutfitIQ',
                         style: TextStyle(
                           color: Colors.white,
                           fontSize: 21,

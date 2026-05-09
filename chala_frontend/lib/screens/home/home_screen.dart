@@ -159,7 +159,7 @@ class HomeScreen extends StatelessWidget {
         ),
         const SizedBox(width: 10),
         const Text(
-          'Wearify',
+          'OutfitIQ',
           style: TextStyle(
             fontSize: 21,
             fontWeight: FontWeight.bold,

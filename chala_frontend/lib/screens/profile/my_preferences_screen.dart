@@ -152,7 +152,7 @@ class _MyPreferencesScreenState extends State<MyPreferencesScreen> {
                 ),
                 SizedBox(height: 5),
                 Text(
-                  'These preferences help Wearify personalize fashion recommendations for you.',
+                  'These preferences help OutfitIQ personalize fashion recommendations for you.',
                   style: TextStyle(
                     fontSize: 13,
                     height: 1.4,
