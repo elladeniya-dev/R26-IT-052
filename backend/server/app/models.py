@@ -43,6 +43,8 @@ class OutfitSuggestion(Base):
     compatibility_score = Column(Float, nullable=False)
     reason_tags = Column(JSON, nullable=True)
 
+    is_saved = Column(Boolean, default=False, index=True)
+
     generated_at = Column(DateTime(timezone=True), server_default=func.now())
 
     items = relationship(
