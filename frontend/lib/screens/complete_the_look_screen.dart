@@ -4,6 +4,7 @@ import '../models/outfit_model.dart';
 import '../models/product_model.dart';
 import '../services/outfit_api_service.dart';
 import '../widgets/outfit_card.dart';
+import 'saved_outfits_screen.dart';
 
 class CompleteTheLookScreen extends StatefulWidget {
   final ProductModel selectedProduct;
@@ -206,9 +207,27 @@ class _CompleteTheLookScreenState extends State<CompleteTheLookScreen> {
               ),
             ),
           ),
-          IconButton(
-            onPressed: _generateOutfits,
-            icon: const Icon(Icons.refresh),
+          Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              IconButton(
+                tooltip: 'Saved Outfits',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const SavedOutfitsScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.favorite),
+              ),
+              IconButton(
+                tooltip: 'Refresh Outfits',
+                onPressed: _generateOutfits,
+                icon: const Icon(Icons.refresh),
+              ),
+            ],
           ),
         ],
       ),

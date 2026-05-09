@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../models/product_model.dart';
 import '../widgets/product_card.dart';
 import 'product_detail_screen.dart';
+import 'saved_outfits_screen.dart';
 
 class ProductListScreen extends StatelessWidget {
   const ProductListScreen({super.key});
@@ -66,6 +67,15 @@ class ProductListScreen extends StatelessWidget {
     ),
   ];
 
+  void _openSavedOutfits(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const SavedOutfitsScreen(),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -84,11 +94,20 @@ class ProductListScreen extends StatelessWidget {
         actions: [
           IconButton(
             onPressed: () {},
-            icon: const Icon(Icons.search, color: Color(0xFF111827)),
+            icon: const Icon(
+              Icons.search,
+              color: Color(0xFF111827),
+            ),
           ),
           IconButton(
-            onPressed: () {},
-            icon: const Icon(Icons.favorite_border, color: Color(0xFF111827)),
+            tooltip: 'Saved Outfits',
+            onPressed: () {
+              _openSavedOutfits(context);
+            },
+            icon: const Icon(
+              Icons.favorite_border,
+              color: Color(0xFF111827),
+            ),
           ),
         ],
       ),

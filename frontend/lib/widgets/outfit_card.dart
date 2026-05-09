@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 
 import '../models/outfit_model.dart';
 import '../screens/outfit_detail_screen.dart';
+import '../services/saved_outfit_api_service.dart';
 
-class OutfitCard extends StatelessWidget {
+class OutfitCard extends StatefulWidget {
   final OutfitModel outfit;
 
   const OutfitCard({
@@ -12,35 +13,91 @@ class OutfitCard extends StatelessWidget {
   });
 
   @override
+  State<OutfitCard> createState() => _OutfitCardState();
+}
+
+class _OutfitCardState extends State<OutfitCard> {
+  final SavedOutfitApiService _savedOutfitApiService = SavedOutfitApiService();
+
+  bool _isSaving = false;
+  bool _isSaved = false;
+
+  Future<void> _saveOutfit() async {
+    if (_isSaving || _isSaved) {
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      final response = await _savedOutfitApiService.saveOutfit(
+        outfitId: widget.outfit.outfitId,
+      );
+
+      setState(() {
+        _isSaved = true;
+      });
+
+      _showSnackBar(response.message);
+    } catch (error) {
+      _showSnackBar(error.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
+  }
+
+  void _openOutfitDetails() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => OutfitDetailScreen(
+          outfit: widget.outfit,
+        ),
+      ),
+    );
+  }
+
+  void _showSnackBar(String message) {
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
     final int scorePercentage =
-        (outfit.compatibilityScore * 100).round().clamp(0, 100);
+        (widget.outfit.compatibilityScore * 100).round().clamp(0, 100);
 
-    return GestureDetector(
-      onTap: () {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (context) => OutfitDetailScreen(
-              outfit: outfit,
-            ),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 18),
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.08),
+            blurRadius: 14,
+            offset: const Offset(0, 7),
           ),
-        );
-      },
-      child: Container(
-        margin: const EdgeInsets.only(bottom: 18),
-        padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(22),
-          boxShadow: [
-            BoxShadow(
-              color: Colors.black.withValues(alpha: 0.08),
-              blurRadius: 14,
-              offset: const Offset(0, 7),
-            ),
-          ],
-        ),
+        ],
+      ),
+      child: InkWell(
+        onTap: _openOutfitDetails,
+        borderRadius: BorderRadius.circular(22),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -54,7 +111,17 @@ class OutfitCard extends StatelessWidget {
             const SizedBox(height: 14),
             _buildScoreBreakdown(),
             const SizedBox(height: 14),
-            _buildViewDetailsButton(),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildSaveButton(),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: _buildViewDetailsButton(),
+                ),
+              ],
+            ),
           ],
         ),
       ),
@@ -94,7 +161,7 @@ class OutfitCard extends StatelessWidget {
   }
 
   Widget _buildItemImages() {
-    if (outfit.items.isEmpty) {
+    if (widget.outfit.items.isEmpty) {
       return Container(
         height: 120,
         alignment: Alignment.center,
@@ -113,10 +180,10 @@ class OutfitCard extends StatelessWidget {
       height: 125,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
-        itemCount: outfit.items.length,
+        itemCount: widget.outfit.items.length,
         separatorBuilder: (context, index) => const SizedBox(width: 12),
         itemBuilder: (context, index) {
-          final item = outfit.items[index];
+          final item = widget.outfit.items[index];
 
           return SizedBox(
             width: 105,
@@ -165,7 +232,7 @@ class OutfitCard extends StatelessWidget {
   }
 
   Widget _buildItemNames() {
-    final names = outfit.items.map((item) => item.title).join(' + ');
+    final names = widget.outfit.items.map((item) => item.title).join(' + ');
 
     return Text(
       names.isEmpty ? 'No item names available' : names,
@@ -179,14 +246,14 @@ class OutfitCard extends StatelessWidget {
   }
 
   Widget _buildReasonTags() {
-    if (outfit.reasonTags.isEmpty) {
+    if (widget.outfit.reasonTags.isEmpty) {
       return const SizedBox.shrink();
     }
 
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: outfit.reasonTags.map((reason) {
+      children: widget.outfit.reasonTags.map((reason) {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
           decoration: BoxDecoration(
@@ -228,19 +295,19 @@ class OutfitCard extends StatelessWidget {
           const SizedBox(height: 10),
           _buildScoreRow(
             'Style',
-            outfit.scoreBreakdown.styleMatchScore,
+            widget.outfit.scoreBreakdown.styleMatchScore,
           ),
           _buildScoreRow(
             'Color',
-            outfit.scoreBreakdown.colorMatchScore,
+            widget.outfit.scoreBreakdown.colorMatchScore,
           ),
           _buildScoreRow(
             'Category',
-            outfit.scoreBreakdown.categoryMatchScore,
+            widget.outfit.scoreBreakdown.categoryMatchScore,
           ),
           _buildScoreRow(
             'Occasion',
-            outfit.scoreBreakdown.occasionMatchScore,
+            widget.outfit.scoreBreakdown.occasionMatchScore,
           ),
         ],
       ),
@@ -292,33 +359,70 @@ class OutfitCard extends StatelessWidget {
     );
   }
 
-  Widget _buildViewDetailsButton() {
-    return Container(
-      width: double.infinity,
+  Widget _buildSaveButton() {
+    return SizedBox(
       height: 46,
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        color: const Color(0xFF111827),
-        borderRadius: BorderRadius.circular(16),
+      child: ElevatedButton.icon(
+        onPressed: _isSaving || _isSaved ? null : _saveOutfit,
+        icon: _isSaving
+            ? const SizedBox(
+                width: 17,
+                height: 17,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.2,
+                  color: Colors.white,
+                ),
+              )
+            : Icon(
+                _isSaved ? Icons.favorite : Icons.favorite_border,
+              ),
+        label: Text(
+          _isSaving
+              ? 'Saving...'
+              : _isSaved
+                  ? 'Saved'
+                  : 'Save',
+          style: const TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF111827),
+          disabledBackgroundColor: _isSaved
+              ? const Color(0xFF16A34A)
+              : const Color(0xFF6B7280),
+          foregroundColor: Colors.white,
+          disabledForegroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
       ),
-      child: const Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            'View Outfit Details',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 14,
-              fontWeight: FontWeight.w900,
-            ),
+    );
+  }
+
+  Widget _buildViewDetailsButton() {
+    return SizedBox(
+      height: 46,
+      child: OutlinedButton.icon(
+        onPressed: _openOutfitDetails,
+        icon: const Icon(Icons.arrow_forward_ios, size: 14),
+        label: const Text(
+          'Details',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w900,
           ),
-          SizedBox(width: 8),
-          Icon(
-            Icons.arrow_forward_ios,
-            size: 14,
-            color: Colors.white,
+        ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFF111827),
+          side: const BorderSide(color: Color(0xFF111827)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
           ),
-        ],
+        ),
       ),
     );
   }

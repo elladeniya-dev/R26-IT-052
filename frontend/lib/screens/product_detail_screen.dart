@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../models/product_model.dart';
 import 'complete_the_look_screen.dart';
+import 'saved_outfits_screen.dart';
 
 class ProductDetailScreen extends StatelessWidget {
   final ProductModel product;
@@ -10,6 +11,15 @@ class ProductDetailScreen extends StatelessWidget {
     super.key,
     required this.product,
   });
+
+  void _openSavedOutfits(BuildContext context) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const SavedOutfitsScreen(),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -67,7 +77,10 @@ class ProductDetailScreen extends StatelessWidget {
             ),
           ),
           IconButton(
-            onPressed: () {},
+            tooltip: 'Saved Outfits',
+            onPressed: () {
+              _openSavedOutfits(context);
+            },
             icon: const Icon(Icons.favorite_border),
           ),
         ],
