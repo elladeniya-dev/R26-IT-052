@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: trend-analysis-engine
+    env: python
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
