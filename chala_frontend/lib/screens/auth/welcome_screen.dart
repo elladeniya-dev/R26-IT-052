@@ -23,7 +23,7 @@ class WelcomeScreen extends StatelessWidget {
           content: Text(
             'Welcome ${authProvider.currentUser?.fullName ?? 'back'}!',
           ),
-          backgroundColor: AppTheme.successColor,
+          backgroundColor: AppTheme.darkTextColor,
         ),
       );
 
@@ -309,6 +309,9 @@ class _AppLogo extends StatelessWidget {
 class _FashionIconCard extends StatelessWidget {
   const _FashionIconCard();
 
+  static const String imageUrl =
+      'https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80';
+
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -325,56 +328,97 @@ class _FashionIconCard extends StatelessWidget {
           ),
         ],
       ),
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          Container(
-            width: 190,
-            height: 190,
-            decoration: BoxDecoration(
-              color: AppTheme.softHighlightColor,
-              borderRadius: BorderRadius.circular(100),
-            ),
-          ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(34),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            Image.network(
+              imageUrl,
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) {
+                  return child;
+                }
 
-          Container(
-            width: 132,
-            height: 132,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [
-                  AppTheme.secondaryColor,
-                  AppTheme.primaryColor,
-                  AppTheme.darkAccentColor,
-                ],
+                return Container(
+                  color: AppTheme.softHighlightColor,
+                  child: const Center(
+                    child: CircularProgressIndicator(
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return Container(
+                  color: AppTheme.softHighlightColor,
+                  child: const Center(
+                    child: Icon(
+                      Icons.checkroom_rounded,
+                      size: 90,
+                      color: AppTheme.primaryColor,
+                    ),
+                  ),
+                );
+              },
+            ),
+
+            Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: [
+                    AppTheme.darkAccentColor.withOpacity(0.05),
+                    AppTheme.darkAccentColor.withOpacity(0.35),
+                  ],
+                ),
               ),
-              borderRadius: BorderRadius.circular(42),
             ),
-            child: const Icon(
-              Icons.checkroom_rounded,
-              size: 78,
-              color: AppTheme.whiteColor,
-            ),
-          ),
 
-          Positioned(
-            top: 36,
-            right: 44,
-            child: _MiniFashionBadge(
-              icon: Icons.auto_awesome_rounded,
+            Positioned(
+              top: 22,
+              right: 22,
+              child: _MiniFashionBadge(
+                icon: Icons.auto_awesome_rounded,
+              ),
             ),
-          ),
 
-          Positioned(
-            bottom: 40,
-            left: 42,
-            child: _MiniFashionBadge(
-              icon: Icons.favorite_rounded,
+            Positioned(
+              bottom: 22,
+              left: 22,
+              child: _MiniFashionBadge(
+                icon: Icons.shopping_bag_rounded,
+              ),
             ),
-          ),
-        ],
+
+            Positioned(
+              left: 24,
+              right: 24,
+              bottom: 24,
+              child: Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 16,
+                  vertical: 12,
+                ),
+                decoration: BoxDecoration(
+                  color: AppTheme.whiteColor.withOpacity(0.88),
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                child: const Text(
+                  'Style inspiration, picked for you',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: AppTheme.darkTextColor,
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
