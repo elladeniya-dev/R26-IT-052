@@ -10,6 +10,7 @@ import '../widgets/search_filter_bar.dart';
 import '../widgets/summary_card.dart';
 import '../widgets/trend_card.dart';
 import 'trend_detail_screen.dart';
+import 'trend_insights_screen.dart';
 
 class TrendDashboardScreen extends StatefulWidget {
   const TrendDashboardScreen({super.key});
@@ -153,11 +154,22 @@ class _TrendDashboardScreenState extends State<TrendDashboardScreen> {
               children: [
                 const DashboardHeader(),
                 const SizedBox(height: 22),
-                const SearchFilterBar(),
-                const SizedBox(height: 14),
-                RunAnalysisButton(
-                  onTap: _runTrendAnalysis,
-                ),
+const SearchFilterBar(),
+const SizedBox(height: 14),
+RunAnalysisButton(
+  onTap: _runTrendAnalysis,
+),
+const SizedBox(height: 12),
+ViewInsightsButton(
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => const TrendInsightsScreen(),
+      ),
+    );
+  },
+),
                 const SizedBox(height: 18),
                 FilterChipsRow(
                   filters: filters,
@@ -391,6 +403,58 @@ class RunAnalysisButton extends StatelessWidget {
                 color: Colors.white,
                 fontSize: 15,
                 fontWeight: FontWeight.w800,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+class ViewInsightsButton extends StatelessWidget {
+  final VoidCallback onTap;
+
+  const ViewInsightsButton({
+    super.key,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 16),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(
+            color: const Color(0xFF00796B).withValues(alpha: 0.22),
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.05),
+              blurRadius: 14,
+              offset: const Offset(0, 6),
+            ),
+          ],
+        ),
+        child: const Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.auto_awesome,
+              color: Color(0xFF00796B),
+              size: 20,
+            ),
+            SizedBox(width: 8),
+            Text(
+              'View AI Fashion Insights',
+              style: TextStyle(
+                color: Color(0xFF00796B),
+                fontSize: 15,
+                fontWeight: FontWeight.w900,
               ),
             ),
           ],

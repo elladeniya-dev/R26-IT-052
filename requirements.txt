@@ -15,7 +15,7 @@ pydantic==2.13.3
 pydantic_core==2.46.3
 python-dateutil==2.9.0.post0
 python-dotenv==1.2.2
-scikit-learn==1.8.0
+scikit-learn==1.6.1
 scipy==1.17.1
 six==1.17.0
 SQLAlchemy==2.0.49

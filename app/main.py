@@ -5,6 +5,7 @@ from datetime import timedelta
 
 from app.database import engine, Base, get_db
 from app import models, schemas
+from app.ml_prediction_service import trend_ml_service
 
 Base.metadata.create_all(bind=engine)
 
@@ -425,4 +426,292 @@ def get_trends_by_attribute_type(
         "end_date": latest_trend.end_date,
         "total_trends": len(trends),
         "trends": trends
+    }
+
+@app.post("/ml/predict-trend", response_model=schemas.TrendPredictionResponse)
+def predict_trend_with_ml(request: schemas.TrendPredictionRequest):
+    prediction = trend_ml_service.predict_trend_label(
+        attribute_type=request.attribute_type,
+        attribute_value=request.attribute_value,
+        purchase_count=request.purchase_count,
+        previous_purchase_count=request.previous_purchase_count,
+        mention_growth=request.mention_growth,
+        growth_rate=request.growth_rate,
+        weekly_rank=request.weekly_rank,
+        previous_rank=request.previous_rank,
+        rank_change=request.rank_change,
+        count_score=request.count_score,
+        growth_score=request.growth_score,
+        rank_score=request.rank_score,
+        trend_score=request.trend_score,
+    )
+
+    return prediction
+
+@app.get("/ml/latest-trend-predictions", response_model=schemas.LatestTrendPredictionsResponse)
+def get_latest_trend_predictions(db: Session = Depends(get_db)):
+    latest_trend = db.query(models.TrendSignal).order_by(
+        models.TrendSignal.end_date.desc()
+    ).first()
+
+    if not latest_trend:
+        return {
+            "total_predictions": 0,
+            "predictions": []
+        }
+
+    latest_signals = db.query(models.TrendSignal).filter(
+        models.TrendSignal.time_window == latest_trend.time_window,
+        models.TrendSignal.start_date == latest_trend.start_date,
+        models.TrendSignal.end_date == latest_trend.end_date
+    ).order_by(models.TrendSignal.trend_score.desc()).all()
+
+    predictions = []
+
+    for index, signal in enumerate(latest_signals, start=1):
+        trend_score = float(signal.trend_score or 0)
+        growth_rate = float(signal.growth_rate or 0)
+
+        # Convert trend signal values into ML-compatible feature values.
+        # These are signal-derived proxy features because our local collector
+        # produces mention-based trend signals, while the ML model was trained
+        # using H&M purchase-count based historical trend data.
+        purchase_count = max(1, int(trend_score * 1000))
+        previous_purchase_count = max(
+            1,
+            int(purchase_count / (1 + growth_rate))
+        ) if growth_rate > -0.95 else purchase_count
+
+        mention_growth = purchase_count - previous_purchase_count
+
+        weekly_rank = index
+        previous_rank = index + 2 if growth_rate > 0 else index
+        rank_change = weekly_rank - previous_rank
+
+        count_score = min(1.0, trend_score)
+        growth_score = min(1.0, max(0.0, growth_rate))
+        rank_score = 1 / weekly_rank
+
+        prediction = trend_ml_service.predict_trend_label(
+            attribute_type=signal.attribute_type,
+            attribute_value=signal.attribute_value,
+            purchase_count=purchase_count,
+            previous_purchase_count=previous_purchase_count,
+            mention_growth=mention_growth,
+            growth_rate=growth_rate,
+            weekly_rank=weekly_rank,
+            previous_rank=previous_rank,
+            rank_change=rank_change,
+            count_score=count_score,
+            growth_score=growth_score,
+            rank_score=rank_score,
+            trend_score=trend_score,
+        )
+
+        predictions.append({
+            "trend_id": signal.trend_id,
+            "attribute_type": signal.attribute_type,
+            "attribute_value": signal.attribute_value,
+            "trend_score": trend_score,
+            "growth_rate": growth_rate,
+            "predicted_trend_label": prediction["predicted_trend_label"],
+            "confidence_scores": prediction["confidence_scores"],
+            "model_type": prediction["model_type"],
+        })
+
+    return {
+        "total_predictions": len(predictions),
+        "predictions": predictions
+    }
+
+def pluralize_fashion_term(value: str) -> str:
+    value_lower = value.lower().strip()
+
+    irregular_plural_map = {
+        "dress": "Dresses",
+        "column dress": "Column Dresses",
+        "polo dress": "Polo Dresses",
+        "wrap dress": "Wrap Dresses",
+        "mini dress": "Mini Dresses",
+        "maxi dress": "Maxi Dresses",
+        "tshirt": "T-shirts",
+        "crop top": "Crop Tops",
+    }
+
+    if value_lower in irregular_plural_map:
+        return irregular_plural_map[value_lower]
+
+    if value_lower.endswith("s"):
+        return value.title()
+
+    return f"{value.title()}s"
+
+
+def build_trend_title(attribute_type: str, attribute_value: str, trend_status: str) -> str:
+    value = attribute_value.title()
+
+    if trend_status == "rising":
+        if attribute_type == "category":
+            return f"{pluralize_fashion_term(attribute_value)} are trending now"
+        if attribute_type == "color":
+            return f"{value} shades are gaining popularity"
+        if attribute_type == "pattern":
+            return f"{value} styles are trending"
+        if attribute_type == "material":
+            return f"{value} fabric is becoming popular"
+        if attribute_type == "fit_type":
+            return f"{value} fits are gaining attention"
+        if attribute_type == "style":
+            return f"{value} style is trending"
+
+        return f"{value} is trending now"
+
+    if trend_status == "stable":
+        return f"{value} remains a steady fashion choice"
+
+    return f"{value} is currently a weaker trend"
+
+def build_trend_summary(attribute_type: str, attribute_value: str, trend_status: str) -> str:
+    value = attribute_value.title()
+
+    if trend_status == "rising":
+        return (
+            f"{value} is showing strong growth in recent women’s fashion trend data. "
+            f"This means it is appearing more actively in current fashion collections."
+        )
+
+    if trend_status == "stable":
+        return (
+            f"{value} is maintaining a consistent presence in recent fashion data. "
+            f"It is not rapidly increasing, but it remains relevant."
+        )
+
+    return (
+        f"{value} is showing low or declining trend strength in the current fashion data. "
+        f"It may not be a major style focus right now."
+    )
+
+
+def build_trend_reason(attribute_type: str, attribute_value: str, trend_status: str) -> str:
+    value = attribute_value.title()
+
+    if trend_status == "rising":
+        return (
+            f"The system detected increasing activity for {value} based on trend score, "
+            f"growth rate, ranking movement, and ML classification."
+        )
+
+    if trend_status == "stable":
+        return (
+            f"The system detected that {value} has a balanced trend pattern without major growth or decline."
+        )
+
+    return (
+        f"The system detected that {value} has lower trend score or negative growth compared with stronger trends."
+    )
+
+
+def get_display_badge(trend_status: str) -> str:
+    if trend_status == "rising":
+        return "🔥 Rising Trend"
+
+    if trend_status == "stable":
+        return "✨ Stable Trend"
+
+    return "📉 Weak Trend"
+
+
+@app.get("/trend-insights", response_model=schemas.TrendInsightsResponse)
+def get_trend_insights(db: Session = Depends(get_db)):
+    latest_trend = db.query(models.TrendSignal).order_by(
+        models.TrendSignal.end_date.desc()
+    ).first()
+
+    if not latest_trend:
+        return {
+            "total_insights": 0,
+            "insights": []
+        }
+
+    latest_signals = db.query(models.TrendSignal).filter(
+        models.TrendSignal.time_window == latest_trend.time_window,
+        models.TrendSignal.start_date == latest_trend.start_date,
+        models.TrendSignal.end_date == latest_trend.end_date
+    ).order_by(models.TrendSignal.trend_score.desc()).limit(20).all()
+
+    insights = []
+
+    for index, signal in enumerate(latest_signals, start=1):
+        trend_score = float(signal.trend_score or 0)
+        growth_rate = float(signal.growth_rate or 0)
+
+        purchase_count = max(1, int(trend_score * 1000))
+
+        if growth_rate > -0.95:
+            previous_purchase_count = max(
+                1,
+                int(purchase_count / (1 + growth_rate))
+            )
+        else:
+            previous_purchase_count = purchase_count
+
+        mention_growth = purchase_count - previous_purchase_count
+
+        weekly_rank = index
+        previous_rank = index + 2 if growth_rate > 0 else index
+        rank_change = weekly_rank - previous_rank
+
+        count_score = min(1.0, trend_score)
+        growth_score = min(1.0, max(0.0, growth_rate))
+        rank_score = 1 / weekly_rank
+
+        prediction = trend_ml_service.predict_trend_label(
+            attribute_type=signal.attribute_type,
+            attribute_value=signal.attribute_value,
+            purchase_count=purchase_count,
+            previous_purchase_count=previous_purchase_count,
+            mention_growth=mention_growth,
+            growth_rate=growth_rate,
+            weekly_rank=weekly_rank,
+            previous_rank=previous_rank,
+            rank_change=rank_change,
+            count_score=count_score,
+            growth_score=growth_score,
+            rank_score=rank_score,
+            trend_score=trend_score,
+        )
+
+        trend_status = prediction["predicted_trend_label"]
+        confidence_scores = prediction["confidence_scores"]
+        confidence = float(confidence_scores.get(trend_status, 0))
+
+        insights.append({
+            "trend_id": signal.trend_id,
+            "title": build_trend_title(
+                signal.attribute_type,
+                signal.attribute_value,
+                trend_status,
+            ),
+            "summary": build_trend_summary(
+                signal.attribute_type,
+                signal.attribute_value,
+                trend_status,
+            ),
+            "reason": build_trend_reason(
+                signal.attribute_type,
+                signal.attribute_value,
+                trend_status,
+            ),
+            "attribute_type": signal.attribute_type,
+            "attribute_value": signal.attribute_value,
+            "trend_score": trend_score,
+            "growth_rate": growth_rate,
+            "trend_status": trend_status,
+            "confidence": round(confidence, 4),
+            "display_badge": get_display_badge(trend_status),
+        })
+
+    return {
+        "total_insights": len(insights),
+        "insights": insights
     }

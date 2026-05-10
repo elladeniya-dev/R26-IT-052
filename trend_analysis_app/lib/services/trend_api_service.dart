@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import '../models/trend_model.dart';
+import '../models/trend_insight_model.dart';
 
 class TrendApiService {
   static const String baseUrl = 'http://192.168.1.2:9000';
@@ -76,4 +77,23 @@ class TrendApiService {
       );
     }
   }
+  Future<List<TrendInsightModel>> getTrendInsights() async {
+  final Uri url = Uri.parse('$baseUrl/trend-insights');
+
+  final response = await http.get(url);
+
+  if (response.statusCode == 200) {
+    final Map<String, dynamic> decodedData = jsonDecode(response.body);
+
+    final List<dynamic> insightsJson = decodedData['insights'] ?? [];
+
+    return insightsJson
+        .map((item) => TrendInsightModel.fromJson(item))
+        .toList();
+  } else {
+    throw Exception(
+      'Failed to load trend insights. Status code: ${response.statusCode}',
+    );
+  }
+}
 }
