@@ -178,14 +178,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     return _currentSelectedSet.contains(option);
   }
 
-  void _skipOnboarding() {
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) => HomeScreen(),
-      ),
-    );
-  }
 
   Future<void> _goNext() async {
     if (!_canGoNext || _isSubmitting) {
@@ -299,46 +291,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _buildHeader() {
-    final bool showSkip = _currentStep == 0;
-
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 12, 18, 8),
-      child: Row(
-        children: [
-          IconButton(
-            onPressed: _goBack,
-            icon: const Icon(
-              Icons.arrow_back_ios_new,
-              size: 20,
-              color: AppTheme.darkTextColor,
-            ),
+  return Padding(
+    padding: const EdgeInsets.fromLTRB(12, 12, 18, 8),
+    child: Row(
+      children: [
+        IconButton(
+          onPressed: _goBack,
+          icon: const Icon(
+            Icons.arrow_back_ios_new,
+            size: 20,
+            color: AppTheme.darkTextColor,
           ),
-          const SizedBox(width: 4),
-          const Text(
-            'Preferences',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: AppTheme.darkTextColor,
-            ),
+        ),
+        const SizedBox(width: 4),
+        const Text(
+          'Preferences',
+          style: TextStyle(
+            fontSize: 20,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.darkTextColor,
           ),
-          const Spacer(),
-          if (showSkip)
-            TextButton(
-              onPressed: _skipOnboarding,
-              child: const Text(
-                'Skip',
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.bold,
-                  color: AppTheme.primaryColor,
-                ),
-              ),
-            ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildProgressSection() {
     return Padding(
