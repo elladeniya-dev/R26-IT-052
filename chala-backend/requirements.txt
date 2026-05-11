@@ -34,3 +34,13 @@ typing-inspection==0.4.2
 typing_extensions==4.15.0
 urllib3==2.6.3
 uvicorn==0.46.0
+
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+torch==2.11.0+cpu
+torchvision==0.26.0+cpu
+transformers==5.8.0
+pillow==12.1.1
+numpy==2.4.3
+
+

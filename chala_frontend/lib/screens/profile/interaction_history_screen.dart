@@ -320,12 +320,32 @@ class _InteractionHistoryCard extends StatelessWidget {
     required this.interaction,
   });
 
+
+String _getDisplayProductName(String itemId, String backendProductName) {
+  final Map<String, String> frontendProductNames = {
+    'P001': 'White Cotton T-Shirt',
+    'P002': 'Grey Hoodie',
+    'P003': 'Blue Denim Jeans',
+    'P004': 'Black Blazer',
+    'P005': 'Pink Party Skirt',
+  };
+
+  return frontendProductNames[itemId] ?? backendProductName;
+}
+
+
+
   @override
   Widget build(BuildContext context) {
     final String type = '${interaction['interaction_type'] ?? 'interaction'}';
     final String itemId = '${interaction['item_id'] ?? ''}';
-    final String productName =
-        '${interaction['product_name'] ?? 'Unknown product'}';
+    final String backendProductName =
+    '${interaction['product_name'] ?? 'Unknown product'}';
+
+final String productName = _getDisplayProductName(
+  itemId,
+  backendProductName,
+);
     final String category = '${interaction['category'] ?? 'No category'}';
     final String brand = '${interaction['brand'] ?? 'No brand'}';
     final String value = '${interaction['interaction_value'] ?? ''}';

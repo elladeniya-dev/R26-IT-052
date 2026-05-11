@@ -103,3 +103,20 @@ class Product(Base):
     image_url = Column(String, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+class UserMLPreference(Base):
+    __tablename__ = "user_ml_preferences"
+
+    ml_preference_id = Column(Integer, primary_key=True, index=True)
+
+    user_id = Column(Integer, ForeignKey("users.user_id"), nullable=False, unique=True)
+
+    model_name = Column(String, nullable=False)
+    embedding_dimension = Column(Integer, nullable=False)
+
+    # Stores the 768-dimensional user preference vector
+    user_preference_vector = Column(JSONB, nullable=False)
+
+    used_interaction_count = Column(Integer, nullable=False, default=0)
+
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())

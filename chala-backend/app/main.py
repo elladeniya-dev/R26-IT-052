@@ -1,9 +1,13 @@
 from fastapi import FastAPI, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
+from app.fashion_embedding_service import (
+    get_image_embedding,
+    create_user_preference_vector,
+)
 
 from app.database import engine, get_db
-from app.models import Base, User, UserOnboardingPreference, UserLearnedPreference, UserInteraction, Product
+from app.models import Base, User, UserOnboardingPreference, UserLearnedPreference, UserInteraction, Product, UserMLPreference
 from app.schemas import (
     GoogleLoginRequest,
     GoogleLoginResponse,
@@ -320,43 +324,43 @@ def create_sample_products(db: Session = Depends(get_db)):
     sample_products = [
         Product(
             item_id="P001",
-            product_name="Black Casual Top",
+            product_name="White Cotton T-Shirt",
             category="Tops",
-            color=["Black"],
+            color=["White"],
             style=["Casual"],
-            brand="H&M",
+            brand="OutfitIQ Sample",
             product_url="https://example.com/products/P001",
-            image_url="https://example.com/images/P001.jpg"
+            image_url="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=900&q=80"
         ),
         Product(
             item_id="P002",
-            product_name="White Elegant Dress",
-            category="Dresses",
-            color=["White"],
-            style=["Elegant"],
-            brand="H&M",
+            product_name="Grey Hoodie",
+            category="Hoodies",
+            color=["Grey"],
+            style=["Comfort"],
+            brand="OutfitIQ Sample",
             product_url="https://example.com/products/P002",
-            image_url="https://example.com/images/P002.jpg"
+            image_url="https://images.unsplash.com/photo-1556821840-3a63f95609a7?auto=format&fit=crop&w=900&q=80"
         ),
         Product(
             item_id="P003",
-            product_name="Blue Formal Shirt",
-            category="Shirts",
+            product_name="Blue Denim Jeans",
+            category="Jeans",
             color=["Blue"],
-            style=["Formal"],
-            brand="H&M",
+            style=["Trendy"],
+            brand="OutfitIQ Sample",
             product_url="https://example.com/products/P003",
-            image_url="https://example.com/images/P003.jpg"
+            image_url="https://images.unsplash.com/photo-1542272604-787c3835535d?auto=format&fit=crop&w=900&q=80"
         ),
         Product(
             item_id="P004",
-            product_name="Grey Sporty Hoodie",
-            category="Hoodies",
-            color=["Grey"],
-            style=["Sporty"],
-            brand="H&M",
+            product_name="Black Blazer",
+            category="Blazers",
+            color=["Black"],
+            style=["Formal"],
+            brand="OutfitIQ Sample",
             product_url="https://example.com/products/P004",
-            image_url="https://example.com/images/P004.jpg"
+            image_url="https://images.unsplash.com/photo-1592878904946-b3cd8ae243d0?auto=format&fit=crop&w=900&q=80"
         ),
         Product(
             item_id="P005",
@@ -364,9 +368,9 @@ def create_sample_products(db: Session = Depends(get_db)):
             category="Skirts",
             color=["Pink"],
             style=["Party wear"],
-            brand="H&M",
+            brand="OutfitIQ Sample",
             product_url="https://example.com/products/P005",
-            image_url="https://example.com/images/P005.jpg"
+            image_url="https://images.unsplash.com/photo-1583496661160-fb5886a13d44?auto=format&fit=crop&w=900&q=80"
         )
     ]
 
@@ -379,6 +383,14 @@ def create_sample_products(db: Session = Depends(get_db)):
         ).first()
 
         if existing_product:
+            existing_product.product_name = product.product_name
+            existing_product.category = product.category
+            existing_product.color = product.color
+            existing_product.style = product.style
+            existing_product.brand = product.brand
+            existing_product.product_url = product.product_url
+            existing_product.image_url = product.image_url
+
             skipped_count += 1
             continue
 
@@ -470,6 +482,212 @@ def update_learning_preferences(
     return {
         "message": "Learned preferences created successfully",
         "learned_preferences": new_learned_preferences
+    }
+
+
+
+
+
+@app.post("/ml/test-image-embedding")
+def test_image_embedding():
+    """
+    Temporary ML test endpoint.
+    Creates a FashionCLIP embedding for one sample fashion image.
+    """
+
+    image_url = "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80"
+
+    embedding = get_image_embedding(image_url)
+
+    return {
+        "message": "Image embedding created successfully",
+        "model_name": "McClain/fashion-embedder",
+        "image_url": image_url,
+        "embedding_dimension": len(embedding),
+        "first_10_values": embedding[:10]
+    }
+
+
+
+
+
+@app.post("/ml/test-user-vector")
+def test_user_preference_vector():
+    """
+    Temporary ML test endpoint.
+    Creates a user preference vector from sample interacted fashion products.
+    """
+
+    interaction_items = [
+        {
+            "item_id": "P001",
+            "image_url": "https://images.unsplash.com/photo-1543076447-215ad9ba6923?auto=format&fit=crop&w=900&q=80",
+            "interaction_weight": 2.0
+        },
+        {
+            "item_id": "P002",
+            "image_url": "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80",
+            "interaction_weight": 3.0
+        },
+        {
+            "item_id": "P003",
+            "image_url": "https://images.unsplash.com/photo-1594223274512-ad4803739b7c?auto=format&fit=crop&w=900&q=80",
+            "interaction_weight": 4.0
+        }
+    ]
+
+    user_vector = create_user_preference_vector(interaction_items)
+
+    return {
+        "message": "User preference vector created successfully",
+        "model_name": "McClain/fashion-embedder",
+        "embedding_dimension": len(user_vector),
+        "first_10_values": user_vector[:10],
+        "used_items": interaction_items
+    }
+
+
+
+
+@app.post("/ml/update-current-user-vector")
+def update_current_user_vector(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Creates and saves an ML-based user preference vector for the logged-in user
+    using real saved interactions and product image URLs from the database.
+    """
+
+    interactions = db.query(UserInteraction).filter(
+        UserInteraction.user_id == current_user.user_id
+    ).all()
+
+    if not interactions:
+        return {
+            "message": "No interactions found for this user",
+            "user_id": current_user.user_id,
+            "user_preference_vector": None
+        }
+
+    item_ids = [interaction.item_id for interaction in interactions]
+
+    products = db.query(Product).filter(
+        Product.item_id.in_(item_ids)
+    ).all()
+
+    products_by_id = {
+        product.item_id: product
+        for product in products
+    }
+
+    interaction_items = []
+
+    for interaction in interactions:
+        product = products_by_id.get(interaction.item_id)
+
+        if product is None:
+            continue
+
+        if not product.image_url:
+            continue
+
+        interaction_items.append({
+            "item_id": interaction.item_id,
+            "image_url": product.image_url,
+            "interaction_type": interaction.interaction_type,
+            "interaction_weight": interaction.interaction_value
+        })
+
+    if not interaction_items:
+        return {
+            "message": "No valid product image URLs found for this user's interactions",
+            "user_id": current_user.user_id,
+            "user_preference_vector": None
+        }
+
+    user_vector = create_user_preference_vector(interaction_items)
+
+    if not user_vector:
+        return {
+            "message": "Could not create user preference vector",
+            "user_id": current_user.user_id,
+            "user_preference_vector": None
+        }
+
+    existing_ml_preferences = db.query(UserMLPreference).filter(
+        UserMLPreference.user_id == current_user.user_id
+    ).first()
+
+    if existing_ml_preferences:
+        existing_ml_preferences.model_name = "McClain/fashion-embedder"
+        existing_ml_preferences.embedding_dimension = len(user_vector)
+        existing_ml_preferences.user_preference_vector = user_vector
+        existing_ml_preferences.used_interaction_count = len(interaction_items)
+
+        db.commit()
+        db.refresh(existing_ml_preferences)
+
+        saved_ml_preferences = existing_ml_preferences
+        message = "Current user ML preference vector updated and saved successfully"
+
+    else:
+        new_ml_preferences = UserMLPreference(
+            user_id=current_user.user_id,
+            model_name="McClain/fashion-embedder",
+            embedding_dimension=len(user_vector),
+            user_preference_vector=user_vector,
+            used_interaction_count=len(interaction_items)
+        )
+
+        db.add(new_ml_preferences)
+        db.commit()
+        db.refresh(new_ml_preferences)
+
+        saved_ml_preferences = new_ml_preferences
+        message = "Current user ML preference vector created and saved successfully"
+
+    return {
+        "message": message,
+        "user_id": current_user.user_id,
+        "model_name": saved_ml_preferences.model_name,
+        "embedding_dimension": saved_ml_preferences.embedding_dimension,
+        "first_10_values": saved_ml_preferences.user_preference_vector[:10],
+        "used_interaction_count": saved_ml_preferences.used_interaction_count,
+        "used_items": interaction_items
+    }
+
+
+
+@app.get("/ml/current-user-vector-summary")
+def get_current_user_vector_summary(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Returns a summary of the saved ML-based user preference vector
+    for the logged-in user.
+    """
+
+    ml_preferences = db.query(UserMLPreference).filter(
+        UserMLPreference.user_id == current_user.user_id
+    ).first()
+
+    if not ml_preferences:
+        return {
+            "message": "No saved ML preference vector found for this user",
+            "user_id": current_user.user_id,
+            "ml_preferences": None
+        }
+
+    return {
+        "message": "Saved ML preference vector found",
+        "user_id": current_user.user_id,
+        "model_name": ml_preferences.model_name,
+        "embedding_dimension": ml_preferences.embedding_dimension,
+        "used_interaction_count": ml_preferences.used_interaction_count,
+        "first_10_values": ml_preferences.user_preference_vector[:10],
+        "updated_at": ml_preferences.updated_at
     }
 
 
