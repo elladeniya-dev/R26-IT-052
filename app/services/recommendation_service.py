@@ -1,10 +1,12 @@
 from app.models.product import Product
+from app.services.ml_similarity_service import calculate_ml_similarity_score
 
 
 PLACEHOLDER_IMAGE_URLS = {
     "https://example.com/carnage-placeholder.jpg",
-    "https://example.com/gflock-placeholder.jpg"
+    "https://example.com/gflock-placeholder.jpg",
 }
+
 EXCLUDED_SOURCES = {"sample_data", "sample_crawler"}
 FAKE_URL_DOMAIN = "example.com"
 
@@ -90,7 +92,7 @@ def calculate_user_match_score(product: Product, request):
     price_match = matches_price_range(
         product.price,
         request.price_min,
-        request.price_max
+        request.price_max,
     )
 
     if price_match is not None:
@@ -118,7 +120,7 @@ def calculate_product_quality_score(product: Product):
         bool(product.product_url),
         bool(product.description),
         product.price is not None,
-        product.availability is True
+        product.availability is True,
     ]
 
     passed_checks = sum(1 for check in quality_checks if check)
@@ -146,18 +148,37 @@ def build_quality_reason_tags(product: Product, product_quality_score):
     return reason_tags
 
 
+def build_ml_reason_tags(ml_similarity_score):
+    reason_tags = []
+
+    if ml_similarity_score >= 0.75:
+        reason_tags.append("semantically similar to your style preferences")
+    elif ml_similarity_score >= 0.60:
+        reason_tags.append("partially similar to your style preferences")
+
+    return reason_tags
+
+
 def calculate_recommendation_score(product: Product, request):
     user_match_score, reason_tags = calculate_user_match_score(product, request)
     product_quality_score = calculate_product_quality_score(product)
+    ml_similarity_score = calculate_ml_similarity_score(product, request)
 
-    final_score = (0.85 * user_match_score) + (0.15 * product_quality_score)
+    final_score = (
+        (0.60 * user_match_score)
+        + (0.25 * ml_similarity_score)
+        + (0.15 * product_quality_score)
+    )
+
+    reason_tags.extend(build_ml_reason_tags(ml_similarity_score))
     reason_tags.extend(build_quality_reason_tags(product, product_quality_score))
 
     return (
         round(final_score, 4),
         round(user_match_score, 4),
+        round(ml_similarity_score, 4),
         round(product_quality_score, 4),
-        reason_tags
+        reason_tags,
     )
 
 
@@ -173,28 +194,32 @@ def generate_recommendations(db, request):
         (
             final_score,
             user_match_score,
+            ml_similarity_score,
             product_quality_score,
-            reason_tags
+            reason_tags,
         ) = calculate_recommendation_score(product, request)
 
-        if user_match_score > 0:
-            scored_products.append({
-                "item_id": product.item_id,
-                "title": product.title,
-                "category": product.category,
-                "color": product.color,
-                "style": product.style,
-                "brand": product.brand,
-                "source": product.source,
-                "price": product.price,
-                "image_url": product.image_url,
-                "product_url": product.product_url,
-                "final_score": final_score,
-                "user_match_score": user_match_score,
-                "product_quality_score": product_quality_score,
-                "reason_tags": reason_tags
-            })
+        if user_match_score > 0 or ml_similarity_score >= 0.60:
+            scored_products.append(
+                {
+                    "item_id": product.item_id,
+                    "title": product.title,
+                    "category": product.category,
+                    "color": product.color,
+                    "style": product.style,
+                    "brand": product.brand,
+                    "source": product.source,
+                    "price": product.price,
+                    "image_url": product.image_url,
+                    "product_url": product.product_url,
+                    "final_score": final_score,
+                    "user_match_score": user_match_score,
+                    "ml_similarity_score": ml_similarity_score,
+                    "product_quality_score": product_quality_score,
+                    "reason_tags": reason_tags,
+                }
+            )
 
     scored_products.sort(key=lambda item: item["final_score"], reverse=True)
 
-    return scored_products[:request.max_results]
+    return scored_products[: request.max_results]

@@ -24,9 +24,12 @@ class RecommendedProduct(BaseModel):
     price: Optional[float] = None
     image_url: str
     product_url: str
+
     final_score: float
     user_match_score: float
+    ml_similarity_score: float
     product_quality_score: float
+
     reason_tags: List[str]
 
 

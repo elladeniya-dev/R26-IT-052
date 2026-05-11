@@ -11,6 +11,23 @@ GFLOCK_DRESSES_URL = "https://gflock.lk/collections/dresses?sort_by=created-desc
 GFLOCK_PLACEHOLDER_IMAGE_URL = "https://example.com/gflock-placeholder.jpg"
 
 
+COLOR_ALIASES = {
+    "black": ["black"],
+    "white": ["white", "ivory"],
+    "brown": ["brown", "chocolate", "mocha", "coffee"],
+    "grey": ["grey", "gray", "charcoal"],
+    "green": ["green", "sage", "olive", "mint"],
+    "blue": ["blue", "navy", "denim", "sky blue", "light blue"],
+    "red": ["red", "maroon", "burgundy", "wine"],
+    "pink": ["pink", "rose", "blush"],
+    "beige": ["beige", "cream", "nude", "sand", "khaki"],
+    "purple": ["purple", "lilac", "lavender"],
+    "yellow": ["yellow", "mustard"],
+    "orange": ["orange", "rust", "terracotta"],
+    "multi": ["multi", "multicolor", "multi color", "print", "printed", "floral", "stripe"],
+}
+
+
 def clean_text(text):
     return re.sub(r"\s+", " ", unescape(str(text or ""))).strip()
 
@@ -24,17 +41,92 @@ def clean_product_description(description):
         r"^(?:Description|Product\s+details?):?\s*",
         "",
         description,
-        flags=re.IGNORECASE
+        flags=re.IGNORECASE,
     )
     description = re.sub(
         r"\s*(?:Description|Product\s+details?):?\s*$",
         "",
         description,
-        flags=re.IGNORECASE
+        flags=re.IGNORECASE,
     )
     description = clean_text(description).strip(" -:|")
 
     return description or None
+
+
+def normalize_color_value(color_text):
+    if not color_text:
+        return None
+
+    color_text = clean_text(color_text).lower()
+    color_text = re.sub(r"[^a-z\s/-]", " ", color_text)
+    color_text = clean_text(color_text)
+
+    for canonical_color, aliases in COLOR_ALIASES.items():
+        for alias in aliases:
+            pattern = rf"\b{re.escape(alias)}\b"
+            if re.search(pattern, color_text, flags=re.IGNORECASE):
+                return canonical_color
+
+    return None
+
+
+def extract_detail_page_color(soup, page_text, json_ld_product=None):
+    """
+    Extracts exact product color from Gflock detail page.
+
+    Gflock product pages usually contain visible text like:
+    COLOR ORANGE
+    COLOR BEIGE
+
+    We extract that first because it is more reliable than guessing from title/description.
+    """
+
+    text_sources = []
+
+    if page_text:
+        text_sources.append(page_text)
+
+    if soup:
+        for selector in [
+            {"property": "product:color"},
+            {"name": "color"},
+            {"name": "twitter:data2"},
+        ]:
+            meta_color = soup.find("meta", attrs=selector)
+            if meta_color and meta_color.get("content"):
+                text_sources.append(f"Color {meta_color['content']}")
+
+    if json_ld_product and isinstance(json_ld_product, dict):
+        for key in ["color", "colour"]:
+            if json_ld_product.get(key):
+                text_sources.append(f"Color {json_ld_product.get(key)}")
+
+    known_color_words = []
+    for aliases in COLOR_ALIASES.values():
+        known_color_words.extend(aliases)
+
+    known_color_words = sorted(set(known_color_words), key=len, reverse=True)
+    color_group = "|".join(re.escape(color) for color in known_color_words)
+
+    direct_color_patterns = [
+        rf"\bcolou?r\s+({color_group})\b",
+        rf"\bcolou?r\s*:\s*({color_group})\b",
+        rf"\bshade\s+({color_group})\b",
+        rf"\bshade\s*:\s*({color_group})\b",
+    ]
+
+    for text in text_sources:
+        cleaned_text = clean_text(text)
+
+        for pattern in direct_color_patterns:
+            match = re.search(pattern, cleaned_text, flags=re.IGNORECASE)
+            if match:
+                normalized_color = normalize_color_value(match.group(1))
+                if normalized_color:
+                    return [normalized_color]
+
+    return None
 
 
 def extract_reliable_availability(soup, json_ld_product):
@@ -76,14 +168,19 @@ def extract_structured_availability(json_ld_product):
 
 
 def extract_disabled_sold_out_button_availability(soup):
-    sold_out_text = re.compile(r"sold\s*out|out\s*of\s*stock|unavailable", re.IGNORECASE)
+    sold_out_text = re.compile(
+        r"sold\s*out|out\s*of\s*stock|unavailable",
+        re.IGNORECASE,
+    )
 
     for form in soup.find_all("form"):
-        form_text = " ".join([
-            form.get("action", ""),
-            form.get("id", ""),
-            " ".join(form.get("class", []))
-        ]).lower()
+        form_text = " ".join(
+            [
+                form.get("action", ""),
+                form.get("id", ""),
+                " ".join(form.get("class", [])),
+            ]
+        ).lower()
 
         if "cart" not in form_text and "product" not in form_text:
             continue
@@ -106,7 +203,7 @@ def remove_emojis(text):
     return re.sub(
         r"[^\w\s.,/&'()-]",
         "",
-        text or ""
+        text or "",
     ).strip()
 
 
@@ -138,7 +235,7 @@ def extract_price(text):
     price_patterns = [
         r"(?:LKR|Rs\.?|Rs)\s*([\d,]+(?:\.\d{1,2})?)",
         r"Regular price\s*([\d,]+(?:\.\d{1,2})?)",
-        r"Sale price\s*([\d,]+(?:\.\d{1,2})?)"
+        r"Sale price\s*([\d,]+(?:\.\d{1,2})?)",
     ]
 
     for pattern in price_patterns:
@@ -155,23 +252,23 @@ def clean_title(title):
         r"\s*(?:\||-|–)\s*Gflock.*$",
         "",
         title,
-        flags=re.IGNORECASE
+        flags=re.IGNORECASE,
     )
     title = re.split(
         r"(?:LKR|Rs\.?|Rs)\s*[\d,]+(?:\.\d{1,2})?",
         title,
-        flags=re.IGNORECASE
+        flags=re.IGNORECASE,
     )[0]
     title = re.split(
         r"(?:Regular price|Sale price)\s*[\d,]+(?:\.\d{1,2})?",
         title,
-        flags=re.IGNORECASE
+        flags=re.IGNORECASE,
     )[0]
     title = re.sub(
         r"\b(sold out|sale|new|quick view)\b",
         "",
         title,
-        flags=re.IGNORECASE
+        flags=re.IGNORECASE,
     )
 
     return clean_text(title)
@@ -180,28 +277,12 @@ def clean_title(title):
 def infer_color_from_text(title, description):
     searchable_text = f"{title or ''} {description or ''}".lower()
 
-    color_keywords = {
-        "black": ["black"],
-        "white": ["white", "ivory"],
-        "brown": ["brown", "chocolate", "mocha"],
-        "grey": ["grey", "gray"],
-        "green": ["green", "sage", "olive"],
-        "blue": ["blue", "navy"],
-        "red": ["red", "maroon", "burgundy"],
-        "pink": ["pink", "rose"],
-        "beige": ["beige", "cream", "nude"],
-        "purple": ["purple", "lilac", "lavender"],
-        "yellow": ["yellow", "mustard"],
-        "orange": ["orange"],
-        "multi": ["print", "printed", "floral", "stripe", "multi"]
-    }
-
     matched_colors = []
 
-    for color, keywords in color_keywords.items():
-        for keyword in keywords:
-            if keyword in searchable_text:
-                matched_colors.append(color)
+    for canonical_color, aliases in COLOR_ALIASES.items():
+        for alias in aliases:
+            if re.search(rf"\b{re.escape(alias)}\b", searchable_text):
+                matched_colors.append(canonical_color)
                 break
 
     return matched_colors if matched_colors else ["unknown"]
@@ -212,7 +293,7 @@ def infer_styles_from_text(title, description):
     styles = ["casual"]
 
     style_keywords = {
-        "formal": ["formal", "office", "workwear"],
+        "formal": ["formal", "office", "workwear", "work wear"],
         "party": ["party", "evening", "cocktail", "occasion"],
         "summer": ["summer", "linen", "sleeveless"],
         "floral": ["floral", "flower", "print", "printed"],
@@ -221,7 +302,7 @@ def infer_styles_from_text(title, description):
         "smart_casual": ["shirt dress", "collar", "button"],
         "maxi": ["maxi"],
         "midi": ["midi"],
-        "mini": ["mini"]
+        "mini": ["mini"],
     }
 
     for style, keywords in style_keywords.items():
@@ -230,7 +311,7 @@ def infer_styles_from_text(title, description):
                 styles.append(style)
                 break
 
-    return styles
+    return list(dict.fromkeys(styles))
 
 
 def make_absolute_url(url, page_url):
@@ -249,18 +330,20 @@ def clean_product_url(product_url):
 
     if "products" in path_parts:
         product_index = path_parts.index("products")
-        path_parts = path_parts[:product_index + 2]
+        path_parts = path_parts[: product_index + 2]
 
     clean_path = "/" + "/".join(path_parts)
 
-    return urlunparse((
-        "https",
-        "gflock.lk",
-        clean_path,
-        "",
-        "",
-        ""
-    ))
+    return urlunparse(
+        (
+            "https",
+            "gflock.lk",
+            clean_path,
+            "",
+            "",
+            "",
+        )
+    )
 
 
 def extract_image_from_srcset(srcset):
@@ -353,15 +436,17 @@ def extract_detail_page_image(soup, product_url):
 
     product_image_keywords = re.compile(
         r"product|featured|main|gallery|media",
-        flags=re.IGNORECASE
+        flags=re.IGNORECASE,
     )
 
     for image_tag in soup.find_all("img"):
-        searchable_text = " ".join([
-            image_tag.get("class") and " ".join(image_tag.get("class")) or "",
-            image_tag.get("id", ""),
-            image_tag.get("alt", "")
-        ])
+        searchable_text = " ".join(
+            [
+                image_tag.get("class") and " ".join(image_tag.get("class")) or "",
+                image_tag.get("id", ""),
+                image_tag.get("alt", ""),
+            ]
+        )
 
         if not product_image_keywords.search(searchable_text):
             continue
@@ -422,7 +507,7 @@ def extract_detail_page_description(soup):
     description_match = re.search(
         r"(?:Description|Product details)\s+(.*?)(?:Size guide|Shipping|Returns|You may also like|Related products)",
         page_text,
-        flags=re.IGNORECASE
+        flags=re.IGNORECASE,
     )
 
     if description_match:
@@ -437,8 +522,8 @@ def extract_product_detail_data(product_url):
             product_url,
             timeout=15,
             headers={
-                "User-Agent": "Mozilla/5.0"
-            }
+                "User-Agent": "Mozilla/5.0",
+            },
         )
         response.raise_for_status()
 
@@ -450,6 +535,7 @@ def extract_product_detail_data(product_url):
         image_url = extract_detail_page_image(soup, product_url)
         description = extract_detail_page_description(soup)
         price = extract_price(page_text)
+        color = extract_detail_page_color(soup, page_text, json_ld_product)
 
         if json_ld_product:
             title = title or clean_title(json_ld_product.get("name"))
@@ -463,6 +549,13 @@ def extract_product_detail_data(product_url):
 
             if isinstance(offers, dict):
                 price = price or parse_price_value(offers.get("price"))
+
+            if not color:
+                json_ld_color = json_ld_product.get("color")
+                normalized_json_ld_color = normalize_color_value(json_ld_color)
+                if normalized_json_ld_color:
+                    color = [normalized_json_ld_color]
+
         reliable_availability = extract_reliable_availability(soup, json_ld_product)
 
         return {
@@ -470,7 +563,8 @@ def extract_product_detail_data(product_url):
             "image_url": image_url,
             "description": description,
             "price": price,
-            "availability": reliable_availability
+            "color": color,
+            "availability": reliable_availability,
         }
 
     except Exception:
@@ -479,7 +573,8 @@ def extract_product_detail_data(product_url):
             "image_url": None,
             "description": None,
             "price": None,
-            "availability": None
+            "color": None,
+            "availability": None,
         }
 
 
@@ -493,8 +588,8 @@ def crawl_gflock_dresses(max_items=10):
         GFLOCK_DRESSES_URL,
         timeout=15,
         headers={
-            "User-Agent": "Mozilla/5.0"
-        }
+            "User-Agent": "Mozilla/5.0",
+        },
     )
     response.raise_for_status()
 
@@ -513,12 +608,14 @@ def crawl_gflock_dresses(max_items=10):
         title = extract_collection_title(link_text, product_url)
         price = extract_price(link_text)
 
-        product_links.append({
-            "title": title,
-            "price": price,
-            "product_url": product_url,
-            "availability": True
-        })
+        product_links.append(
+            {
+                "title": title,
+                "price": price,
+                "product_url": product_url,
+                "availability": True,
+            }
+        )
 
     unique_products = []
     seen_urls = set()
@@ -545,21 +642,29 @@ def crawl_gflock_dresses(max_items=10):
             else item["availability"]
         )
 
-        crawled_products.append({
-            "item_id": create_item_id(item["product_url"]),
-            "title": trusted_title,
-            "category": "dress",
-            "subcategory": "dress",
-            "color": infer_color_from_text(trusted_title, description),
-            "style": infer_styles_from_text(trusted_title, description),
-            "brand": "Gflock",
-            "price": price,
-            "currency": "LKR",
-            "image_url": image_url,
-            "product_url": item["product_url"],
-            "source": "gflock",
-            "description": description,
-            "availability": availability
-        })
+        extracted_color = detail_data["color"]
+        color = extracted_color if extracted_color else infer_color_from_text(
+            trusted_title,
+            description,
+        )
+
+        crawled_products.append(
+            {
+                "item_id": create_item_id(item["product_url"]),
+                "title": trusted_title,
+                "category": "dress",
+                "subcategory": "dress",
+                "color": color,
+                "style": infer_styles_from_text(trusted_title, description),
+                "brand": "Gflock",
+                "price": price,
+                "currency": "LKR",
+                "image_url": image_url,
+                "product_url": item["product_url"],
+                "source": "gflock",
+                "description": description,
+                "availability": availability,
+            }
+        )
 
     return crawled_products
