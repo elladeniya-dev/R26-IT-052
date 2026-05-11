@@ -17,6 +17,67 @@ app = FastAPI(
 )
 
 
+ALLOWED_INSIGHT_ATTRIBUTE_TYPES = [
+    "category",
+    "color",
+    "pattern",
+    "style",
+    "material",
+]
+
+EXCLUDED_INSIGHT_KEYWORDS = [
+    "bra",
+    "bralette",
+    "panty",
+    "panties",
+    "underwear",
+    "lingerie",
+    "brief",
+    "briefs",
+    "thong",
+    "bikini bottom",
+    "nightwear",
+    "sleepwear",
+    "sleeve",
+    "half sleeve",
+    "balloon sleeve",
+    "short sleeve",
+    "long sleeve",
+    "sleeveless",
+    "fitted",
+    "regular fit",
+    "oversized",
+    "baggy",
+    "cropped",
+    "straight leg",
+    "wide leg",
+    "mid waist",
+    "high waist",
+    "relaxed",
+    "loose",
+    "flare",
+    "non-denim",
+    "other",
+    "unknown",
+    "bodysuit",
+    "bustier",
+]
+
+
+def is_safe_user_facing_trend(attribute_type: str, attribute_value: str) -> bool:
+    trend_type = attribute_type.lower().strip()
+    value = attribute_value.lower().strip()
+
+    if trend_type not in ALLOWED_INSIGHT_ATTRIBUTE_TYPES:
+        return False
+
+    for blocked_keyword in EXCLUDED_INSIGHT_KEYWORDS:
+        if blocked_keyword in value:
+            return False
+
+    return True
+
+
 @app.get("/")
 def home():
     return {"message": "Gividu Trend Analysis Engine is running successfully"}
@@ -85,7 +146,10 @@ def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)
 def get_all_products(db: Session = Depends(get_db)):
     products = db.query(models.Product).all()
 
-    return {"total_products": len(products), "products": products}
+    return {
+        "total_products": len(products),
+        "products": products,
+    }
 
 
 @app.post("/product-metrics/", response_model=schemas.ProductTrendMetricResponse)
@@ -126,7 +190,10 @@ def create_product_metric(
 def get_all_product_metrics(db: Session = Depends(get_db)):
     metrics = db.query(models.ProductTrendMetric).all()
 
-    return {"total_metrics": len(metrics), "metrics": metrics}
+    return {
+        "total_metrics": len(metrics),
+        "metrics": metrics,
+    }
 
 
 @app.post("/trend-observations/bulk")
@@ -269,9 +336,7 @@ def analyze_trends(db: Session = Depends(get_db)):
 
         growth_score = max(min(growth_rate, 1.0), 0.0)
 
-        count_score = (
-            current_count / max_current_count if max_current_count > 0 else 0.0
-        )
+        count_score = current_count / max_current_count if max_current_count > 0 else 0.0
         count_score = max(min(count_score, 1.0), 0.0)
 
         ranks = current_ranks.get(key, [])
@@ -328,9 +393,16 @@ def analyze_trends(db: Session = Depends(get_db)):
         reverse=True,
     )
 
+    filtered_results = [
+        item
+        for item in analyzed_results
+        if is_safe_user_facing_trend(item["attribute_type"], item["attribute_value"])
+    ]
+
     return {
         "message": "Trend analysis completed successfully",
-        "total_trends_analyzed": len(analyzed_results),
+        "total_raw_trends_analyzed": len(analyzed_results),
+        "total_trends_analyzed": len(filtered_results),
         "formula": "trend_score = 0.50 * growth_score + 0.30 * count_score + 0.20 * rank_score",
         "current_period": {
             "start_date": current_start,
@@ -340,7 +412,7 @@ def analyze_trends(db: Session = Depends(get_db)):
             "start_date": previous_start,
             "end_date": previous_end,
         },
-        "trends": analyzed_results,
+        "trends": filtered_results,
     }
 
 
@@ -369,16 +441,11 @@ def get_all_trends(db: Session = Depends(get_db)):
         .all()
     )
 
-    filtered_trends = []
-
-    for trend in all_trends:
-        if not is_safe_user_facing_trend(
-            trend.attribute_type,
-            trend.attribute_value,
-        ):
-            continue
-
-        filtered_trends.append(trend)
+    filtered_trends = [
+        trend
+        for trend in all_trends
+        if is_safe_user_facing_trend(trend.attribute_type, trend.attribute_value)
+    ]
 
     return {
         "time_window": latest_trend.time_window,
@@ -388,9 +455,10 @@ def get_all_trends(db: Session = Depends(get_db)):
         "trends": filtered_trends,
     }
 
+
 @app.get("/trends/history")
 def get_trend_history(db: Session = Depends(get_db)):
-    trends = (
+    all_trends = (
         db.query(models.TrendSignal)
         .order_by(
             models.TrendSignal.end_date.desc(),
@@ -399,7 +467,16 @@ def get_trend_history(db: Session = Depends(get_db)):
         .all()
     )
 
-    return {"total_trends": len(trends), "trends": trends}
+    filtered_trends = [
+        trend
+        for trend in all_trends
+        if is_safe_user_facing_trend(trend.attribute_type, trend.attribute_value)
+    ]
+
+    return {
+        "total_trends": len(filtered_trends),
+        "trends": filtered_trends,
+    }
 
 
 @app.get("/trends/{attribute_type}")
@@ -419,7 +496,7 @@ def get_trends_by_attribute_type(
             detail="No trend data found",
         )
 
-    trends = (
+    all_trends = (
         db.query(models.TrendSignal)
         .filter(
             models.TrendSignal.attribute_type == attribute_type.lower(),
@@ -431,10 +508,16 @@ def get_trends_by_attribute_type(
         .all()
     )
 
-    if not trends:
+    filtered_trends = [
+        trend
+        for trend in all_trends
+        if is_safe_user_facing_trend(trend.attribute_type, trend.attribute_value)
+    ]
+
+    if not filtered_trends:
         raise HTTPException(
             status_code=404,
-            detail=f"No latest trends found for attribute_type: {attribute_type}",
+            detail=f"No safe latest trends found for attribute_type: {attribute_type}",
         )
 
     return {
@@ -442,8 +525,8 @@ def get_trends_by_attribute_type(
         "time_window": latest_trend.time_window,
         "start_date": latest_trend.start_date,
         "end_date": latest_trend.end_date,
-        "total_trends": len(trends),
-        "trends": trends,
+        "total_trends": len(filtered_trends),
+        "trends": filtered_trends,
     }
 
 
@@ -480,7 +563,10 @@ def get_latest_trend_predictions(db: Session = Depends(get_db)):
     )
 
     if not latest_trend:
-        return {"total_predictions": 0, "predictions": []}
+        return {
+            "total_predictions": 0,
+            "predictions": [],
+        }
 
     latest_signals = (
         db.query(models.TrendSignal)
@@ -496,6 +582,12 @@ def get_latest_trend_predictions(db: Session = Depends(get_db)):
     predictions = []
 
     for index, signal in enumerate(latest_signals, start=1):
+        if not is_safe_user_facing_trend(
+            signal.attribute_type,
+            signal.attribute_value,
+        ):
+            continue
+
         trend_score = float(signal.trend_score or 0)
         growth_rate = float(signal.growth_rate or 0)
 
@@ -577,59 +669,7 @@ def pluralize_fashion_term(value: str) -> str:
     return f"{value.title()}s"
 
 
-ALLOWED_INSIGHT_ATTRIBUTE_TYPES = [
-    "category",
-    "color",
-    "pattern",
-    "style",
-    "material",
-]
-
-EXCLUDED_INSIGHT_KEYWORDS = [
-    "bra",
-    "bralette",
-    "panty",
-    "panties",
-    "underwear",
-    "lingerie",
-    "brief",
-    "briefs",
-    "thong",
-    "bikini bottom",
-    "nightwear",
-    "sleepwear",
-    "sleeve",
-    "half sleeve",
-    "balloon sleeve",
-    "short sleeve",
-    "long sleeve",
-    "fitted",
-    "regular fit",
-    "oversized",
-    "baggy",
-    "non-denim",
-    "other",
-    "unknown",
-]
-
-
-def is_safe_user_facing_trend(attribute_type: str, attribute_value: str) -> bool:
-    trend_type = attribute_type.lower().strip()
-    value = attribute_value.lower().strip()
-
-    if trend_type not in ALLOWED_INSIGHT_ATTRIBUTE_TYPES:
-        return False
-
-    for blocked_keyword in EXCLUDED_INSIGHT_KEYWORDS:
-        if blocked_keyword in value:
-            return False
-
-    return True
-
-
-def build_trend_title(
-    attribute_type: str, attribute_value: str, trend_status: str
-) -> str:
+def build_trend_title(attribute_type: str, attribute_value: str, trend_status: str) -> str:
     value = attribute_value.title()
 
     if trend_status == "rising":
