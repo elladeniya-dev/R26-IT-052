@@ -92,7 +92,7 @@ class _TrendDashboardScreenState extends State<TrendDashboardScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Running trend analysis...'),
-        backgroundColor: Color(0xFF00796B),
+        backgroundColor: Color(0xFF073B5A),
       ),
     );
 
@@ -105,7 +105,7 @@ class _TrendDashboardScreenState extends State<TrendDashboardScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text('Trend analysis completed successfully'),
-        backgroundColor: Color(0xFF00796B),
+        backgroundColor: Color(0xFF0B5D85),
       ),
     );
   } catch (error) {
@@ -114,7 +114,7 @@ class _TrendDashboardScreenState extends State<TrendDashboardScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text('Failed to analyze trends: $error'),
-        backgroundColor: Color(0xFFFF3045),
+        backgroundColor: Color(0xFFEF4444),
       ),
     );
   }
@@ -132,6 +132,7 @@ class _TrendDashboardScreenState extends State<TrendDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF6F7F9),
       bottomNavigationBar: TrendBottomNavBar(
   onHistoryTap: () {
     Navigator.push(
@@ -144,7 +145,7 @@ class _TrendDashboardScreenState extends State<TrendDashboardScreen> {
 ),
       body: SafeArea(
         child: RefreshIndicator(
-          color: const Color(0xFF00796B),
+          color: const Color(0xFF0B5D85),
           onRefresh: _refreshTrends,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -261,7 +262,7 @@ class SectionTitle extends StatelessWidget {
       style: const TextStyle(
         fontSize: 19,
         fontWeight: FontWeight.w800,
-        color: Color(0xFF143D35),
+        color: Color(0xFF111827),
       ),
     );
   }
@@ -276,7 +277,7 @@ class LoadingView extends StatelessWidget {
       padding: EdgeInsets.only(top: 80),
       child: Center(
         child: CircularProgressIndicator(
-          color: Color(0xFF00796B),
+          color: Color(0xFF0B5D85),
         ),
       ),
     );
@@ -302,12 +303,13 @@ class ErrorView extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFE8F3F8)),
       ),
       child: Column(
         children: [
           const Icon(
             Icons.error_outline,
-            color: Color(0xFFFF3045),
+              color: Color(0xFFEF4444),
             size: 42,
           ),
           const SizedBox(height: 12),
@@ -316,7 +318,7 @@ class ErrorView extends StatelessWidget {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF143D35),
+              color: Color(0xFF111827),
             ),
           ),
           const SizedBox(height: 8),
@@ -325,14 +327,14 @@ class ErrorView extends StatelessWidget {
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 12,
-              color: Color(0xFF7A7A7A),
+              color: Color(0xFF6B7280),
             ),
           ),
           const SizedBox(height: 14),
           ElevatedButton(
             onPressed: onRetry,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00796B),
+              backgroundColor: const Color(0xFF0B5D85),
               foregroundColor: Colors.white,
             ),
             child: const Text('Retry'),
@@ -354,7 +356,7 @@ class EmptyView extends StatelessWidget {
         child: Text(
           'No trend data found',
           style: TextStyle(
-            color: Color(0xFF7A7A7A),
+            color: Color(0xFF6B7280),
             fontSize: 15,
           ),
         ),
@@ -378,11 +380,11 @@ class RunAnalysisButton extends StatelessWidget {
         width: double.infinity,
         padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 16),
         decoration: BoxDecoration(
-          color: const Color(0xFF00796B),
+          color: const Color(0xFF0B5D85),
           borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
-              color: const Color(0xFF00796B).withValues(alpha: 0.20),
+              color: const Color(0xFF0B5D85).withValues(alpha: 0.20),
               blurRadius: 14,
               offset: const Offset(0, 6),
             ),
@@ -430,7 +432,7 @@ class ViewInsightsButton extends StatelessWidget {
           color: Colors.white,
           borderRadius: BorderRadius.circular(18),
           border: Border.all(
-            color: const Color(0xFF00796B).withValues(alpha: 0.22),
+            color: const Color(0xFF0B5D85).withValues(alpha: 0.22),
           ),
           boxShadow: [
             BoxShadow(
@@ -445,14 +447,14 @@ class ViewInsightsButton extends StatelessWidget {
           children: [
             Icon(
               Icons.auto_awesome,
-              color: Color(0xFF00796B),
+              color: Color(0xFF0B5D85),
               size: 20,
             ),
             SizedBox(width: 8),
             Text(
               'View AI Fashion Insights',
               style: TextStyle(
-                color: Color(0xFF00796B),
+                color: Color(0xFF0B5D85),
                 fontSize: 15,
                 fontWeight: FontWeight.w900,
               ),

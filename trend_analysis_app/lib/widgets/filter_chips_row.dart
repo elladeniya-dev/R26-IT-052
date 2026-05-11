@@ -42,19 +42,19 @@ class FilterChipsRow extends StatelessWidget {
             child: Container(
               padding: const EdgeInsets.symmetric(horizontal: 15),
               decoration: BoxDecoration(
-                color: isSelected ? const Color(0xFF00796B) : Colors.white,
+                color: isSelected ? const Color(0xFF0B5D85) : Colors.white,
                 borderRadius: BorderRadius.circular(18),
                 border: Border.all(
                   color: isSelected
-                      ? const Color(0xFF00796B)
-                      : const Color(0xFFE5E5E5),
+                      ? const Color(0xFF0B5D85)
+                      : const Color(0xFFE8F3F8),
                 ),
               ),
               child: Center(
                 child: Text(
                   _formatFilter(filter),
                   style: TextStyle(
-                    color: isSelected ? Colors.white : const Color(0xFF143D35),
+                    color: isSelected ? Colors.white : const Color(0xFF111827),
                     fontWeight: FontWeight.w700,
                     fontSize: 13,
                   ),

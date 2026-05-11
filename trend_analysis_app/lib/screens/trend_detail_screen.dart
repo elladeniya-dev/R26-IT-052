@@ -57,7 +57,7 @@ class TrendDetailScreen extends StatelessWidget {
     final String formattedType = _formatAttributeType(trend.attributeType);
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: const Color(0xFFF6F7F9),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.fromLTRB(18, 16, 18, 28),
@@ -74,11 +74,18 @@ class TrendDetailScreen extends StatelessWidget {
                 decoration: BoxDecoration(
                   gradient: const LinearGradient(
                     colors: [
-                      Color(0xFF00796B),
-                      Color(0xFF005B4F),
+                      Color(0xFF0B5D85),
+                      Color(0xFF073B5A),
                     ],
                   ),
                   borderRadius: BorderRadius.circular(28),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFF0B5D85).withValues(alpha: 0.20),
+                      blurRadius: 20,
+                      offset: const Offset(0, 12),
+                    ),
+                  ],
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -152,7 +159,7 @@ class TrendDetailScreen extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 19,
                   fontWeight: FontWeight.w800,
-                  color: Color(0xFF143D35),
+                  color: Color(0xFF111827),
                 ),
               ),
               const SizedBox(height: 14),
@@ -211,11 +218,12 @@ class _DetailHeader extends StatelessWidget {
             decoration: BoxDecoration(
               color: Colors.white,
               borderRadius: BorderRadius.circular(15),
+              border: Border.all(color: const Color(0xFFE8F3F8)),
             ),
             child: const Icon(
               Icons.arrow_back_ios_new,
               size: 18,
-              color: Color(0xFF143D35),
+              color: Color(0xFF111827),
             ),
           ),
         ),
@@ -225,7 +233,7 @@ class _DetailHeader extends StatelessWidget {
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w800,
-            color: Color(0xFF143D35),
+            color: Color(0xFF111827),
           ),
         ),
       ],
@@ -252,19 +260,20 @@ class _MiniMetricCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFFE8F3F8)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Icon(
             icon,
-            color: const Color(0xFF00796B),
+            color: const Color(0xFF0B5D85),
           ),
           const Spacer(),
           Text(
             title,
             style: const TextStyle(
-              color: Color(0xFF7A7A7A),
+              color: Color(0xFF6B7280),
               fontSize: 13,
             ),
           ),
@@ -272,7 +281,7 @@ class _MiniMetricCard extends StatelessWidget {
           Text(
             value,
             style: const TextStyle(
-              color: Color(0xFF143D35),
+              color: Color(0xFF111827),
               fontSize: 20,
               fontWeight: FontWeight.w800,
             ),
@@ -297,6 +306,7 @@ class _DetailInfoCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFE8F3F8)),
       ),
       child: Column(
         children: rows.map((row) {
@@ -329,7 +339,7 @@ class _DetailRow extends StatelessWidget {
             child: Text(
               label,
               style: const TextStyle(
-                color: Color(0xFF7A7A7A),
+                color: Color(0xFF6B7280),
                 fontSize: 14,
               ),
             ),
@@ -340,7 +350,7 @@ class _DetailRow extends StatelessWidget {
               value,
               textAlign: TextAlign.right,
               style: const TextStyle(
-                color: Color(0xFF143D35),
+                color: Color(0xFF111827),
                 fontSize: 14,
                 fontWeight: FontWeight.w800,
               ),

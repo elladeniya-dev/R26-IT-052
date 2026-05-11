@@ -12,14 +12,14 @@ class TrendInsightCard extends StatelessWidget {
 
   Color _getStatusColor() {
     if (insight.trendStatus.toLowerCase() == 'rising') {
-      return const Color(0xFF00796B);
+      return const Color(0xFF22C55E);
     }
 
     if (insight.trendStatus.toLowerCase() == 'stable') {
       return const Color(0xFF0B5D85);
     }
 
-    return const Color(0xFFFF3045);
+    return const Color(0xFFEF4444);
   }
 
   String _getConfidenceText() {
@@ -75,7 +75,7 @@ class TrendInsightCard extends StatelessWidget {
               Text(
                 _getConfidenceText(),
                 style: TextStyle(
-                  color: Colors.grey.shade600,
+                  color: const Color(0xFF6B7280),
                   fontSize: 12,
                   fontWeight: FontWeight.w700,
                 ),
@@ -86,7 +86,7 @@ class TrendInsightCard extends StatelessWidget {
           Text(
             insight.title,
             style: const TextStyle(
-              color: Color(0xFF143D35),
+              color: Color(0xFF111827),
               fontSize: 18,
               fontWeight: FontWeight.w900,
               height: 1.25,
@@ -96,7 +96,7 @@ class TrendInsightCard extends StatelessWidget {
           Text(
             insight.summary,
             style: TextStyle(
-              color: Colors.grey.shade700,
+              color: const Color(0xFF6B7280),
               fontSize: 13.5,
               height: 1.45,
               fontWeight: FontWeight.w500,
@@ -107,13 +107,13 @@ class TrendInsightCard extends StatelessWidget {
             width: double.infinity,
             padding: const EdgeInsets.all(13),
             decoration: BoxDecoration(
-              color: const Color(0xFFF4FAF8),
+              color: const Color(0xFFE8F3F8),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
               insight.reason,
               style: const TextStyle(
-                color: Color(0xFF38635B),
+                color: Color(0xFF073B5A),
                 fontSize: 12.5,
                 height: 1.4,
                 fontWeight: FontWeight.w600,
@@ -163,7 +163,7 @@ class _MiniStatChip extends StatelessWidget {
           vertical: 10,
         ),
         decoration: BoxDecoration(
-          color: const Color(0xFF00796B).withValues(alpha: 0.08),
+          color: const Color(0xFF0B5D85).withValues(alpha: 0.08),
           borderRadius: BorderRadius.circular(14),
         ),
         child: Column(
@@ -174,7 +174,7 @@ class _MiniStatChip extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: Colors.grey.shade600,
+                color: const Color(0xFF6B7280),
                 fontSize: 9,
                 fontWeight: FontWeight.w900,
                 letterSpacing: 0.4,
@@ -186,7 +186,7 @@ class _MiniStatChip extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                color: Color(0xFF143D35),
+                color: Color(0xFF111827),
                 fontSize: 12,
                 fontWeight: FontWeight.w900,
               ),

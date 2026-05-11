@@ -81,10 +81,10 @@ class _TrendHistoryScreenState extends State<TrendHistoryScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F8FA),
+      backgroundColor: const Color(0xFFF6F7F9),
       body: SafeArea(
         child: RefreshIndicator(
-          color: const Color(0xFF00796B),
+          color: const Color(0xFF0B5D85),
           onRefresh: _refreshHistory,
           child: SingleChildScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
@@ -102,11 +102,18 @@ class _TrendHistoryScreenState extends State<TrendHistoryScreen> {
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       colors: [
-                        Color(0xFF00796B),
-                        Color(0xFF005B4F),
+                        Color(0xFF0B5D85),
+                        Color(0xFF073B5A),
                       ],
                     ),
                     borderRadius: BorderRadius.circular(24),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF0B5D85).withValues(alpha: 0.20),
+                          blurRadius: 18,
+                          offset: const Offset(0, 10),
+                        ),
+                      ],
                   ),
                   child: const Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -148,7 +155,7 @@ class _TrendHistoryScreenState extends State<TrendHistoryScreen> {
                         padding: EdgeInsets.only(top: 80),
                         child: Center(
                           child: CircularProgressIndicator(
-                            color: Color(0xFF00796B),
+                            color: Color(0xFF0B5D85),
                           ),
                         ),
                       );
@@ -170,7 +177,7 @@ class _TrendHistoryScreenState extends State<TrendHistoryScreen> {
                           child: Text(
                             'No history records found',
                             style: TextStyle(
-                              color: Color(0xFF7A7A7A),
+                              color: Color(0xFF6B7280),
                               fontSize: 15,
                             ),
                           ),
@@ -186,7 +193,7 @@ class _TrendHistoryScreenState extends State<TrendHistoryScreen> {
                           style: const TextStyle(
                             fontSize: 19,
                             fontWeight: FontWeight.w800,
-                            color: Color(0xFF143D35),
+                            color: Color(0xFF111827),
                           ),
                         ),
                         const SizedBox(height: 14),
@@ -246,7 +253,7 @@ class _HistoryHeader extends StatelessWidget {
             child: const Icon(
               Icons.arrow_back_ios_new,
               size: 18,
-              color: Color(0xFF143D35),
+              color: Color(0xFF111827),
             ),
           ),
         ),
@@ -256,7 +263,7 @@ class _HistoryHeader extends StatelessWidget {
           style: TextStyle(
             fontSize: 24,
             fontWeight: FontWeight.w800,
-            color: Color(0xFF143D35),
+            color: Color(0xFF111827),
           ),
         ),
       ],
@@ -292,6 +299,7 @@ class _HistoryTrendTile extends StatelessWidget {
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(22),
+          border: Border.all(color: const Color(0xFFE8F3F8)),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.04),
@@ -306,12 +314,12 @@ class _HistoryTrendTile extends StatelessWidget {
               height: 48,
               width: 48,
               decoration: BoxDecoration(
-                color: const Color(0xFFE6F4F1),
+                color: const Color(0xFFE8F3F8),
                 borderRadius: BorderRadius.circular(16),
               ),
               child: Icon(
                 icon,
-                color: const Color(0xFF00796B),
+                color: const Color(0xFF0B5D85),
               ),
             ),
             const SizedBox(width: 14),
@@ -322,7 +330,7 @@ class _HistoryTrendTile extends StatelessWidget {
                   Text(
                     '$formattedType • ${trend.timeWindow}',
                     style: const TextStyle(
-                      color: Color(0xFF7A7A7A),
+                    color: Color(0xFF6B7280),
                       fontSize: 12,
                     ),
                   ),
@@ -330,7 +338,7 @@ class _HistoryTrendTile extends StatelessWidget {
                   Text(
                     trend.attributeValue,
                     style: const TextStyle(
-                      color: Color(0xFF143D35),
+                      color: Color(0xFF111827),
                       fontSize: 17,
                       fontWeight: FontWeight.w800,
                     ),
@@ -339,7 +347,7 @@ class _HistoryTrendTile extends StatelessWidget {
                   Text(
                     '$startDate to $endDate',
                     style: const TextStyle(
-                      color: Color(0xFF7A7A7A),
+                      color: Color(0xFF6B7280),
                       fontSize: 12,
                     ),
                   ),
@@ -353,7 +361,7 @@ class _HistoryTrendTile extends StatelessWidget {
                 Text(
                   '${(score * 100).toInt()}%',
                   style: const TextStyle(
-                    color: Color(0xFF00796B),
+                    color: Color(0xFF0B5D85),
                     fontSize: 18,
                     fontWeight: FontWeight.w900,
                   ),
@@ -362,7 +370,7 @@ class _HistoryTrendTile extends StatelessWidget {
                 Text(
                   '+${trend.growthRate.toStringAsFixed(2)}',
                   style: const TextStyle(
-                    color: Color(0xFFFF3045),
+                    color: Color(0xFFEF4444),
                     fontSize: 12,
                     fontWeight: FontWeight.w800,
                   ),
@@ -394,12 +402,13 @@ class _ErrorHistoryView extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFE8F3F8)),
       ),
       child: Column(
         children: [
           const Icon(
             Icons.error_outline,
-            color: Color(0xFFFF3045),
+              color: Color(0xFFEF4444),
             size: 42,
           ),
           const SizedBox(height: 12),
@@ -408,7 +417,7 @@ class _ErrorHistoryView extends StatelessWidget {
             style: TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w800,
-              color: Color(0xFF143D35),
+              color: Color(0xFF111827),
             ),
           ),
           const SizedBox(height: 8),
@@ -417,14 +426,14 @@ class _ErrorHistoryView extends StatelessWidget {
             textAlign: TextAlign.center,
             style: const TextStyle(
               fontSize: 12,
-              color: Color(0xFF7A7A7A),
+              color: Color(0xFF6B7280),
             ),
           ),
           const SizedBox(height: 14),
           ElevatedButton(
             onPressed: onRetry,
             style: ElevatedButton.styleFrom(
-              backgroundColor: const Color(0xFF00796B),
+              backgroundColor: const Color(0xFF0B5D85),
               foregroundColor: Colors.white,
             ),
             child: const Text('Retry'),

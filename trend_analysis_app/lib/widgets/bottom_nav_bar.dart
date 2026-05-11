@@ -14,11 +14,13 @@ class TrendBottomNavBar extends StatelessWidget {
       height: 76,
       margin: const EdgeInsets.fromLTRB(18, 0, 18, 16),
       decoration: BoxDecoration(
-        color: const Color(0xFF00796B),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF073B5A), Color(0xFF0B5D85)],
+        ),
         borderRadius: BorderRadius.circular(28),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF00796B).withValues(alpha: 0.25),
+            color: const Color(0xFF073B5A).withValues(alpha: 0.26),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),
@@ -61,7 +63,7 @@ class BottomNavIcon extends StatelessWidget {
       ),
       child: Icon(
         icon,
-        color: isActive ? const Color(0xFF00796B) : Colors.white,
+        color: isActive ? const Color(0xFF0B5D85) : Colors.white,
       ),
     );
   }

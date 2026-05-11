@@ -16,11 +16,18 @@ class SummaryCard extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [
-            Color(0xFF00796B),
-            Color(0xFF005B4F),
+            Color(0xFF0B5D85),
+            Color(0xFF073B5A),
           ],
         ),
         borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: const Color(0xFF0B5D85).withValues(alpha: 0.20),
+            blurRadius: 18,
+            offset: const Offset(0, 10),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

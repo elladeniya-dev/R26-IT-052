@@ -34,6 +34,7 @@ class TrendCard extends StatelessWidget {
               offset: const Offset(0, 5),
             ),
           ],
+          border: Border.all(color: const Color(0xFFE8F3F8)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -42,12 +43,12 @@ class TrendCard extends StatelessWidget {
               height: 42,
               width: 42,
               decoration: BoxDecoration(
-                color: const Color(0xFFE6F4F1),
+                color: const Color(0xFFE8F3F8),
                 borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
                 icon,
-                color: const Color(0xFF00796B),
+                color: const Color(0xFF0B5D85),
                 size: 22,
               ),
             ),
@@ -55,7 +56,7 @@ class TrendCard extends StatelessWidget {
             Text(
               formattedType,
               style: const TextStyle(
-                color: Color(0xFF8A8A8A),
+                color: Color(0xFF6B7280),
                 fontSize: 13,
               ),
             ),
@@ -65,7 +66,7 @@ class TrendCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: const TextStyle(
-                color: Color(0xFF143D35),
+                color: Color(0xFF111827),
                 fontSize: 19,
                 fontWeight: FontWeight.w800,
               ),
@@ -75,9 +76,9 @@ class TrendCard extends StatelessWidget {
               value: score,
               minHeight: 7,
               borderRadius: BorderRadius.circular(10),
-              backgroundColor: const Color(0xFFE9ECEF),
+              backgroundColor: const Color(0xFFE8F3F8),
               valueColor: const AlwaysStoppedAnimation<Color>(
-                Color(0xFF00796B),
+                Color(0xFF0B5D85),
               ),
             ),
             const SizedBox(height: 10),
@@ -88,7 +89,7 @@ class TrendCard extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF143D35),
+                    color: Color(0xFF111827),
                   ),
                 ),
                 const Spacer(),
@@ -97,7 +98,7 @@ class TrendCard extends StatelessWidget {
                   style: const TextStyle(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFFFF3045),
+                    color: Color(0xFFEF4444),
                   ),
                 ),
               ],

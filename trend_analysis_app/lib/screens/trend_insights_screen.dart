@@ -35,25 +35,25 @@ class _TrendInsightsScreenState extends State<TrendInsightsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFF6F8F7),
+      backgroundColor: const Color(0xFFF6F7F9),
       appBar: AppBar(
-        backgroundColor: const Color(0xFFF6F8F7),
+        backgroundColor: const Color(0xFFF6F7F9),
         elevation: 0,
         centerTitle: false,
         iconTheme: const IconThemeData(
-          color: Color(0xFF143D35),
+          color: Color(0xFF111827),
         ),
         title: const Text(
           'Trending Insights',
           style: TextStyle(
-            color: Color(0xFF143D35),
+            color: Color(0xFF111827),
             fontSize: 22,
             fontWeight: FontWeight.w900,
           ),
         ),
       ),
       body: RefreshIndicator(
-        color: const Color(0xFF00796B),
+        color: const Color(0xFF0B5D85),
         onRefresh: _refreshInsights,
         child: FutureBuilder<List<TrendInsightModel>>(
           future: _insightsFuture,
@@ -61,7 +61,7 @@ class _TrendInsightsScreenState extends State<TrendInsightsScreen> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(
                 child: CircularProgressIndicator(
-                  color: Color(0xFF00796B),
+                  color: Color(0xFF0B5D85),
                 ),
               );
             }
@@ -81,7 +81,7 @@ class _TrendInsightsScreenState extends State<TrendInsightsScreen> {
                     'Failed to load trend insights',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Color(0xFF143D35),
+                      color: Color(0xFF111827),
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
                     ),
@@ -91,7 +91,7 @@ class _TrendInsightsScreenState extends State<TrendInsightsScreen> {
                     snapshot.error.toString(),
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.grey.shade600,
+                      color: const Color(0xFF6B7280),
                       fontSize: 13,
                       height: 1.4,
                     ),
@@ -117,7 +117,7 @@ class _TrendInsightsScreenState extends State<TrendInsightsScreen> {
                     'No insights available yet',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Color(0xFF143D35),
+                      color: Color(0xFF111827),
                       fontSize: 18,
                       fontWeight: FontWeight.w900,
                     ),
@@ -127,7 +127,7 @@ class _TrendInsightsScreenState extends State<TrendInsightsScreen> {
                     'Run trend analysis first to generate fashion insights.',
                     textAlign: TextAlign.center,
                     style: TextStyle(
-                      color: Colors.grey.shade600,
+                      color: const Color(0xFF6B7280),
                       fontSize: 13,
                     ),
                   ),
@@ -166,14 +166,14 @@ class _InsightsHeader extends StatelessWidget {
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [
-            Color(0xFF00796B),
-            Color(0xFF005B4F),
+            Color(0xFF0B5D85),
+            Color(0xFF073B5A),
           ],
         ),
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: const Color(0xFF00796B).withValues(alpha: 0.20),
+            color: const Color(0xFF0B5D85).withValues(alpha: 0.20),
             blurRadius: 18,
             offset: const Offset(0, 9),
           ),
