@@ -14,7 +14,7 @@ class OnboardingScreen extends StatefulWidget {
 class _OnboardingScreenState extends State<OnboardingScreen> {
   final OnboardingService _onboardingService = OnboardingService();
 
-  static const int _totalSteps = 5;
+  static const int _totalSteps = 6;
 
   int _currentStep = 0;
   bool _isSubmitting = false;
@@ -23,7 +23,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   final Set<String> _selectedColors = {};
   final Set<String> _selectedStyles = {};
   final Set<String> _selectedOccasions = {};
-  final Set<String> _selectedPatterns = {};
+  final Set<String> _selectedChoicePriorities = {};
+  final Set<String> _selectedBrands = {};
 
   final List<String> _categories = [
     'Tops',
@@ -83,15 +84,27 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
     'Special events',
   ];
 
-  final List<String> _patterns = [
-    'Plain / solid',
-    'Floral',
-    'Striped',
-    'Checked',
-    'Printed',
-    'Graphic',
-    'Polka dot',
-    'Animal print',
+  final List<String> _choicePriorities = [
+    'Comfort',
+    'Style',
+    'Trendiness',
+    'Price value',
+    'Brand',
+    'Quality',
+    'Easy to match',
+    'Occasion suitability',
+  ];
+
+  final List<String> _brands = [
+    'Gflock',
+    'Carnage',
+    'Nolimit',
+    'Kelly Felder',
+    'H&M',
+    'Zara',
+    'Lacoste',
+    'Ralph Lauren',
+    'No specific brand',
   ];
 
   bool get _canGoNext {
@@ -105,7 +118,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       case 3:
         return _selectedOccasions.isNotEmpty;
       case 4:
-        return _selectedPatterns.isNotEmpty;
+        return _selectedChoicePriorities.isNotEmpty;
+      case 5:
+        return _selectedBrands.isNotEmpty;
       default:
         return false;
     }
@@ -114,15 +129,17 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   String get _stepTitle {
     switch (_currentStep) {
       case 0:
-        return 'What type of clothing do you usually prefer?';
+        return 'What clothing categories are you most interested in?';
       case 1:
-        return 'Which colors do you like most?';
+        return 'Which colors do you usually like wearing?';
       case 2:
         return 'What fashion styles match you?';
       case 3:
-        return 'What occasions do you dress for?';
+        return 'What occasions do you usually dress for?';
       case 4:
-        return 'What patterns do you prefer?';
+        return 'What matters most when choosing clothes?';
+      case 5:
+        return 'Do you usually prefer specific fashion brands?';
       default:
         return '';
     }
@@ -139,7 +156,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       case 3:
         return _occasions;
       case 4:
-        return _patterns;
+        return _choicePriorities;
+      case 5:
+        return _brands;
       default:
         return [];
     }
@@ -156,7 +175,9 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
       case 3:
         return _selectedOccasions;
       case 4:
-        return _selectedPatterns;
+        return _selectedChoicePriorities;
+      case 5:
+        return _selectedBrands;
       default:
         return {};
     }
@@ -177,7 +198,6 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   bool _isSelected(String option) {
     return _currentSelectedSet.contains(option);
   }
-
 
   Future<void> _goNext() async {
     if (!_canGoNext || _isSubmitting) {
@@ -201,7 +221,8 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
         preferredColors: _selectedColors.toList(),
         preferredStyles: _selectedStyles.toList(),
         occasions: _selectedOccasions.toList(),
-        preferredPatterns: _selectedPatterns.toList(),
+        choicePriorities: _selectedChoicePriorities.toList(),
+        preferredBrands: _selectedBrands.toList(),
       );
 
       if (!mounted) {
@@ -291,31 +312,31 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   }
 
   Widget _buildHeader() {
-  return Padding(
-    padding: const EdgeInsets.fromLTRB(12, 12, 18, 8),
-    child: Row(
-      children: [
-        IconButton(
-          onPressed: _goBack,
-          icon: const Icon(
-            Icons.arrow_back_ios_new,
-            size: 20,
-            color: AppTheme.darkTextColor,
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(12, 12, 18, 8),
+      child: Row(
+        children: [
+          IconButton(
+            onPressed: _goBack,
+            icon: const Icon(
+              Icons.arrow_back_ios_new,
+              size: 20,
+              color: AppTheme.darkTextColor,
+            ),
           ),
-        ),
-        const SizedBox(width: 4),
-        const Text(
-          'Preferences',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: AppTheme.darkTextColor,
+          const SizedBox(width: 4),
+          const Text(
+            'Preferences',
+            style: TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.darkTextColor,
+            ),
           ),
-        ),
-      ],
-    ),
-  );
-}
+        ],
+      ),
+    );
+  }
 
   Widget _buildProgressSection() {
     return Padding(

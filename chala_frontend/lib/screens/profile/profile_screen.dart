@@ -319,7 +319,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               const Expanded(
                 child: _ProfileStat(
-                  value: '5',
+                  value: '6',
                   label: 'Preferences',
                 ),
               ),

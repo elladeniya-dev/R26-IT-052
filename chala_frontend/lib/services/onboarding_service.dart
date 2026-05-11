@@ -15,7 +15,8 @@ class OnboardingService {
     required List<String> preferredColors,
     required List<String> preferredStyles,
     required List<String> occasions,
-    required List<String> preferredPatterns,
+    required List<String> choicePriorities,
+    required List<String> preferredBrands,
   }) async {
     final String? token = await _secureStorage.read(key: _tokenKey);
 
@@ -36,7 +37,8 @@ class OnboardingService {
         'preferred_colors': preferredColors,
         'preferred_styles': preferredStyles,
         'occasions': occasions,
-        'preferred_patterns': preferredPatterns,
+        'choice_priorities': choicePriorities,
+        'preferred_brands': preferredBrands,
         'extra_preferences': {},
       }),
     );

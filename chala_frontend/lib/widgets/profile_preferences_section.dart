@@ -60,8 +60,10 @@ class ProfilePreferencesSection extends StatelessWidget {
         List<String>.from(onboarding['preferred_styles'] ?? []);
     final List<String> occasions =
         List<String>.from(onboarding['occasions'] ?? []);
-    final List<String> patterns =
-        List<String>.from(onboarding['preferred_patterns'] ?? []);
+    final List<String> choicePriorities =
+        List<String>.from(onboarding['choice_priorities'] ?? []);
+    final List<String> preferredBrands =
+        List<String>.from(onboarding['preferred_brands'] ?? []);
 
     return _buildContainer(
       child: Column(
@@ -93,8 +95,12 @@ class ProfilePreferencesSection extends StatelessWidget {
             values: occasions,
           ),
           _PreferenceGroup(
-            title: 'Patterns',
-            values: patterns,
+            title: 'What matters most',
+            values: choicePriorities,
+          ),
+          _PreferenceGroup(
+            title: 'Preferred brands',
+            values: preferredBrands,
           ),
         ],
       ),

@@ -30,7 +30,8 @@ class OnboardingRequest(BaseModel):
     preferred_colors: List[str]
     preferred_styles: List[str]
     occasions: List[str]
-    preferred_patterns: Optional[List[str]] = None
+    choice_priorities: Optional[List[str]] = None
+    preferred_brands: Optional[List[str]] = None
     extra_preferences: Optional[Dict[str, Any]] = None
 
 
@@ -41,7 +42,8 @@ class OnboardingResponse(BaseModel):
     preferred_colors: List[str]
     preferred_styles: List[str]
     occasions: List[str]
-    preferred_patterns: Optional[List[str]] = None
+    choice_priorities: Optional[List[str]] = None
+    preferred_brands: Optional[List[str]] = None
     extra_preferences: Optional[Dict[str, Any]] = None
 
     class Config:

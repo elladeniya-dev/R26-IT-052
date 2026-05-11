@@ -37,7 +37,14 @@ class UserOnboardingPreference(Base):
     price_max = Column(Float, nullable=True)
 
     occasions = Column(JSONB, nullable=False)
+
+    # Old field kept for database safety, but no longer used in the new onboarding flow
     preferred_patterns = Column(JSONB, nullable=True)
+
+    # New onboarding fields
+    choice_priorities = Column(JSONB, nullable=True)
+    preferred_brands = Column(JSONB, nullable=True)
+
     extra_preferences = Column(JSONB, nullable=True)
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())

@@ -127,7 +127,8 @@ def save_onboarding_preferences(
         existing_preferences.preferred_colors = request.preferred_colors
         existing_preferences.preferred_styles = request.preferred_styles
         existing_preferences.occasions = request.occasions
-        existing_preferences.preferred_patterns = request.preferred_patterns
+        existing_preferences.choice_priorities = request.choice_priorities
+        existing_preferences.preferred_brands = request.preferred_brands
         existing_preferences.extra_preferences = request.extra_preferences
 
         db.commit()
@@ -143,7 +144,8 @@ def save_onboarding_preferences(
         price_min=None,
         price_max=None,
         occasions=request.occasions,
-        preferred_patterns=request.preferred_patterns,
+        choice_priorities=request.choice_priorities,
+        preferred_brands=request.preferred_brands,
         extra_preferences=request.extra_preferences
     )
 
