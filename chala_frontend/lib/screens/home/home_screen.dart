@@ -18,6 +18,8 @@ class HomeScreen extends StatelessWidget {
     'price': 'LKR 3,500',
     'tag': 'Casual',
     'rating': '4.8',
+    'imageUrl':
+    'https://plus.unsplash.com/premium_photo-1690406382707-16d9cc7a83d5?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
   },
   {
     'itemId': 'P002',
@@ -25,6 +27,8 @@ class HomeScreen extends StatelessWidget {
     'price': 'LKR 6,900',
     'tag': 'Comfort',
     'rating': '4.7',
+    'imageUrl':
+    'https://images.unsplash.com/photo-1777899051802-4f08eb298c05?q=80&w=687&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
   },
   {
     'itemId': 'P003',
@@ -32,6 +36,8 @@ class HomeScreen extends StatelessWidget {
     'price': 'LKR 7,500',
     'tag': 'Trendy',
     'rating': '4.6',
+    'imageUrl':
+    'https://images.unsplash.com/photo-1475178626620-a4d074967452?q=80&w=686&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
   },
   {
     'itemId': 'P004',
@@ -39,6 +45,8 @@ class HomeScreen extends StatelessWidget {
     'price': 'LKR 12,000',
     'tag': 'Formal',
     'rating': '4.9',
+    'imageUrl':
+    'https://images.unsplash.com/photo-1730308242954-304f615bb73a?q=80&w=764&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
   },
 ];
 
@@ -248,61 +256,87 @@ class HomeScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildHeroBanner() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        color: AppTheme.primaryColor,
-        borderRadius: BorderRadius.circular(22),
-      ),
-      child: Row(
-        children: [
-          const Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  "Don't miss out —",
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 20,
-                    height: 1.2,
-                    fontWeight: FontWeight.bold,
-                  ),
+Widget _buildHeroBanner() {
+  return Container(
+    width: double.infinity,
+    padding: const EdgeInsets.all(22),
+    decoration: BoxDecoration(
+      color: AppTheme.primaryColor,
+      borderRadius: BorderRadius.circular(22),
+    ),
+    child: Row(
+      children: [
+        const Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "Don't miss out —",
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 20,
+                  height: 1.2,
+                  fontWeight: FontWeight.bold,
                 ),
-                SizedBox(height: 10),
-                Text(
-                  'Discover fashion items matched to your personal style.',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 14,
-                    height: 1.45,
-                  ),
+              ),
+              SizedBox(height: 10),
+              Text(
+                'Discover fashion items matched to your personal style.',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  height: 1.45,
                 ),
-                SizedBox(height: 18),
-                _BannerButton(),
-              ],
+              ),
+              SizedBox(height: 18),
+              _BannerButton(),
+            ],
+          ),
+        ),
+        const SizedBox(width: 14),
+        Container(
+          width: 145,
+          height: 135,
+          decoration: BoxDecoration(
+            color: Colors.white.withOpacity(0.18),
+            borderRadius: BorderRadius.circular(18),
+          ),
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: Image.network(
+              'https://plus.unsplash.com/premium_photo-1664202526559-e21e9c0fb46a?q=80&w=1170&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D',
+              fit: BoxFit.cover,
+              loadingBuilder: (context, child, loadingProgress) {
+                if (loadingProgress == null) {
+                  return child;
+                }
+
+                return Container(
+                  color: Colors.white.withOpacity(0.18),
+                  child: const Center(
+                    child: CircularProgressIndicator(
+                      color: Colors.white,
+                      strokeWidth: 2,
+                    ),
+                  ),
+                );
+              },
+              errorBuilder: (context, error, stackTrace) {
+                return const Center(
+                  child: Icon(
+                    Icons.checkroom,
+                    color: Colors.white,
+                    size: 58,
+                  ),
+                );
+              },
             ),
           ),
-          const SizedBox(width: 14),
-          Container(
-            width: 105,
-            height: 115,
-            decoration: BoxDecoration(
-              color: Colors.white.withOpacity(0.18),
-              borderRadius: BorderRadius.circular(18),
-            ),
-            child: const Icon(
-              Icons.checkroom,
-              color: Colors.white,
-              size: 58,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+        ),
+      ],
+    ),
+  );
+}
 
   Widget _buildSectionTitle(String title) {
     return Text(
@@ -365,7 +399,7 @@ class HomeScreen extends StatelessWidget {
         crossAxisCount: 2,
         crossAxisSpacing: 14,
         mainAxisSpacing: 14,
-        mainAxisExtent: 330,
+        mainAxisExtent: 375,
       ),
       itemBuilder: (context, index) {
         final item = _recommendedItems[index];
@@ -376,6 +410,7 @@ class HomeScreen extends StatelessWidget {
           price: item['price'],
           tag: item['tag'],
           rating: item['rating'],
+          imageUrl: item['imageUrl'],
           onInteraction: (interactionType) {
             _handleInteraction(
               context: context,
@@ -497,6 +532,7 @@ class _ProductCard extends StatelessWidget {
   final String price;
   final String tag;
   final String rating;
+  final String imageUrl;
   final void Function(String interactionType) onInteraction;
 
   const _ProductCard({
@@ -506,6 +542,7 @@ class _ProductCard extends StatelessWidget {
     required this.tag,
     required this.rating,
     required this.onInteraction,
+    required this.imageUrl,
   });
 
   @override
@@ -527,7 +564,7 @@ class _ProductCard extends StatelessWidget {
               onInteraction('click');
             },
             child: Container(
-              height: 105,
+              height: 150,
               width: double.infinity,
               decoration: BoxDecoration(
                 color: AppTheme.primaryColor.withOpacity(0.10),
@@ -535,11 +572,26 @@ class _ProductCard extends StatelessWidget {
                   top: Radius.circular(18),
                 ),
               ),
-              child: const Icon(
-                Icons.checkroom,
-                color: AppTheme.primaryColor,
-                size: 52,
-              ),
+              child: ClipRRect(
+  borderRadius: const BorderRadius.vertical(
+    top: Radius.circular(18),
+  ),
+  child: Image.network(
+    imageUrl,
+    width: double.infinity,
+    height: 150,
+    fit: BoxFit.cover,
+    errorBuilder: (context, error, stackTrace) {
+      return const Center(
+        child: Icon(
+          Icons.checkroom,
+          color: AppTheme.primaryColor,
+          size: 52,
+        ),
+      );
+    },
+  ),
+),
             ),
           ),
           Padding(
