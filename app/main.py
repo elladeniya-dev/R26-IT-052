@@ -353,9 +353,12 @@ def get_all_trends(db: Session = Depends(get_db)):
     )
 
     if not latest_trend:
-        return {"total_trends": 0, "trends": []}
+        return {
+            "total_trends": 0,
+            "trends": [],
+        }
 
-    trends = (
+    all_trends = (
         db.query(models.TrendSignal)
         .filter(
             models.TrendSignal.time_window == latest_trend.time_window,
@@ -366,14 +369,24 @@ def get_all_trends(db: Session = Depends(get_db)):
         .all()
     )
 
+    filtered_trends = []
+
+    for trend in all_trends:
+        if not is_safe_user_facing_trend(
+            trend.attribute_type,
+            trend.attribute_value,
+        ):
+            continue
+
+        filtered_trends.append(trend)
+
     return {
         "time_window": latest_trend.time_window,
         "start_date": latest_trend.start_date,
         "end_date": latest_trend.end_date,
-        "total_trends": len(trends),
-        "trends": trends,
+        "total_trends": len(filtered_trends),
+        "trends": filtered_trends,
     }
-
 
 @app.get("/trends/history")
 def get_trend_history(db: Session = Depends(get_db)):
