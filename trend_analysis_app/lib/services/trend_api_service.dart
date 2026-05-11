@@ -6,7 +6,7 @@ import '../models/trend_model.dart';
 import '../models/trend_insight_model.dart';
 
 class TrendApiService {
-  static const String baseUrl = 'http://192.168.1.2:9000';
+  static const String baseUrl = 'https://trend-analysis-engine.onrender.com';
 
   Future<List<TrendModel>> getAllTrends() async {
     final Uri url = Uri.parse('$baseUrl/trends');

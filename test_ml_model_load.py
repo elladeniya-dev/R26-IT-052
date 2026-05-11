@@ -1,12 +1,13 @@
 from pathlib import Path
 import joblib
 
-
 BASE_DIR = Path(__file__).resolve().parent
 
 MODEL_PATH = BASE_DIR / "ml" / "models" / "trend_random_forest_model.pkl"
 ATTRIBUTE_TYPE_ENCODER_PATH = BASE_DIR / "ml" / "models" / "attribute_type_encoder.pkl"
-ATTRIBUTE_VALUE_ENCODER_PATH = BASE_DIR / "ml" / "models" / "attribute_value_encoder.pkl"
+ATTRIBUTE_VALUE_ENCODER_PATH = (
+    BASE_DIR / "ml" / "models" / "attribute_value_encoder.pkl"
+)
 LABEL_ENCODER_PATH = BASE_DIR / "ml" / "models" / "trend_label_encoder.pkl"
 
 

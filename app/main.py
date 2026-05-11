@@ -1,10 +1,11 @@
-from fastapi import FastAPI, Depends, HTTPException
-from sqlalchemy.orm import Session
-from sqlalchemy import text
 from datetime import timedelta
 
-from app.database import engine, Base, get_db
+from fastapi import Depends, FastAPI, HTTPException
+from sqlalchemy import text
+from sqlalchemy.orm import Session
+
 from app import models, schemas
+from app.database import Base, engine, get_db
 from app.ml_prediction_service import trend_ml_service
 
 Base.metadata.create_all(bind=engine)
@@ -12,15 +13,13 @@ Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title="Gividu Trend Analysis Engine",
     description="Trend Analysis backend service for Smart Fashion Assistant",
-    version="1.0.0"
+    version="1.0.0",
 )
 
 
 @app.get("/")
 def home():
-    return {
-        "message": "Gividu Trend Analysis Engine is running successfully"
-    }
+    return {"message": "Gividu Trend Analysis Engine is running successfully"}
 
 
 @app.get("/test-db")
@@ -32,26 +31,25 @@ def test_database_connection(db: Session = Depends(get_db)):
         return {
             "database_connected": True,
             "test_result": value,
-            "message": "PostgreSQL connection successful"
+            "message": "PostgreSQL connection successful",
         }
 
     except Exception as e:
-        return {
-            "database_connected": False,
-            "error": str(e)
-        }
+        return {"database_connected": False, "error": str(e)}
 
 
 @app.post("/products/", response_model=schemas.ProductResponse)
 def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)):
-    existing_product = db.query(models.Product).filter(
-        models.Product.item_id == product.item_id
-    ).first()
+    existing_product = (
+        db.query(models.Product)
+        .filter(models.Product.item_id == product.item_id)
+        .first()
+    )
 
     if existing_product:
         raise HTTPException(
             status_code=400,
-            detail="Product with this item_id already exists"
+            detail="Product with this item_id already exists",
         )
 
     new_product = models.Product(
@@ -73,7 +71,7 @@ def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)
         source=product.source,
         description=product.description,
         availability=product.availability,
-        collected_at=product.collected_at
+        collected_at=product.collected_at,
     )
 
     db.add(new_product)
@@ -87,25 +85,24 @@ def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)
 def get_all_products(db: Session = Depends(get_db)):
     products = db.query(models.Product).all()
 
-    return {
-        "total_products": len(products),
-        "products": products
-    }
+    return {"total_products": len(products), "products": products}
 
 
 @app.post("/product-metrics/", response_model=schemas.ProductTrendMetricResponse)
 def create_product_metric(
     metric: schemas.ProductTrendMetricCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    product = db.query(models.Product).filter(
-        models.Product.item_id == metric.item_id
-    ).first()
+    product = (
+        db.query(models.Product)
+        .filter(models.Product.item_id == metric.item_id)
+        .first()
+    )
 
     if not product:
         raise HTTPException(
             status_code=404,
-            detail="Product not found. Add product before adding trend metrics."
+            detail="Product not found. Add product before adding trend metrics.",
         )
 
     new_metric = models.ProductTrendMetric(
@@ -115,7 +112,7 @@ def create_product_metric(
         sales_volume=metric.sales_volume,
         social_mentions=metric.social_mentions,
         availability=metric.availability,
-        recorded_at=metric.recorded_at
+        recorded_at=metric.recorded_at,
     )
 
     db.add(new_metric)
@@ -129,20 +126,18 @@ def create_product_metric(
 def get_all_product_metrics(db: Session = Depends(get_db)):
     metrics = db.query(models.ProductTrendMetric).all()
 
-    return {
-        "total_metrics": len(metrics),
-        "metrics": metrics
-    }
+    return {"total_metrics": len(metrics), "metrics": metrics}
+
 
 @app.post("/trend-observations/bulk")
 def create_bulk_trend_observations(
     bulk_data: schemas.BulkTrendObservationCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     if not bulk_data.observations:
         raise HTTPException(
             status_code=400,
-            detail="Observation list cannot be empty"
+            detail="Observation list cannot be empty",
         )
 
     new_observations = []
@@ -156,7 +151,7 @@ def create_bulk_trend_observations(
             keyword=observation.keyword,
             mention_count=observation.mention_count,
             rank_position=observation.rank_position,
-            collected_at=observation.collected_at
+            collected_at=observation.collected_at,
         )
 
         db.add(new_observation)
@@ -170,13 +165,14 @@ def create_bulk_trend_observations(
     return {
         "message": "Bulk trend observations inserted successfully",
         "inserted_count": len(new_observations),
-        "observations": new_observations
+        "observations": new_observations,
     }
+
 
 @app.post("/trend-observations/", response_model=schemas.TrendObservationResponse)
 def create_trend_observation(
     observation: schemas.TrendObservationCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
     new_observation = models.TrendObservation(
         source_name=observation.source_name,
@@ -186,7 +182,7 @@ def create_trend_observation(
         keyword=observation.keyword,
         mention_count=observation.mention_count,
         rank_position=observation.rank_position,
-        collected_at=observation.collected_at
+        collected_at=observation.collected_at,
     )
 
     db.add(new_observation)
@@ -202,8 +198,9 @@ def get_all_trend_observations(db: Session = Depends(get_db)):
 
     return {
         "total_observations": len(observations),
-        "observations": observations
+        "observations": observations,
     }
+
 
 @app.get("/trends/analyze")
 def analyze_trends(db: Session = Depends(get_db)):
@@ -212,7 +209,7 @@ def analyze_trends(db: Session = Depends(get_db)):
     if not observations:
         raise HTTPException(
             status_code=404,
-            detail="No trend observations found. Add trend observations first."
+            detail="No trend observations found. Add trend observations first.",
         )
 
     latest_date = max(obs.collected_at for obs in observations)
@@ -246,16 +243,15 @@ def analyze_trends(db: Session = Depends(get_db)):
     if not all_keys:
         raise HTTPException(
             status_code=404,
-            detail="No observations found in current or previous analysis windows."
+            detail="No observations found in current or previous analysis windows.",
         )
 
     max_current_count = max(current_counts.values()) if current_counts else 1
 
-    # Prevent duplicate trend signals for the same weekly period
     db.query(models.TrendSignal).filter(
         models.TrendSignal.time_window == "weekly",
         models.TrendSignal.start_date == current_start,
-        models.TrendSignal.end_date == current_end
+        models.TrendSignal.end_date == current_end,
     ).delete(synchronize_session=False)
 
     analyzed_results = []
@@ -271,14 +267,13 @@ def analyze_trends(db: Session = Depends(get_db)):
         else:
             growth_rate = (current_count - previous_count) / previous_count
 
-        # 1. Growth score
         growth_score = max(min(growth_rate, 1.0), 0.0)
 
-        # 2. Count score normalized based on highest count in this batch
-        count_score = current_count / max_current_count if max_current_count > 0 else 0.0
+        count_score = (
+            current_count / max_current_count if max_current_count > 0 else 0.0
+        )
         count_score = max(min(count_score, 1.0), 0.0)
 
-        # 3. Rank score: lower rank_position means stronger trend
         ranks = current_ranks.get(key, [])
 
         if ranks:
@@ -290,10 +285,8 @@ def analyze_trends(db: Session = Depends(get_db)):
             rank_score = 0.5
 
         trend_score = round(
-            (0.50 * growth_score) +
-            (0.30 * count_score) +
-            (0.20 * rank_score),
-            2
+            (0.50 * growth_score) + (0.30 * count_score) + (0.20 * rank_score),
+            2,
         )
 
         growth_rate = round(growth_rate, 2)
@@ -305,32 +298,34 @@ def analyze_trends(db: Session = Depends(get_db)):
             growth_rate=growth_rate,
             time_window="weekly",
             start_date=current_start,
-            end_date=current_end
+            end_date=current_end,
         )
 
         db.add(new_signal)
 
-        analyzed_results.append({
-            "attribute_type": attribute_type,
-            "attribute_value": attribute_value,
-            "current_count": current_count,
-            "previous_count": previous_count,
-            "growth_rate": growth_rate,
-            "growth_score": round(growth_score, 2),
-            "count_score": round(count_score, 2),
-            "rank_score": round(rank_score, 2),
-            "average_rank": average_rank,
-            "trend_score": trend_score,
-            "time_window": "weekly",
-            "start_date": current_start,
-            "end_date": current_end
-        })
+        analyzed_results.append(
+            {
+                "attribute_type": attribute_type,
+                "attribute_value": attribute_value,
+                "current_count": current_count,
+                "previous_count": previous_count,
+                "growth_rate": growth_rate,
+                "growth_score": round(growth_score, 2),
+                "count_score": round(count_score, 2),
+                "rank_score": round(rank_score, 2),
+                "average_rank": average_rank,
+                "trend_score": trend_score,
+                "time_window": "weekly",
+                "start_date": current_start,
+                "end_date": current_end,
+            }
+        )
 
     db.commit()
 
     analyzed_results.sort(
         key=lambda item: item["trend_score"],
-        reverse=True
+        reverse=True,
     )
 
     return {
@@ -339,84 +334,94 @@ def analyze_trends(db: Session = Depends(get_db)):
         "formula": "trend_score = 0.50 * growth_score + 0.30 * count_score + 0.20 * rank_score",
         "current_period": {
             "start_date": current_start,
-            "end_date": current_end
+            "end_date": current_end,
         },
         "previous_period": {
             "start_date": previous_start,
-            "end_date": previous_end
+            "end_date": previous_end,
         },
-        "trends": analyzed_results
+        "trends": analyzed_results,
     }
 
 
 @app.get("/trends")
 def get_all_trends(db: Session = Depends(get_db)):
-    latest_trend = db.query(models.TrendSignal).order_by(
-        models.TrendSignal.end_date.desc()
-    ).first()
+    latest_trend = (
+        db.query(models.TrendSignal)
+        .order_by(models.TrendSignal.end_date.desc())
+        .first()
+    )
 
     if not latest_trend:
-        return {
-            "total_trends": 0,
-            "trends": []
-        }
+        return {"total_trends": 0, "trends": []}
 
-    trends = db.query(models.TrendSignal).filter(
-        models.TrendSignal.time_window == latest_trend.time_window,
-        models.TrendSignal.start_date == latest_trend.start_date,
-        models.TrendSignal.end_date == latest_trend.end_date
-    ).order_by(
-        models.TrendSignal.trend_score.desc()
-    ).all()
+    trends = (
+        db.query(models.TrendSignal)
+        .filter(
+            models.TrendSignal.time_window == latest_trend.time_window,
+            models.TrendSignal.start_date == latest_trend.start_date,
+            models.TrendSignal.end_date == latest_trend.end_date,
+        )
+        .order_by(models.TrendSignal.trend_score.desc())
+        .all()
+    )
 
     return {
         "time_window": latest_trend.time_window,
         "start_date": latest_trend.start_date,
         "end_date": latest_trend.end_date,
         "total_trends": len(trends),
-        "trends": trends
+        "trends": trends,
     }
+
 
 @app.get("/trends/history")
 def get_trend_history(db: Session = Depends(get_db)):
-    trends = db.query(models.TrendSignal).order_by(
-        models.TrendSignal.end_date.desc(),
-        models.TrendSignal.trend_score.desc()
-    ).all()
+    trends = (
+        db.query(models.TrendSignal)
+        .order_by(
+            models.TrendSignal.end_date.desc(),
+            models.TrendSignal.trend_score.desc(),
+        )
+        .all()
+    )
 
-    return {
-        "total_trends": len(trends),
-        "trends": trends
-    }
+    return {"total_trends": len(trends), "trends": trends}
+
 
 @app.get("/trends/{attribute_type}")
 def get_trends_by_attribute_type(
     attribute_type: str,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
 ):
-    latest_trend = db.query(models.TrendSignal).order_by(
-        models.TrendSignal.end_date.desc()
-    ).first()
+    latest_trend = (
+        db.query(models.TrendSignal)
+        .order_by(models.TrendSignal.end_date.desc())
+        .first()
+    )
 
     if not latest_trend:
         raise HTTPException(
             status_code=404,
-            detail="No trend data found"
+            detail="No trend data found",
         )
 
-    trends = db.query(models.TrendSignal).filter(
-        models.TrendSignal.attribute_type == attribute_type.lower(),
-        models.TrendSignal.time_window == latest_trend.time_window,
-        models.TrendSignal.start_date == latest_trend.start_date,
-        models.TrendSignal.end_date == latest_trend.end_date
-    ).order_by(
-        models.TrendSignal.trend_score.desc()
-    ).all()
+    trends = (
+        db.query(models.TrendSignal)
+        .filter(
+            models.TrendSignal.attribute_type == attribute_type.lower(),
+            models.TrendSignal.time_window == latest_trend.time_window,
+            models.TrendSignal.start_date == latest_trend.start_date,
+            models.TrendSignal.end_date == latest_trend.end_date,
+        )
+        .order_by(models.TrendSignal.trend_score.desc())
+        .all()
+    )
 
     if not trends:
         raise HTTPException(
             status_code=404,
-            detail=f"No latest trends found for attribute_type: {attribute_type}"
+            detail=f"No latest trends found for attribute_type: {attribute_type}",
         )
 
     return {
@@ -425,8 +430,9 @@ def get_trends_by_attribute_type(
         "start_date": latest_trend.start_date,
         "end_date": latest_trend.end_date,
         "total_trends": len(trends),
-        "trends": trends
+        "trends": trends,
     }
+
 
 @app.post("/ml/predict-trend", response_model=schemas.TrendPredictionResponse)
 def predict_trend_with_ml(request: schemas.TrendPredictionRequest):
@@ -448,23 +454,31 @@ def predict_trend_with_ml(request: schemas.TrendPredictionRequest):
 
     return prediction
 
-@app.get("/ml/latest-trend-predictions", response_model=schemas.LatestTrendPredictionsResponse)
+
+@app.get(
+    "/ml/latest-trend-predictions",
+    response_model=schemas.LatestTrendPredictionsResponse,
+)
 def get_latest_trend_predictions(db: Session = Depends(get_db)):
-    latest_trend = db.query(models.TrendSignal).order_by(
-        models.TrendSignal.end_date.desc()
-    ).first()
+    latest_trend = (
+        db.query(models.TrendSignal)
+        .order_by(models.TrendSignal.end_date.desc())
+        .first()
+    )
 
     if not latest_trend:
-        return {
-            "total_predictions": 0,
-            "predictions": []
-        }
+        return {"total_predictions": 0, "predictions": []}
 
-    latest_signals = db.query(models.TrendSignal).filter(
-        models.TrendSignal.time_window == latest_trend.time_window,
-        models.TrendSignal.start_date == latest_trend.start_date,
-        models.TrendSignal.end_date == latest_trend.end_date
-    ).order_by(models.TrendSignal.trend_score.desc()).all()
+    latest_signals = (
+        db.query(models.TrendSignal)
+        .filter(
+            models.TrendSignal.time_window == latest_trend.time_window,
+            models.TrendSignal.start_date == latest_trend.start_date,
+            models.TrendSignal.end_date == latest_trend.end_date,
+        )
+        .order_by(models.TrendSignal.trend_score.desc())
+        .all()
+    )
 
     predictions = []
 
@@ -472,15 +486,15 @@ def get_latest_trend_predictions(db: Session = Depends(get_db)):
         trend_score = float(signal.trend_score or 0)
         growth_rate = float(signal.growth_rate or 0)
 
-        # Convert trend signal values into ML-compatible feature values.
-        # These are signal-derived proxy features because our local collector
-        # produces mention-based trend signals, while the ML model was trained
-        # using H&M purchase-count based historical trend data.
         purchase_count = max(1, int(trend_score * 1000))
-        previous_purchase_count = max(
-            1,
-            int(purchase_count / (1 + growth_rate))
-        ) if growth_rate > -0.95 else purchase_count
+
+        if growth_rate > -0.95:
+            previous_purchase_count = max(
+                1,
+                int(purchase_count / (1 + growth_rate)),
+            )
+        else:
+            previous_purchase_count = purchase_count
 
         mention_growth = purchase_count - previous_purchase_count
 
@@ -508,21 +522,24 @@ def get_latest_trend_predictions(db: Session = Depends(get_db)):
             trend_score=trend_score,
         )
 
-        predictions.append({
-            "trend_id": signal.trend_id,
-            "attribute_type": signal.attribute_type,
-            "attribute_value": signal.attribute_value,
-            "trend_score": trend_score,
-            "growth_rate": growth_rate,
-            "predicted_trend_label": prediction["predicted_trend_label"],
-            "confidence_scores": prediction["confidence_scores"],
-            "model_type": prediction["model_type"],
-        })
+        predictions.append(
+            {
+                "trend_id": signal.trend_id,
+                "attribute_type": signal.attribute_type,
+                "attribute_value": signal.attribute_value,
+                "trend_score": trend_score,
+                "growth_rate": growth_rate,
+                "predicted_trend_label": prediction["predicted_trend_label"],
+                "confidence_scores": prediction["confidence_scores"],
+                "model_type": prediction["model_type"],
+            }
+        )
 
     return {
         "total_predictions": len(predictions),
-        "predictions": predictions
+        "predictions": predictions,
     }
+
 
 def pluralize_fashion_term(value: str) -> str:
     value_lower = value.lower().strip()
@@ -547,7 +564,59 @@ def pluralize_fashion_term(value: str) -> str:
     return f"{value.title()}s"
 
 
-def build_trend_title(attribute_type: str, attribute_value: str, trend_status: str) -> str:
+ALLOWED_INSIGHT_ATTRIBUTE_TYPES = [
+    "category",
+    "color",
+    "pattern",
+    "style",
+    "material",
+]
+
+EXCLUDED_INSIGHT_KEYWORDS = [
+    "bra",
+    "bralette",
+    "panty",
+    "panties",
+    "underwear",
+    "lingerie",
+    "brief",
+    "briefs",
+    "thong",
+    "bikini bottom",
+    "nightwear",
+    "sleepwear",
+    "sleeve",
+    "half sleeve",
+    "balloon sleeve",
+    "short sleeve",
+    "long sleeve",
+    "fitted",
+    "regular fit",
+    "oversized",
+    "baggy",
+    "non-denim",
+    "other",
+    "unknown",
+]
+
+
+def is_safe_user_facing_trend(attribute_type: str, attribute_value: str) -> bool:
+    trend_type = attribute_type.lower().strip()
+    value = attribute_value.lower().strip()
+
+    if trend_type not in ALLOWED_INSIGHT_ATTRIBUTE_TYPES:
+        return False
+
+    for blocked_keyword in EXCLUDED_INSIGHT_KEYWORDS:
+        if blocked_keyword in value:
+            return False
+
+    return True
+
+
+def build_trend_title(
+    attribute_type: str, attribute_value: str, trend_status: str
+) -> str:
     value = attribute_value.title()
 
     if trend_status == "rising":
@@ -559,8 +628,6 @@ def build_trend_title(attribute_type: str, attribute_value: str, trend_status: s
             return f"{value} styles are trending"
         if attribute_type == "material":
             return f"{value} fabric is becoming popular"
-        if attribute_type == "fit_type":
-            return f"{value} fits are gaining attention"
         if attribute_type == "style":
             return f"{value} style is trending"
 
@@ -571,7 +638,12 @@ def build_trend_title(attribute_type: str, attribute_value: str, trend_status: s
 
     return f"{value} is currently a weaker trend"
 
-def build_trend_summary(attribute_type: str, attribute_value: str, trend_status: str) -> str:
+
+def build_trend_summary(
+    attribute_type: str,
+    attribute_value: str,
+    trend_status: str,
+) -> str:
     value = attribute_value.title()
 
     if trend_status == "rising":
@@ -592,7 +664,11 @@ def build_trend_summary(attribute_type: str, attribute_value: str, trend_status:
     )
 
 
-def build_trend_reason(attribute_type: str, attribute_value: str, trend_status: str) -> str:
+def build_trend_reason(
+    attribute_type: str,
+    attribute_value: str,
+    trend_status: str,
+) -> str:
     value = attribute_value.title()
 
     if trend_status == "rising":
@@ -603,11 +679,13 @@ def build_trend_reason(attribute_type: str, attribute_value: str, trend_status: 
 
     if trend_status == "stable":
         return (
-            f"The system detected that {value} has a balanced trend pattern without major growth or decline."
+            f"The system detected that {value} has a balanced trend pattern without "
+            f"major growth or decline."
         )
 
     return (
-        f"The system detected that {value} has lower trend score or negative growth compared with stronger trends."
+        f"The system detected that {value} has lower trend score or negative growth "
+        f"compared with stronger trends."
     )
 
 
@@ -623,25 +701,41 @@ def get_display_badge(trend_status: str) -> str:
 
 @app.get("/trend-insights", response_model=schemas.TrendInsightsResponse)
 def get_trend_insights(db: Session = Depends(get_db)):
-    latest_trend = db.query(models.TrendSignal).order_by(
-        models.TrendSignal.end_date.desc()
-    ).first()
+    latest_trend = (
+        db.query(models.TrendSignal)
+        .order_by(models.TrendSignal.end_date.desc())
+        .first()
+    )
 
     if not latest_trend:
         return {
             "total_insights": 0,
-            "insights": []
+            "insights": [],
         }
 
-    latest_signals = db.query(models.TrendSignal).filter(
-        models.TrendSignal.time_window == latest_trend.time_window,
-        models.TrendSignal.start_date == latest_trend.start_date,
-        models.TrendSignal.end_date == latest_trend.end_date
-    ).order_by(models.TrendSignal.trend_score.desc()).limit(20).all()
+    latest_signals = (
+        db.query(models.TrendSignal)
+        .filter(
+            models.TrendSignal.time_window == latest_trend.time_window,
+            models.TrendSignal.start_date == latest_trend.start_date,
+            models.TrendSignal.end_date == latest_trend.end_date,
+        )
+        .order_by(models.TrendSignal.trend_score.desc())
+        .all()
+    )
 
     insights = []
 
     for index, signal in enumerate(latest_signals, start=1):
+        if not is_safe_user_facing_trend(
+            signal.attribute_type,
+            signal.attribute_value,
+        ):
+            continue
+
+        if len(insights) >= 20:
+            break
+
         trend_score = float(signal.trend_score or 0)
         growth_rate = float(signal.growth_rate or 0)
 
@@ -650,7 +744,7 @@ def get_trend_insights(db: Session = Depends(get_db)):
         if growth_rate > -0.95:
             previous_purchase_count = max(
                 1,
-                int(purchase_count / (1 + growth_rate))
+                int(purchase_count / (1 + growth_rate)),
             )
         else:
             previous_purchase_count = purchase_count
@@ -685,33 +779,35 @@ def get_trend_insights(db: Session = Depends(get_db)):
         confidence_scores = prediction["confidence_scores"]
         confidence = float(confidence_scores.get(trend_status, 0))
 
-        insights.append({
-            "trend_id": signal.trend_id,
-            "title": build_trend_title(
-                signal.attribute_type,
-                signal.attribute_value,
-                trend_status,
-            ),
-            "summary": build_trend_summary(
-                signal.attribute_type,
-                signal.attribute_value,
-                trend_status,
-            ),
-            "reason": build_trend_reason(
-                signal.attribute_type,
-                signal.attribute_value,
-                trend_status,
-            ),
-            "attribute_type": signal.attribute_type,
-            "attribute_value": signal.attribute_value,
-            "trend_score": trend_score,
-            "growth_rate": growth_rate,
-            "trend_status": trend_status,
-            "confidence": round(confidence, 4),
-            "display_badge": get_display_badge(trend_status),
-        })
+        insights.append(
+            {
+                "trend_id": signal.trend_id,
+                "title": build_trend_title(
+                    signal.attribute_type,
+                    signal.attribute_value,
+                    trend_status,
+                ),
+                "summary": build_trend_summary(
+                    signal.attribute_type,
+                    signal.attribute_value,
+                    trend_status,
+                ),
+                "reason": build_trend_reason(
+                    signal.attribute_type,
+                    signal.attribute_value,
+                    trend_status,
+                ),
+                "attribute_type": signal.attribute_type,
+                "attribute_value": signal.attribute_value,
+                "trend_score": trend_score,
+                "growth_rate": growth_rate,
+                "trend_status": trend_status,
+                "confidence": round(confidence, 4),
+                "display_badge": get_display_badge(trend_status),
+            }
+        )
 
     return {
         "total_insights": len(insights),
-        "insights": insights
+        "insights": insights,
     }

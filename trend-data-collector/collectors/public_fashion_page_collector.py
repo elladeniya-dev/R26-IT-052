@@ -9,7 +9,6 @@ from bs4 import BeautifulSoup
 
 from services.trend_mapping_service import map_products_to_trend_observations
 
-
 OUTPUT_DIR = Path("output")
 
 
@@ -63,14 +62,16 @@ def clean_text(text: str) -> str:
 def remove_query_params(url: str) -> str:
     parsed_url = urlparse(url)
 
-    clean_url = urlunparse((
-        parsed_url.scheme,
-        parsed_url.netloc,
-        parsed_url.path,
-        "",
-        "",
-        "",
-    ))
+    clean_url = urlunparse(
+        (
+            parsed_url.scheme,
+            parsed_url.netloc,
+            parsed_url.path,
+            "",
+            "",
+            "",
+        )
+    )
 
     return clean_url.rstrip("/")
 
@@ -87,10 +88,7 @@ def canonical_product_url(url: str) -> str:
     clean_url = remove_query_params(url)
     parsed_url = urlparse(clean_url)
 
-    path_parts = [
-        part for part in parsed_url.path.split("/")
-        if part
-    ]
+    path_parts = [part for part in parsed_url.path.split("/") if part]
 
     if "products" in path_parts:
         product_index = path_parts.index("products")
@@ -99,14 +97,16 @@ def canonical_product_url(url: str) -> str:
             product_slug = path_parts[product_index + 1]
             canonical_path = f"/products/{product_slug}"
 
-            return urlunparse((
-                parsed_url.scheme,
-                parsed_url.netloc,
-                canonical_path,
-                "",
-                "",
-                "",
-            )).rstrip("/")
+            return urlunparse(
+                (
+                    parsed_url.scheme,
+                    parsed_url.netloc,
+                    canonical_path,
+                    "",
+                    "",
+                    "",
+                )
+            ).rstrip("/")
 
     return clean_url
 
@@ -152,15 +152,10 @@ def clean_title(title: str) -> str:
         r"\b[A-Za-z]{1,5}\d{1,6}[A-Za-z]{0,4}\d{0,6}\s*\d*\b$",
         "",
         title,
-        flags=re.IGNORECASE
+        flags=re.IGNORECASE,
     )
 
-    title = re.sub(
-        r"\bR\d{4}[A-Za-z]\d{4}\s*\d*\b$",
-        "",
-        title,
-        flags=re.IGNORECASE
-    )
+    title = re.sub(r"\bR\d{4}[A-Za-z]\d{4}\s*\d*\b$", "", title, flags=re.IGNORECASE)
 
     # Remove trailing standalone numbers added from product variants/slugs.
     title = re.sub(r"\s+\d+$", "", title)
@@ -248,11 +243,7 @@ def extract_title_from_link(link, product_url: str) -> str:
 
     image_title = ""
     if image:
-        image_title = (
-            image.get("alt")
-            or image.get("title")
-            or ""
-        )
+        image_title = image.get("alt") or image.get("title") or ""
         image_title = clean_title(image_title)
 
     slug_title = title_from_product_url(product_url)
@@ -264,8 +255,7 @@ def extract_title_from_link(link, product_url: str) -> str:
     ]
 
     good_candidates = [
-        title for title in title_candidates
-        if title and not is_bad_title(title)
+        title for title in title_candidates if title and not is_bad_title(title)
     ]
 
     if good_candidates:
@@ -373,8 +363,7 @@ def extract_products_from_html(
     product_map = {}
 
     product_links = soup.find_all(
-        "a",
-        href=lambda href: is_product_link(href, product_path_keywords)
+        "a", href=lambda href: is_product_link(href, product_path_keywords)
     )
 
     for link in product_links:
@@ -407,13 +396,15 @@ def extract_products_from_html(
     products = []
 
     for index, product in enumerate(product_map.values(), start=1):
-        products.append({
-            "rank_position": index,
-            "title": clean_title(product["title"]),
-            "product_url": product["product_url"],
-            "source_name": source_name,
-            "source_type": source_type,
-        })
+        products.append(
+            {
+                "rank_position": index,
+                "title": clean_title(product["title"]),
+                "product_url": product["product_url"],
+                "source_name": source_name,
+                "source_type": source_type,
+            }
+        )
 
     return products
 
@@ -431,12 +422,7 @@ def save_json(file_path: Path, data) -> None:
 
 
 def make_safe_file_name(source_name: str) -> str:
-    return (
-        source_name
-        .lower()
-        .replace(" ", "_")
-        .replace("-", "_")
-    )
+    return source_name.lower().replace(" ", "_").replace("-", "_")
 
 
 def collect_single_source(source: dict) -> dict:
@@ -496,15 +482,17 @@ def collect_all_public_fashion_sources() -> dict:
         try:
             result = collect_single_source(source)
 
-            source_results.append({
-                "source_name": result["source_name"],
-                "source_url": result["source_url"],
-                "raw_product_count": result["raw_product_count"],
-                "trend_observation_count": result["trend_observation_count"],
-                "raw_products_file": result["raw_products_file"],
-                "trend_observations_file": result["trend_observations_file"],
-                "status": "success",
-            })
+            source_results.append(
+                {
+                    "source_name": result["source_name"],
+                    "source_url": result["source_url"],
+                    "raw_product_count": result["raw_product_count"],
+                    "trend_observation_count": result["trend_observation_count"],
+                    "raw_products_file": result["raw_products_file"],
+                    "trend_observations_file": result["trend_observations_file"],
+                    "status": "success",
+                }
+            )
 
             all_products.extend(result["products"])
             all_observations.extend(result["observations"])
@@ -515,14 +503,16 @@ def collect_all_public_fashion_sources() -> dict:
             print(f"Failed to collect source: {source['source_name']}")
             print(f"Reason: {error}")
 
-            source_results.append({
-                "source_name": source["source_name"],
-                "source_url": source["url"],
-                "raw_product_count": 0,
-                "trend_observation_count": 0,
-                "status": "failed",
-                "error": str(error),
-            })
+            source_results.append(
+                {
+                    "source_name": source["source_name"],
+                    "source_url": source["url"],
+                    "raw_product_count": 0,
+                    "trend_observation_count": 0,
+                    "status": "failed",
+                    "error": str(error),
+                }
+            )
 
     combined_raw_file = OUTPUT_DIR / "combined_raw_products.json"
     combined_observations_file = OUTPUT_DIR / "combined_trend_observations.json"
@@ -533,14 +523,12 @@ def collect_all_public_fashion_sources() -> dict:
 
     summary = {
         "total_sources": len(PUBLIC_FASHION_SOURCES),
-        "successful_sources": len([
-            item for item in source_results
-            if item["status"] == "success"
-        ]),
-        "failed_sources": len([
-            item for item in source_results
-            if item["status"] == "failed"
-        ]),
+        "successful_sources": len(
+            [item for item in source_results if item["status"] == "success"]
+        ),
+        "failed_sources": len(
+            [item for item in source_results if item["status"] == "failed"]
+        ),
         "total_raw_products": len(all_products),
         "total_trend_observations": len(all_observations),
         "combined_raw_products_file": str(combined_raw_file),

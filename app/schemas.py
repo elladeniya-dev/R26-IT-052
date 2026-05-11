@@ -62,8 +62,10 @@ class TrendObservationCreate(BaseModel):
     rank_position: Optional[int] = None
     collected_at: Optional[datetime] = None
 
+
 class BulkTrendObservationCreate(BaseModel):
     observations: List[TrendObservationCreate]
+
 
 class TrendObservationResponse(TrendObservationCreate):
     observation_id: int
@@ -85,6 +87,7 @@ class TrendSignalResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
 
 class TrendPredictionRequest(BaseModel):
     attribute_type: str
@@ -109,6 +112,7 @@ class TrendPredictionResponse(BaseModel):
     confidence_scores: dict
     model_type: str
 
+
 class LatestTrendPredictionItem(BaseModel):
     trend_id: int
     attribute_type: str
@@ -123,6 +127,7 @@ class LatestTrendPredictionItem(BaseModel):
 class LatestTrendPredictionsResponse(BaseModel):
     total_predictions: int
     predictions: list[LatestTrendPredictionItem]
+
 
 class TrendInsightItem(BaseModel):
     trend_id: int

@@ -13,7 +13,9 @@ def main():
     print(f"Total raw products: {summary['total_raw_products']}")
     print(f"Total trend observations: {summary['total_trend_observations']}")
     print(f"Combined raw output: {summary['combined_raw_products_file']}")
-    print(f"Combined observations output: {summary['combined_trend_observations_file']}")
+    print(
+        f"Combined observations output: {summary['combined_trend_observations_file']}"
+    )
 
     print("\nSource summary:")
 

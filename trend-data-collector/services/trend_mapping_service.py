@@ -1,7 +1,6 @@
 from datetime import datetime, timezone
 from collections import defaultdict
 
-
 KEYWORD_MAP = {
     "style": [
         "oversized",
@@ -192,15 +191,11 @@ def normalize_attribute_value(attribute_type: str, keyword: str) -> str:
 
 
 def map_products_to_trend_observations(
-    products: list[dict],
-    source_name: str,
-    source_type: str
+    products: list[dict], source_name: str, source_type: str
 ) -> list[dict]:
-    grouped_signals = defaultdict(lambda: {
-        "mention_count": 0,
-        "rank_positions": [],
-        "keywords": set()
-    })
+    grouped_signals = defaultdict(
+        lambda: {"mention_count": 0, "rank_positions": [], "keywords": set()}
+    )
 
     for product in products:
         title = product.get("title", "")
@@ -215,8 +210,7 @@ def map_products_to_trend_observations(
 
                 if keyword_pattern in searchable_text:
                     attribute_value = normalize_attribute_value(
-                        attribute_type=attribute_type,
-                        keyword=keyword_lower
+                        attribute_type=attribute_type, keyword=keyword_lower
                     )
 
                     key = (attribute_type, attribute_value)
@@ -239,20 +233,19 @@ def map_products_to_trend_observations(
         else:
             average_rank = None
 
-        observations.append({
-            "source_name": source_name,
-            "source_type": source_type,
-            "attribute_type": attribute_type,
-            "attribute_value": attribute_value,
-            "keyword": ", ".join(sorted(data["keywords"])),
-            "mention_count": data["mention_count"],
-            "rank_position": average_rank,
-            "collected_at": collected_at
-        })
+        observations.append(
+            {
+                "source_name": source_name,
+                "source_type": source_type,
+                "attribute_type": attribute_type,
+                "attribute_value": attribute_value,
+                "keyword": ", ".join(sorted(data["keywords"])),
+                "mention_count": data["mention_count"],
+                "rank_position": average_rank,
+                "collected_at": collected_at,
+            }
+        )
 
-    observations.sort(
-        key=lambda item: item["mention_count"],
-        reverse=True
-    )
+    observations.sort(key=lambda item: item["mention_count"], reverse=True)
 
     return observations

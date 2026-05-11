@@ -8,7 +8,6 @@ import os
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
-
 OUTPUT_FILE = Path("output") / "combined_trend_observations.json"
 
 
@@ -91,7 +90,12 @@ def insert_trend_observations(engine, observations: list[dict]) -> dict:
             rank_position = observation.get("rank_position")
             collected_at = parse_datetime(observation.get("collected_at"))
 
-            if not source_name or not source_type or not attribute_type or not attribute_value:
+            if (
+                not source_name
+                or not source_type
+                or not attribute_type
+                or not attribute_value
+            ):
                 skipped_count += 1
                 continue
 
@@ -107,8 +111,7 @@ def insert_trend_observations(engine, observations: list[dict]) -> dict:
             }
 
             existing_record = connection.execute(
-                duplicate_check_query,
-                params
+                duplicate_check_query, params
             ).fetchone()
 
             if existing_record:
