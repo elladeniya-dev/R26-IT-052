@@ -2,7 +2,7 @@ import os
 from typing import Dict
 
 import joblib
-import pandas as pd
+import pandas as pd  # type: ignore[reportMissingModuleSource]
 
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))

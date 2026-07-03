@@ -1,3 +1,8 @@
 {
-    "workbench.browser.dataStorage": "global"
+    "workbench.browser.dataStorage": "global",
+    "python.defaultInterpreterPath": "${workspaceFolder}/backend/server/venv/Scripts/python.exe",
+    "python.terminal.activateEnvironment": true,
+    "python.analysis.extraPaths": [
+        "${workspaceFolder}/backend/server"
+    ]
 }
