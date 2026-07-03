@@ -96,6 +96,22 @@ The project is divided into four specialized research modules, each addressing a
 
 This repository is organized as a monorepo containing the 4 core research modules.
 
+### Repository Structure
+
+```text
+R26-IT-052/
+├── README.md                 # Group project overview (this file)
+├── assets/                   # Shared project assets
+├── backend/
+│   └── server/               # Outfit Compatibility Engine (Module 04)
+│       ├── app/              # FastAPI application
+│       ├── ml_models/        # Trained ML models
+│       ├── scripts/          # Utility scripts
+│       └── tests/            # Test scripts
+├── frontend/                 # Flutter app for outfit matching
+└── notebooks/                # Research notebooks
+```
+
 ### Prerequisites
 * Python 3.9+
 * Node.js (for Web Interface)
@@ -110,6 +126,7 @@ This repository is organized as a monorepo containing the 4 core research module
 
 2.  **Set up the Python Environment**
     ```bash
+    cd backend/server
     python -m venv venv
     source venv/bin/activate  # On Windows: venv\Scripts\activate
     pip install -r requirements.txt

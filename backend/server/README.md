@@ -38,7 +38,26 @@ Senu Outfit Compatibility Engine
 Compatible outfit suggestions
         ↓
 Flutter mobile app displays outfits
+```
+
+---
+
+## 3. Key Behaviors
 
 - Duplicate saved outfits are prevented for the same user and selected item
 - Each outfit generation request is stored with a generation batch ID
-- Latest outfit batch can be retrieved using GET /outfits/{user_id}/latest
+- Latest outfit batch can be retrieved using `GET /outfits/{user_id}/latest`
+
+---
+
+## 4. Project Structure
+
+```text
+backend/server/
+├── app/              # FastAPI application code
+├── ml_models/        # Trained ML model files
+├── scripts/          # Utility scripts (e.g. seed_products.py)
+├── tests/            # Manual test scripts
+├── requirements.txt
+└── README.md
+```
