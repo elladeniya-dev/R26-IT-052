@@ -14,6 +14,56 @@ class SavedOutfitCard extends StatelessWidget {
     required this.onRemove,
   });
 
+  String _getFallbackImageUrl({
+    required String itemId,
+    required String title,
+    required String role,
+  }) {
+    final String id = itemId.toLowerCase();
+    final String name = title.toLowerCase();
+    final String itemRole = role.toLowerCase();
+
+    if (id.contains('p001') ||
+        name.contains('crop') ||
+        name.contains('top') ||
+        itemRole.contains('top')) {
+      return 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=600';
+    }
+
+    if (id.contains('p002') ||
+        name.contains('jeans') ||
+        name.contains('denim') ||
+        itemRole.contains('bottom')) {
+      return 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=600';
+    }
+
+    if (id.contains('p003') ||
+        name.contains('jacket') ||
+        itemRole.contains('outerwear')) {
+      return 'https://images.unsplash.com/photo-1548624313-0396c75e4b1a?w=600';
+    }
+
+    if (id.contains('p004') ||
+        name.contains('blazer') ||
+        name.contains('formal')) {
+      return 'https://images.unsplash.com/photo-1487222477894-8943e31ef7b2?w=600';
+    }
+
+    if (itemRole.contains('footwear') ||
+        name.contains('shoe') ||
+        name.contains('sneaker')) {
+      return 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600';
+    }
+
+    if (itemRole.contains('accessory') ||
+        name.contains('bag') ||
+        name.contains('watch')) {
+      return 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=600';
+    }
+
+    return 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600';
+  }
+
   @override
   Widget build(BuildContext context) {
     final int scorePercentage =
@@ -110,7 +160,7 @@ class SavedOutfitCard extends StatelessWidget {
     }
 
     return SizedBox(
-      height: 125,
+      height: 150,
       child: ListView.separated(
         scrollDirection: Axis.horizontal,
         itemCount: savedOutfit.items.length,
@@ -118,8 +168,14 @@ class SavedOutfitCard extends StatelessWidget {
         itemBuilder: (context, index) {
           final item = savedOutfit.items[index];
 
+          final String fallbackImageUrl = _getFallbackImageUrl(
+            itemId: item.itemId,
+            title: item.title,
+            role: item.role,
+          );
+
           return SizedBox(
-            width: 105,
+            width: 135,
             child: Column(
               children: [
                 Expanded(
@@ -127,33 +183,51 @@ class SavedOutfitCard extends StatelessWidget {
                     borderRadius: BorderRadius.circular(16),
                     child: Image.network(
                       item.imageUrl,
-                      width: 105,
-                      height: 95,
+                      width: 135,
+                      height: 115,
                       fit: BoxFit.cover,
                       errorBuilder: (context, error, stackTrace) {
-                        return Container(
-                          width: 105,
-                          height: 95,
-                          color: Colors.grey.shade200,
-                          child: const Icon(
-                            Icons.image_not_supported_outlined,
-                            color: Colors.grey,
-                            size: 32,
-                          ),
+                        return Image.network(
+                          fallbackImageUrl,
+                          width: 135,
+                          height: 115,
+                          fit: BoxFit.cover,
+                          errorBuilder: (context, error, stackTrace) {
+                            return Container(
+                              width: 135,
+                              height: 115,
+                              color: Colors.grey.shade200,
+                              child: const Icon(
+                                Icons.image_not_supported_outlined,
+                                color: Colors.grey,
+                                size: 32,
+                              ),
+                            );
+                          },
                         );
                       },
                     ),
                   ),
                 ),
-                const SizedBox(height: 6),
-                Text(
-                  item.role.toUpperCase(),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w900,
-                    color: Color(0xFF6B7280),
+                const SizedBox(height: 7),
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 9,
+                    vertical: 4,
+                  ),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFF111827),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    item.role.toUpperCase(),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: const TextStyle(
+                      fontSize: 10,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                    ),
                   ),
                 ),
               ],
@@ -172,7 +246,7 @@ class SavedOutfitCard extends StatelessWidget {
       style: const TextStyle(
         fontSize: 15,
         height: 1.4,
-        fontWeight: FontWeight.w800,
+        fontWeight: FontWeight.w900,
         color: Color(0xFF111827),
       ),
     );

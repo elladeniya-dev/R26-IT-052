@@ -5,8 +5,15 @@ import '../widgets/product_card.dart';
 import 'product_detail_screen.dart';
 import 'saved_outfits_screen.dart';
 
-class ProductListScreen extends StatelessWidget {
+class ProductListScreen extends StatefulWidget {
   const ProductListScreen({super.key});
+
+  @override
+  State<ProductListScreen> createState() => _ProductListScreenState();
+}
+
+class _ProductListScreenState extends State<ProductListScreen> {
+  int _selectedBottomIndex = 0;
 
   static final List<ProductModel> sampleProducts = [
     ProductModel(
@@ -76,6 +83,51 @@ class ProductListScreen extends StatelessWidget {
     );
   }
 
+  void _openProductDetails(BuildContext context, ProductModel product) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => ProductDetailScreen(product: product),
+      ),
+    );
+  }
+
+  void _onBottomNavTap(int index) {
+    if (index == 3) {
+      setState(() {
+        _selectedBottomIndex = index;
+      });
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const SavedOutfitsScreen(),
+        ),
+      ).then((_) {
+        if (mounted) {
+          setState(() {
+            _selectedBottomIndex = 0;
+          });
+        }
+      });
+
+      return;
+    }
+
+    setState(() {
+      _selectedBottomIndex = index;
+    });
+
+    if (index != 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('This section will be added next.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -84,7 +136,7 @@ class ProductListScreen extends StatelessWidget {
         elevation: 0,
         backgroundColor: const Color(0xFFF8F8F8),
         title: const Text(
-          'Weafiy',
+          'OutfitIQ',
           style: TextStyle(
             color: Color(0xFF111827),
             fontSize: 26,
@@ -120,27 +172,35 @@ class ProductListScreen extends StatelessWidget {
             _buildBrandSection(),
             const SizedBox(height: 22),
             _buildSectionHeader(
-              title: 'Flash Sales',
+              title: 'Flash Sale',
               subtitle: 'Choose an item and complete the look',
             ),
             const SizedBox(height: 16),
-            ...sampleProducts.map(
-              (product) => ProductCard(
-                product: product,
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) =>
-                          ProductDetailScreen(product: product),
-                    ),
-                  );
-                },
+            GridView.builder(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              itemCount: sampleProducts.length,
+              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 14,
+                mainAxisSpacing: 14,
+                childAspectRatio: 0.62,
               ),
+              itemBuilder: (context, index) {
+                final product = sampleProducts[index];
+
+                return ProductCard(
+                  product: product,
+                  onTap: () {
+                    _openProductDetails(context, product);
+                  },
+                );
+              },
             ),
           ],
         ),
       ),
+      bottomNavigationBar: _buildBottomNavigationBar(),
     );
   }
 
@@ -257,6 +317,75 @@ class ProductListScreen extends StatelessWidget {
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildBottomNavigationBar() {
+    return SafeArea(
+      top: false,
+      child: Container(
+        padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(
+            top: BorderSide(
+              color: Color(0xFFE5E7EB),
+            ),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            _buildBottomNavItem(
+              index: 0,
+              icon: Icons.home_outlined,
+            ),
+            _buildBottomNavItem(
+              index: 1,
+              icon: Icons.search,
+            ),
+            _buildBottomNavItem(
+              index: 2,
+              icon: Icons.inventory_2_outlined,
+            ),
+            _buildBottomNavItem(
+              index: 3,
+              icon: Icons.favorite_border,
+            ),
+            _buildBottomNavItem(
+              index: 4,
+              icon: Icons.person_outline,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBottomNavItem({
+    required int index,
+    required IconData icon,
+  }) {
+    final bool isSelected = _selectedBottomIndex == index;
+
+    return GestureDetector(
+      onTap: () {
+        _onBottomNavTap(index);
+      },
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        width: 42,
+        height: 42,
+        decoration: BoxDecoration(
+          color: isSelected ? const Color(0xFF0F8B8D) : Colors.transparent,
+          shape: BoxShape.circle,
+        ),
+        child: Icon(
+          icon,
+          size: 22,
+          color: isSelected ? Colors.white : const Color(0xFF9CA3AF),
+        ),
+      ),
     );
   }
 }

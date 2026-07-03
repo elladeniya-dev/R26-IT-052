@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.models import Product
 from app.compatibility import calculate_compatibility_score
+from app.ml_predictor import calculate_outfit_ml_score
 
 
 def product_to_dict(product: Product) -> Dict:
@@ -72,7 +73,7 @@ def get_available_products_by_category(
     """
     Reads available products by category from the products table.
 
-    Filters added:
+    Filters:
     - min_price
     - max_price
     - preferred_colors
@@ -136,6 +137,18 @@ def get_required_categories(selected_category: str) -> Dict:
             "optional": []
         }
 
+    if selected_category == "footwear":
+        return {
+            "required": ["top", "bottom"],
+            "optional": ["outerwear"]
+        }
+
+    if selected_category == "accessory":
+        return {
+            "required": ["top", "bottom"],
+            "optional": ["outerwear", "footwear"]
+        }
+
     return {
         "required": [],
         "optional": []
@@ -149,9 +162,9 @@ def apply_excluded_categories(
     """
     Removes categories that the user wants to exclude.
 
-    Important:
-    - Optional categories can be removed safely.
-    - Required categories should not be removed because they are needed to form a complete outfit.
+    Optional categories can be removed safely.
+    Required categories are also removed if user explicitly excludes them,
+    but this may make outfit generation fail if no complete outfit can be formed.
     """
 
     if not excluded_categories:
@@ -162,13 +175,13 @@ def apply_excluded_categories(
     required_categories = category_rules["required"]
     optional_categories = category_rules["optional"]
 
-    filtered_optional_categories = [
-        category for category in optional_categories
+    filtered_required_categories = [
+        category for category in required_categories
         if category not in excluded_categories
     ]
 
-    filtered_required_categories = [
-        category for category in required_categories
+    filtered_optional_categories = [
+        category for category in optional_categories
         if category not in excluded_categories
     ]
 
@@ -208,6 +221,7 @@ def add_optional_items_to_outfits(
 ) -> List[List[Dict]]:
     """
     Adds optional items to outfits.
+
     Keeps both:
     - outfit without optional item
     - outfit with optional item
@@ -223,6 +237,50 @@ def add_optional_items_to_outfits(
             final_outfits.append(outfit_with_optional)
 
     return final_outfits
+
+
+def calculate_hybrid_score(
+    outfit_items: List[Dict],
+    occasion: str
+) -> Dict:
+    """
+    Combines rule-based compatibility score and ML compatibility score.
+
+    Formula:
+    final_score = 0.70 * rule_based_score + 0.30 * ml_score
+    """
+
+    rule_result = calculate_compatibility_score(
+        outfit_items=outfit_items,
+        occasion=occasion
+    )
+
+    rule_based_score = rule_result["compatibility_score"]
+
+    ml_score = calculate_outfit_ml_score(outfit_items)
+
+    final_score = (
+        0.70 * rule_based_score +
+        0.30 * ml_score
+    )
+
+    return {
+        "compatibility_score": round(final_score, 2),
+        "rule_based_score": round(rule_based_score, 2),
+        "ml_score": round(ml_score, 2),
+        "reason_tags": rule_result["reason_tags"] + [
+            "ML compatibility score applied"
+        ],
+        "score_breakdown": {
+            "style_match_score": rule_result["score_breakdown"]["style_match_score"],
+            "color_match_score": rule_result["score_breakdown"]["color_match_score"],
+            "category_match_score": rule_result["score_breakdown"]["category_match_score"],
+            "occasion_match_score": rule_result["score_breakdown"]["occasion_match_score"],
+            "rule_based_score": round(rule_based_score, 2),
+            "ml_score": round(ml_score, 2),
+            "final_hybrid_score": round(final_score, 2)
+        }
+    }
 
 
 def generate_outfits_for_selected_item(
@@ -245,8 +303,10 @@ def generate_outfits_for_selected_item(
     2. Decide required and optional categories
     3. Apply filters
     4. Generate outfit combinations
-    5. Calculate compatibility score
-    6. Rank outfits
+    5. Calculate rule-based score
+    6. Calculate ML score
+    7. Combine both scores
+    8. Rank outfits
     """
 
     selected_product = db.query(Product).filter(
@@ -321,7 +381,7 @@ def generate_outfits_for_selected_item(
     scored_outfits = []
 
     for index, outfit_items in enumerate(all_outfits, start=1):
-        score_result = calculate_compatibility_score(
+        score_result = calculate_hybrid_score(
             outfit_items=outfit_items,
             occasion=occasion
         )
@@ -343,6 +403,8 @@ def generate_outfits_for_selected_item(
                 for item in outfit_items
             ],
             "compatibility_score": score_result["compatibility_score"],
+            "rule_based_score": score_result["rule_based_score"],
+            "ml_score": score_result["ml_score"],
             "reason_tags": score_result["reason_tags"],
             "score_breakdown": score_result["score_breakdown"],
             "applied_filters": {

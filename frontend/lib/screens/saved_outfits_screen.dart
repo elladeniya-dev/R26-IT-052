@@ -8,7 +8,7 @@ class SavedOutfitsScreen extends StatefulWidget {
   const SavedOutfitsScreen({super.key});
 
   @override
-  State<SavedOutfitsScreen> createState() => _SavedOutfitsScreenState();
+ State<SavedOutfitsScreen> createState() => _SavedOutfitsScreenState();
 }
 
 class _SavedOutfitsScreenState extends State<SavedOutfitsScreen> {
@@ -24,6 +24,56 @@ class _SavedOutfitsScreenState extends State<SavedOutfitsScreen> {
   void initState() {
     super.initState();
     _loadSavedOutfits();
+  }
+
+  String _getFallbackImageUrl({
+    required String itemId,
+    required String title,
+    required String role,
+  }) {
+    final String id = itemId.toLowerCase();
+    final String name = title.toLowerCase();
+    final String itemRole = role.toLowerCase();
+
+    if (id.contains('p001') ||
+        name.contains('crop') ||
+        name.contains('top') ||
+        itemRole.contains('top')) {
+      return 'https://images.unsplash.com/photo-1529139574466-a303027c1d8b?w=600';
+    }
+
+    if (id.contains('p002') ||
+        name.contains('jeans') ||
+        name.contains('denim') ||
+        itemRole.contains('bottom')) {
+      return 'https://images.unsplash.com/photo-1541099649105-f69ad21f3246?w=600';
+    }
+
+    if (id.contains('p003') ||
+        name.contains('jacket') ||
+        itemRole.contains('outerwear')) {
+      return 'https://images.unsplash.com/photo-1548624313-0396c75e4b1a?w=600';
+    }
+
+    if (id.contains('p004') ||
+        name.contains('blazer') ||
+        name.contains('formal')) {
+      return 'https://images.unsplash.com/photo-1487222477894-8943e31ef7b2?w=600';
+    }
+
+    if (itemRole.contains('footwear') ||
+        name.contains('shoe') ||
+        name.contains('sneaker')) {
+      return 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600';
+    }
+
+    if (itemRole.contains('accessory') ||
+        name.contains('bag') ||
+        name.contains('watch')) {
+      return 'https://images.unsplash.com/photo-1590874103328-eac38a683ce7?w=600';
+    }
+
+    return 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?w=600';
   }
 
   Future<void> _loadSavedOutfits() async {
@@ -81,7 +131,9 @@ class _SavedOutfitsScreenState extends State<SavedOutfitsScreen> {
         return AlertDialog(
           title: const Text(
             'Remove Saved Outfit?',
-            style: TextStyle(fontWeight: FontWeight.w900),
+            style: TextStyle(
+              fontWeight: FontWeight.w900,
+            ),
           ),
           content: const Text(
             'This outfit will be removed from your saved outfit list.',
@@ -125,16 +177,17 @@ class _SavedOutfitsScreenState extends State<SavedOutfitsScreen> {
   }
 
   void _showReuseBottomSheet(SavedOutfitModel savedOutfit) {
-    final int scorePercentage = (savedOutfit.compatibilityScore * 100)
-        .round()
-        .clamp(0, 100);
+    final int scorePercentage =
+        (savedOutfit.compatibilityScore * 100).round().clamp(0, 100);
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(28),
+        ),
       ),
       builder: (context) {
         return DraggableScrollableSheet(
@@ -160,10 +213,10 @@ class _SavedOutfitsScreenState extends State<SavedOutfitsScreen> {
                 const SizedBox(height: 20),
                 Row(
                   children: [
-                    Expanded(
+                    const Expanded(
                       child: Text(
                         'Reuse Saved Outfit',
-                        style: const TextStyle(
+                        style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.w900,
                           color: Color(0xFF111827),
@@ -210,12 +263,16 @@ class _SavedOutfitsScreenState extends State<SavedOutfitsScreen> {
                 ),
                 const SizedBox(height: 14),
                 ...savedOutfit.items.map((item) {
-                  final colorText = item.color.isEmpty
-                      ? 'N/A'
-                      : item.color.join(', ');
-                  final styleText = item.style.isEmpty
-                      ? 'N/A'
-                      : item.style.join(', ');
+                  final colorText =
+                      item.color.isEmpty ? 'N/A' : item.color.join(', ');
+                  final styleText =
+                      item.style.isEmpty ? 'N/A' : item.style.join(', ');
+
+                  final String fallbackImageUrl = _getFallbackImageUrl(
+                    itemId: item.itemId,
+                    title: item.title,
+                    role: item.role,
+                  );
 
                   return Container(
                     margin: const EdgeInsets.only(bottom: 14),
@@ -235,14 +292,22 @@ class _SavedOutfitsScreenState extends State<SavedOutfitsScreen> {
                             height: 95,
                             fit: BoxFit.cover,
                             errorBuilder: (context, error, stackTrace) {
-                              return Container(
+                              return Image.network(
+                                fallbackImageUrl,
                                 width: 85,
                                 height: 95,
-                                color: Colors.grey.shade200,
-                                child: const Icon(
-                                  Icons.image_not_supported_outlined,
-                                  color: Colors.grey,
-                                ),
+                                fit: BoxFit.cover,
+                                errorBuilder: (context, error, stackTrace) {
+                                  return Container(
+                                    width: 85,
+                                    height: 95,
+                                    color: Colors.grey.shade200,
+                                    child: const Icon(
+                                      Icons.image_not_supported_outlined,
+                                      color: Colors.grey,
+                                    ),
+                                  );
+                                },
                               );
                             },
                           ),
@@ -388,7 +453,10 @@ class _SavedOutfitsScreenState extends State<SavedOutfitsScreen> {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+      SnackBar(
+        content: Text(message),
+        behavior: SnackBarBehavior.floating,
+      ),
     );
   }
 
@@ -485,7 +553,11 @@ class _SavedOutfitsScreenState extends State<SavedOutfitsScreen> {
       ),
       child: const Row(
         children: [
-          Icon(Icons.favorite, color: Colors.white, size: 36),
+          Icon(
+            Icons.favorite,
+            color: Colors.white,
+            size: 36,
+          ),
           SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -562,7 +634,9 @@ class _SavedOutfitsScreenState extends State<SavedOutfitsScreen> {
       ),
       child: const Column(
         children: [
-          CircularProgressIndicator(color: Color(0xFF111827)),
+          CircularProgressIndicator(
+            color: Color(0xFF111827),
+          ),
           SizedBox(height: 14),
           Text(
             'Loading saved outfits...',
@@ -590,7 +664,10 @@ class _SavedOutfitsScreenState extends State<SavedOutfitsScreen> {
         children: [
           const Row(
             children: [
-              Icon(Icons.error_outline, color: Color(0xFFB91C1C)),
+              Icon(
+                Icons.error_outline,
+                color: Color(0xFFB91C1C),
+              ),
               SizedBox(width: 8),
               Text(
                 'Backend Connection Error',
@@ -643,7 +720,11 @@ class _SavedOutfitsScreenState extends State<SavedOutfitsScreen> {
       ),
       child: const Column(
         children: [
-          Icon(Icons.favorite_border, size: 44, color: Color(0xFF9CA3AF)),
+          Icon(
+            Icons.favorite_border,
+            size: 44,
+            color: Color(0xFF9CA3AF),
+          ),
           SizedBox(height: 12),
           Text(
             'No saved outfits yet',
