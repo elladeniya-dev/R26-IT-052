@@ -1,6 +1,6 @@
 class ApiConstants {
-  // Physical Android phone testing URL
-  static const String baseUrl = "http://192.168.8.154:8000";
+  // Local development URL
+  static const String baseUrl = "http://127.0.0.1:8000";
 
   // Outfit Compatibility API endpoint
   static const String generateOutfitsEndpoint = "$baseUrl/outfits/generate";
