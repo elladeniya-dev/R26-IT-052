@@ -13,7 +13,7 @@ void main() {
   testWidgets('App loads product list screen', (WidgetTester tester) async {
     await tester.pumpWidget(const SenuOutfitApp());
 
-    expect(find.text('Weafiy'), findsOneWidget);
+    expect(find.text('OutfitIQ'), findsOneWidget);
     expect(find.text('Find your best outfit'), findsOneWidget);
     expect(find.text('Flash Sale'), findsOneWidget);
   });

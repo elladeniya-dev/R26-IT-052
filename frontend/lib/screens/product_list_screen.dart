@@ -77,9 +77,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   void _openSavedOutfits(BuildContext context) {
     Navigator.push(
       context,
-      MaterialPageRoute(
-        builder: (context) => const SavedOutfitsScreen(),
-      ),
+      MaterialPageRoute(builder: (context) => const SavedOutfitsScreen()),
     );
   }
 
@@ -100,9 +98,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
       Navigator.push(
         context,
-        MaterialPageRoute(
-          builder: (context) => const SavedOutfitsScreen(),
-        ),
+        MaterialPageRoute(builder: (context) => const SavedOutfitsScreen()),
       ).then((_) {
         if (mounted) {
           setState(() {
@@ -130,61 +126,67 @@ class _ProductListScreenState extends State<ProductListScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final double screenWidth = MediaQuery.sizeOf(context).width;
+    final bool isCompact = screenWidth <= 360;
+    final double pagePadding = isCompact ? 12 : 18;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F8F8),
       appBar: AppBar(
         elevation: 0,
         backgroundColor: const Color(0xFFF8F8F8),
+        toolbarHeight: isCompact ? 48 : kToolbarHeight,
         title: const Text(
           'OutfitIQ',
           style: TextStyle(
             color: Color(0xFF111827),
-            fontSize: 26,
+            fontSize: 22,
             fontWeight: FontWeight.w900,
           ),
         ),
         actions: [
           IconButton(
             onPressed: () {},
-            icon: const Icon(
-              Icons.search,
-              color: Color(0xFF111827),
-            ),
+            icon: const Icon(Icons.search, color: Color(0xFF111827)),
           ),
           IconButton(
             tooltip: 'Saved Outfits',
             onPressed: () {
               _openSavedOutfits(context);
             },
-            icon: const Icon(
-              Icons.favorite_border,
-              color: Color(0xFF111827),
-            ),
+            icon: const Icon(Icons.favorite_border, color: Color(0xFF111827)),
           ),
         ],
       ),
       body: SafeArea(
+        top: false,
         child: ListView(
-          padding: const EdgeInsets.all(18),
+          padding: EdgeInsets.fromLTRB(
+            pagePadding,
+            isCompact ? 8 : 18,
+            pagePadding,
+            18,
+          ),
           children: [
-            _buildWelcomeSection(),
-            const SizedBox(height: 20),
-            _buildBrandSection(),
-            const SizedBox(height: 22),
+            _buildWelcomeSection(isCompact: isCompact),
+            SizedBox(height: isCompact ? 14 : 20),
+            _buildBrandSection(isCompact: isCompact),
+            SizedBox(height: isCompact ? 16 : 22),
             _buildSectionHeader(
               title: 'Flash Sale',
               subtitle: 'Choose an item and complete the look',
+              isCompact: isCompact,
             ),
-            const SizedBox(height: 16),
+            SizedBox(height: isCompact ? 10 : 16),
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
               itemCount: sampleProducts.length,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
-                crossAxisSpacing: 14,
-                mainAxisSpacing: 14,
-                childAspectRatio: 0.62,
+                crossAxisSpacing: isCompact ? 8 : 14,
+                mainAxisSpacing: isCompact ? 10 : 14,
+                childAspectRatio: isCompact ? 0.68 : 0.64,
               ),
               itemBuilder: (context, index) {
                 final product = sampleProducts[index];
@@ -204,31 +206,31 @@ class _ProductListScreenState extends State<ProductListScreen> {
     );
   }
 
-  Widget _buildWelcomeSection() {
+  Widget _buildWelcomeSection({required bool isCompact}) {
     return Container(
-      padding: const EdgeInsets.all(18),
+      padding: EdgeInsets.all(isCompact ? 14 : 18),
       decoration: BoxDecoration(
         color: const Color(0xFF111827),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(isCompact ? 18 : 24),
       ),
-      child: const Column(
+      child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             'Find your best outfit',
             style: TextStyle(
               color: Colors.white,
-              fontSize: 22,
+              fontSize: isCompact ? 18 : 22,
               fontWeight: FontWeight.w900,
             ),
           ),
-          SizedBox(height: 8),
+          SizedBox(height: isCompact ? 6 : 8),
           Text(
             'Select a fashion item and generate compatible outfit suggestions.',
             style: TextStyle(
-              color: Color(0xFFD1D5DB),
-              fontSize: 14,
-              height: 1.5,
+              color: const Color(0xFFD1D5DB),
+              fontSize: isCompact ? 12 : 14,
+              height: 1.35,
             ),
           ),
         ],
@@ -236,7 +238,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
     );
   }
 
-  Widget _buildBrandSection() {
+  Widget _buildBrandSection({required bool isCompact}) {
     final brands = ['Gflock', 'Kelly Felder', 'Fashion Bug', 'Carnage'];
 
     return Column(
@@ -245,17 +247,19 @@ class _ProductListScreenState extends State<ProductListScreen> {
         _buildSectionHeader(
           title: 'Popular Brand',
           subtitle: 'Brands used in sample products',
+          isCompact: isCompact,
         ),
-        const SizedBox(height: 12),
+        SizedBox(height: isCompact ? 8 : 12),
         SizedBox(
-          height: 42,
+          height: isCompact ? 36 : 42,
           child: ListView.separated(
             scrollDirection: Axis.horizontal,
             itemCount: brands.length,
-            separatorBuilder: (context, index) => const SizedBox(width: 10),
+            separatorBuilder: (context, index) =>
+                SizedBox(width: isCompact ? 7 : 10),
             itemBuilder: (context, index) {
               return Container(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.symmetric(horizontal: isCompact ? 12 : 16),
                 alignment: Alignment.center,
                 decoration: BoxDecoration(
                   color: Colors.white,
@@ -264,10 +268,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 ),
                 child: Text(
                   brands[index],
-                  style: const TextStyle(
-                    fontSize: 13,
+                  style: TextStyle(
+                    fontSize: isCompact ? 11 : 13,
                     fontWeight: FontWeight.w700,
-                    color: Color(0xFF111827),
+                    color: const Color(0xFF111827),
                   ),
                 ),
               );
@@ -281,6 +285,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   Widget _buildSectionHeader({
     required String title,
     required String subtitle,
+    required bool isCompact,
   }) {
     return Row(
       children: [
@@ -290,30 +295,30 @@ class _ProductListScreenState extends State<ProductListScreen> {
             children: [
               Text(
                 title,
-                style: const TextStyle(
-                  fontSize: 21,
+                style: TextStyle(
+                  fontSize: isCompact ? 17 : 21,
                   fontWeight: FontWeight.w900,
-                  color: Color(0xFF111827),
+                  color: const Color(0xFF111827),
                 ),
               ),
-              const SizedBox(height: 3),
+              SizedBox(height: isCompact ? 2 : 3),
               Text(
                 subtitle,
-                style: const TextStyle(
-                  fontSize: 13,
-                  color: Color(0xFF6B7280),
+                style: TextStyle(
+                  fontSize: isCompact ? 11 : 13,
+                  color: const Color(0xFF6B7280),
                   fontWeight: FontWeight.w500,
                 ),
               ),
             ],
           ),
         ),
-        const Text(
+        Text(
           'See All',
           style: TextStyle(
-            fontSize: 13,
+            fontSize: isCompact ? 11 : 13,
             fontWeight: FontWeight.w800,
-            color: Color(0xFF111827),
+            color: const Color(0xFF111827),
           ),
         ),
       ],
@@ -324,48 +329,26 @@ class _ProductListScreenState extends State<ProductListScreen> {
     return SafeArea(
       top: false,
       child: Container(
-        padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
         decoration: const BoxDecoration(
           color: Colors.white,
-          border: Border(
-            top: BorderSide(
-              color: Color(0xFFE5E7EB),
-            ),
-          ),
+          border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
         ),
         child: Row(
           mainAxisAlignment: MainAxisAlignment.spaceAround,
           children: [
-            _buildBottomNavItem(
-              index: 0,
-              icon: Icons.home_outlined,
-            ),
-            _buildBottomNavItem(
-              index: 1,
-              icon: Icons.search,
-            ),
-            _buildBottomNavItem(
-              index: 2,
-              icon: Icons.inventory_2_outlined,
-            ),
-            _buildBottomNavItem(
-              index: 3,
-              icon: Icons.favorite_border,
-            ),
-            _buildBottomNavItem(
-              index: 4,
-              icon: Icons.person_outline,
-            ),
+            _buildBottomNavItem(index: 0, icon: Icons.home_outlined),
+            _buildBottomNavItem(index: 1, icon: Icons.search),
+            _buildBottomNavItem(index: 2, icon: Icons.inventory_2_outlined),
+            _buildBottomNavItem(index: 3, icon: Icons.favorite_border),
+            _buildBottomNavItem(index: 4, icon: Icons.person_outline),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildBottomNavItem({
-    required int index,
-    required IconData icon,
-  }) {
+  Widget _buildBottomNavItem({required int index, required IconData icon}) {
     final bool isSelected = _selectedBottomIndex == index;
 
     return GestureDetector(
@@ -374,8 +357,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
       },
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 180),
-        width: 42,
-        height: 42,
+        width: 40,
+        height: 40,
         decoration: BoxDecoration(
           color: isSelected ? const Color(0xFF0F8B8D) : Colors.transparent,
           shape: BoxShape.circle,
