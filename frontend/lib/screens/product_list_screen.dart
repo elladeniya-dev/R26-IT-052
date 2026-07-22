@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../models/product_model.dart';
+import '../widgets/custom_bottom_nav_bar.dart';
 import '../widgets/product_card.dart';
 import 'product_detail_screen.dart';
 import 'saved_outfits_screen.dart';
@@ -13,7 +15,8 @@ class ProductListScreen extends StatefulWidget {
 }
 
 class _ProductListScreenState extends State<ProductListScreen> {
-  int _selectedBottomIndex = 0;
+  int _selectedBottomIndex = BottomNavTab.home;
+  final ImagePicker _imagePicker = ImagePicker();
 
   static final List<ProductModel> sampleProducts = [
     ProductModel(
@@ -91,7 +94,21 @@ class _ProductListScreenState extends State<ProductListScreen> {
   }
 
   void _onBottomNavTap(int index) {
-    if (index == 3) {
+    if (index == BottomNavTab.home) {
+      setState(() {
+        _selectedBottomIndex = index;
+      });
+
+      Navigator.popUntil(context, (route) => route.isFirst);
+      return;
+    }
+
+    if (index == BottomNavTab.camera) {
+      _openCamera();
+      return;
+    }
+
+    if (index == BottomNavTab.saved) {
       setState(() {
         _selectedBottomIndex = index;
       });
@@ -102,7 +119,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
       ).then((_) {
         if (mounted) {
           setState(() {
-            _selectedBottomIndex = 0;
+            _selectedBottomIndex = BottomNavTab.home;
           });
         }
       });
@@ -114,10 +131,56 @@ class _ProductListScreenState extends State<ProductListScreen> {
       _selectedBottomIndex = index;
     });
 
-    if (index != 0) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('This section will be added next.'),
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
+  }
+
+  Future<void> _openCamera() async {
+    setState(() {
+      _selectedBottomIndex = BottomNavTab.camera;
+    });
+
+    try {
+      final XFile? photo = await _imagePicker.pickImage(
+        source: ImageSource.camera,
+        imageQuality: 85,
+        maxWidth: 1600,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _selectedBottomIndex = BottomNavTab.home;
+      });
+
+      if (photo == null) {
+        return;
+      }
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text('This section will be added next.'),
+          content: Text('Photo captured successfully.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _selectedBottomIndex = BottomNavTab.home;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Camera unavailable: $error'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -202,7 +265,10 @@ class _ProductListScreenState extends State<ProductListScreen> {
           ],
         ),
       ),
-      bottomNavigationBar: _buildBottomNavigationBar(),
+      bottomNavigationBar: CustomBottomNavBar(
+        selectedIndex: _selectedBottomIndex,
+        onItemSelected: _onBottomNavTap,
+      ),
     );
   }
 
@@ -322,53 +388,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildBottomNavigationBar() {
-    return SafeArea(
-      top: false,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 10),
-        decoration: const BoxDecoration(
-          color: Colors.white,
-          border: Border(top: BorderSide(color: Color(0xFFE5E7EB))),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceAround,
-          children: [
-            _buildBottomNavItem(index: 0, icon: Icons.home_outlined),
-            _buildBottomNavItem(index: 1, icon: Icons.search),
-            _buildBottomNavItem(index: 2, icon: Icons.inventory_2_outlined),
-            _buildBottomNavItem(index: 3, icon: Icons.favorite_border),
-            _buildBottomNavItem(index: 4, icon: Icons.person_outline),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNavItem({required int index, required IconData icon}) {
-    final bool isSelected = _selectedBottomIndex == index;
-
-    return GestureDetector(
-      onTap: () {
-        _onBottomNavTap(index);
-      },
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        width: 40,
-        height: 40,
-        decoration: BoxDecoration(
-          color: isSelected ? const Color(0xFF0F8B8D) : Colors.transparent,
-          shape: BoxShape.circle,
-        ),
-        child: Icon(
-          icon,
-          size: 22,
-          color: isSelected ? Colors.white : const Color(0xFF9CA3AF),
-        ),
-      ),
     );
   }
 }
