@@ -17,6 +17,21 @@ void main() {
 
     expect(find.text('OutfitIQ'), findsOneWidget);
     expect(find.text('Find your best outfit'), findsOneWidget);
+    expect(find.text('Applied style preferences'), findsOneWidget);
+
+    final mainScrollView = find.byType(Scrollable).first;
+
+    await tester.scrollUntilVisible(
+      find.text('Current search filters'),
+      220,
+      scrollable: mainScrollView,
+    );
+    expect(find.text('Current search filters'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('Flash Sale'),
+      300,
+      scrollable: mainScrollView,
+    );
     expect(find.text('Flash Sale'), findsOneWidget);
   });
 

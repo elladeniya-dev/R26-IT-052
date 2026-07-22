@@ -16,6 +16,8 @@ class ProductListScreen extends StatefulWidget {
 
 class _ProductListScreenState extends State<ProductListScreen> {
   int _selectedBottomIndex = BottomNavTab.home;
+
+  String _selectedStyleFilter = 'All';
   final ImagePicker _imagePicker = ImagePicker();
 
   static final List<ProductModel> sampleProducts = [
@@ -234,6 +236,9 @@ class _ProductListScreenState extends State<ProductListScreen> {
             _buildWelcomeSection(isCompact: isCompact),
             SizedBox(height: isCompact ? 14 : 20),
             _buildBrandSection(isCompact: isCompact),
+            SizedBox(height: isCompact ? 14 : 18),
+
+            _buildExploreStylesSection(isCompact: isCompact),
             SizedBox(height: isCompact ? 16 : 22),
             _buildSectionHeader(
               title: 'Flash Sale',
@@ -301,6 +306,69 @@ class _ProductListScreenState extends State<ProductListScreen> {
           ),
         ],
       ),
+    );
+  }
+
+
+
+  Widget _buildExploreStylesSection({required bool isCompact}) {
+    final styles = ['All', 'Casual', 'Formal', 'Trendy'];
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          'Explore styles',
+          style: TextStyle(
+            fontSize: isCompact ? 18 : 21,
+            color: const Color(0xFF111827),
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 12),
+        SizedBox(
+          height: 43,
+          child: ListView.separated(
+            scrollDirection: Axis.horizontal,
+            itemCount: styles.length,
+            separatorBuilder: (context, index) => const SizedBox(width: 10),
+            itemBuilder: (context, index) {
+              final style = styles[index];
+              final isSelected = _selectedStyleFilter == style;
+
+              return ChoiceChip(
+                label: Text(style),
+                selected: isSelected,
+                onSelected: (_) {
+                  setState(() {
+                    _selectedStyleFilter = style;
+                  });
+                },
+                selectedColor: const Color(0xFF0B5D85),
+                backgroundColor: Colors.white,
+                showCheckmark: false,
+                side: BorderSide(
+                  color: isSelected
+                      ? const Color(0xFF0B5D85)
+                      : const Color(0xFFE5E7EB),
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(22),
+                ),
+                labelStyle: TextStyle(
+                  color: isSelected ? Colors.white : const Color(0xFF111827),
+                  fontSize: isCompact ? 12 : 13,
+                  fontWeight: FontWeight.w800,
+                ),
+                padding: EdgeInsets.symmetric(
+                  horizontal: isCompact ? 12 : 16,
+                  vertical: 10,
+                ),
+              );
+            },
+          ),
+        ),
+      ],
     );
   }
 
