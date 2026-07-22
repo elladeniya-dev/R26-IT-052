@@ -186,7 +186,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 crossAxisCount: 2,
                 crossAxisSpacing: isCompact ? 8 : 14,
                 mainAxisSpacing: isCompact ? 10 : 14,
-                childAspectRatio: isCompact ? 0.68 : 0.64,
+                childAspectRatio: isCompact ? 0.52 : 0.51,
               ),
               itemBuilder: (context, index) {
                 final product = sampleProducts[index];
