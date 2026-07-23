@@ -1,6 +1,8 @@
 class ApiConstants {
-  // Local development URL
-  static const String baseUrl = "http://192.168.8.100:8000";
+  // Android emulator  → http://10.0.2.2:8001
+  // Physical device   → http://<your-wifi-ip>:8001  (e.g. http://192.168.8.100:8001)
+  // Flutter Web       → http://127.0.0.1:8001
+  static const String baseUrl = "http://192.168.8.100:8001";
 
   // Outfit Compatibility API endpoint
   static const String generateOutfitsEndpoint = "$baseUrl/outfits/generate";

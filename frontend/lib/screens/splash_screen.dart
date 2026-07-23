@@ -39,7 +39,7 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 900),
     );
     _logoFade = CurvedAnimation(parent: _logoController, curve: Curves.easeOut);
-    _logoScale = Tween<double>(begin: 0.7, end: 1.0).animate(
+    _logoScale = Tween<double>(begin: 0.7, end: 1.5).animate(
       CurvedAnimation(parent: _logoController, curve: Curves.easeOutBack),
     );
 
@@ -125,12 +125,14 @@ class _SplashScreenState extends State<SplashScreen>
           children: [
             _AmbientOrb(controller: _orbController),
             SafeArea(
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: isCompact ? 28 : 36),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.center,
-                  children: [
-                    const Spacer(flex: 3),
+              child: SizedBox(
+                width: double.infinity,
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: isCompact ? 28 : 36),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      const Spacer(flex: 3),
 
                     // Glass card
                     FadeTransition(
@@ -199,7 +201,8 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
               ),
             ),
-          ],
+          ),
+        ],
         ),
       ),
     );
