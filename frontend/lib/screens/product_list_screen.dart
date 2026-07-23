@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../models/product_model.dart';
 import '../widgets/custom_bottom_nav_bar.dart';
 import '../widgets/product_card.dart';
+import 'notifications_screen.dart';
 import 'product_detail_screen.dart';
 import 'saved_outfits_screen.dart';
 import 'search_screen.dart';
@@ -21,6 +22,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
   static List<String> _persistedHistory = [];
 
   int _selectedBottomIndex = BottomNavTab.home;
+  int _unreadNotifications = 2; // matches sample data unread count
 
   String _selectedStyleFilter = 'All';
   final ImagePicker _imagePicker = ImagePicker();
@@ -111,11 +113,16 @@ class _ProductListScreenState extends State<ProductListScreen> {
     super.dispose();
   }
 
-  void _openSavedOutfits(BuildContext context) {
+  void _openNotifications() {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => const SavedOutfitsScreen()),
-    );
+      MaterialPageRoute(builder: (_) => const NotificationsScreen()),
+    ).then((_) {
+      // When returning, clear the badge (user has seen notifications)
+      if (mounted) {
+        setState(() => _unreadNotifications = 0);
+      }
+    });
   }
 
   void _openProductDetails(BuildContext context, ProductModel product) {
@@ -347,17 +354,46 @@ class _ProductListScreenState extends State<ProductListScreen> {
           ),
         ),
         actions: [
-          IconButton(
-            tooltip: 'Search',
-            onPressed: _openSearchScreen,
-            icon: const Icon(Icons.search, color: Color(0xFF111827)),
-          ),
-          IconButton(
-            tooltip: 'Saved Outfits',
-            onPressed: () {
-              _openSavedOutfits(context);
-            },
-            icon: const Icon(Icons.favorite_border, color: Color(0xFF111827)),
+          // Notification bell with unread badge
+          Stack(
+            alignment: Alignment.center,
+            children: [
+              IconButton(
+                tooltip: 'Notifications',
+                onPressed: _openNotifications,
+                icon: const Icon(
+                  Icons.notifications_outlined,
+                  color: Color(0xFF111827),
+                ),
+              ),
+              if (_unreadNotifications > 0)
+                Positioned(
+                  top: 8,
+                  right: 8,
+                  child: Container(
+                    width: 17,
+                    height: 17,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFEF4444),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: Colors.white, width: 1.5),
+                    ),
+                    child: Center(
+                      child: Text(
+                        _unreadNotifications > 9
+                            ? '9+'
+                            : '$_unreadNotifications',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 9,
+                          fontWeight: FontWeight.w800,
+                          height: 1,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
           ),
         ],
       ),
