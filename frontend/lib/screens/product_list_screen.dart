@@ -6,6 +6,7 @@ import '../widgets/custom_bottom_nav_bar.dart';
 import '../widgets/product_card.dart';
 import 'product_detail_screen.dart';
 import 'saved_outfits_screen.dart';
+import 'search_screen.dart';
 
 class ProductListScreen extends StatefulWidget {
   const ProductListScreen({super.key});
@@ -15,10 +16,20 @@ class ProductListScreen extends StatefulWidget {
 }
 
 class _ProductListScreenState extends State<ProductListScreen> {
+  static String _lastSearchQuery = '';
+  static List<ProductModel> _lastSearchProducts = [];
+  static List<String> _persistedHistory = [];
+
   int _selectedBottomIndex = BottomNavTab.home;
 
   String _selectedStyleFilter = 'All';
   final ImagePicker _imagePicker = ImagePicker();
+
+  String _searchQuery = _lastSearchQuery;
+  List<ProductModel> _cachedSearchProducts = List<ProductModel>.from(
+    _lastSearchProducts,
+  );
+  List<String> _searchHistory = List<String>.from(_persistedHistory);
 
   static final List<ProductModel> sampleProducts = [
     ProductModel(
@@ -80,15 +91,24 @@ class _ProductListScreenState extends State<ProductListScreen> {
   ];
 
   List<ProductModel> get _filteredProducts {
+    final products = _hasActiveSearch ? _cachedSearchProducts : sampleProducts;
+
     if (_selectedStyleFilter.toLowerCase() == 'all') {
-      return sampleProducts;
+      return products;
     }
 
-    return sampleProducts.where((product) {
+    return products.where((product) {
       return product.style.any(
         (style) => style.toLowerCase() == _selectedStyleFilter.toLowerCase(),
       );
     }).toList();
+  }
+
+  bool get _hasActiveSearch => _searchQuery.isNotEmpty;
+
+  @override
+  void dispose() {
+    super.dispose();
   }
 
   void _openSavedOutfits(BuildContext context) {
@@ -107,13 +127,32 @@ class _ProductListScreenState extends State<ProductListScreen> {
     );
   }
 
-  void _onBottomNavTap(int index) {
+  Future<void> _onBottomNavTap(int index) async {
     if (index == BottomNavTab.home) {
       setState(() {
         _selectedBottomIndex = index;
       });
 
       Navigator.popUntil(context, (route) => route.isFirst);
+      return;
+    }
+
+    if (index == BottomNavTab.search) {
+      setState(() {
+        _selectedBottomIndex = index;
+      });
+
+      await _openSearchScreen();
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _selectedBottomIndex = _hasActiveSearch
+            ? BottomNavTab.search
+            : BottomNavTab.home;
+      });
       return;
     }
 
@@ -150,6 +189,92 @@ class _ProductListScreenState extends State<ProductListScreen> {
         content: Text('This section will be added next.'),
         behavior: SnackBarBehavior.floating,
       ),
+    );
+  }
+
+  Future<void> _openSearchScreen() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => SearchScreen(
+          allProducts: sampleProducts,
+          searchHistory: _searchHistory,
+          onSearch: (query, results, updatedHistory) {
+            _searchProducts(query, precomputedResults: results);
+            setState(() {
+              _searchHistory = updatedHistory;
+              _persistedHistory = updatedHistory;
+            });
+          },
+        ),
+      ),
+    );
+  }
+
+  void _searchProducts(
+    String rawQuery, {
+    List<ProductModel>? precomputedResults,
+  }) {
+    final query = rawQuery.trim();
+
+    if (query.isEmpty) {
+      _clearSearch(showMessage: true);
+      return;
+    }
+
+    final searchResults = precomputedResults ??
+        sampleProducts.where((product) {
+          final searchableText = [
+            product.itemId,
+            product.title,
+            product.role,
+            product.brand,
+            product.description,
+            ...product.color,
+            ...product.style,
+          ].join(' ').toLowerCase();
+          return searchableText.contains(query.toLowerCase());
+        }).toList();
+
+    setState(() {
+      _searchQuery = query;
+      _cachedSearchProducts = searchResults;
+      _lastSearchQuery = query;
+      _lastSearchProducts = searchResults;
+      _selectedBottomIndex = BottomNavTab.search;
+    });
+
+    if (searchResults.isEmpty) {
+      _showSnackBar('Search unsuccessful: no products found for "$query".');
+      return;
+    }
+
+    _showSnackBar(
+      'Search successful: ${searchResults.length} product${searchResults.length == 1 ? '' : 's'} found.',
+    );
+  }
+
+  void _clearSearch({bool showMessage = false}) {
+    setState(() {
+      _searchQuery = '';
+      _cachedSearchProducts = [];
+      _lastSearchQuery = '';
+      _lastSearchProducts = [];
+      _selectedBottomIndex = BottomNavTab.home;
+    });
+
+    if (showMessage) {
+      _showSnackBar('Search cleared.');
+    }
+  }
+
+  void _showSnackBar(String message) {
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
   }
 
@@ -224,14 +349,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
         actions: [
           IconButton(
             tooltip: 'Search',
-            onPressed: () {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Search will be added next.'),
-                  behavior: SnackBarBehavior.floating,
-                ),
-              );
-            },
+            onPressed: _openSearchScreen,
             icon: const Icon(Icons.search, color: Color(0xFF111827)),
           ),
           IconButton(
@@ -261,32 +379,39 @@ class _ProductListScreenState extends State<ProductListScreen> {
             _buildExploreStylesSection(isCompact: isCompact),
             SizedBox(height: isCompact ? 16 : 22),
             _buildSectionHeader(
-              title: 'Flash Sale',
-              subtitle: 'Choose an item and complete the look',
+              title: _hasActiveSearch ? 'Search Results' : 'Flash Sale',
+              subtitle: _hasActiveSearch
+                  ? '${_filteredProducts.length} cached result${_filteredProducts.length == 1 ? '' : 's'} for "$_searchQuery"'
+                  : 'Choose an item and complete the look',
               isCompact: isCompact,
+              trailingLabel: _hasActiveSearch ? 'Clear' : 'See All',
+              onTrailingTap: _hasActiveSearch ? () => _clearSearch() : null,
             ),
             SizedBox(height: isCompact ? 10 : 16),
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _filteredProducts.length,
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 2,
-                crossAxisSpacing: isCompact ? 8 : 14,
-                mainAxisSpacing: isCompact ? 10 : 14,
-                childAspectRatio: isCompact ? 0.52 : 0.51,
-              ),
-              itemBuilder: (context, index) {
-                final product = _filteredProducts[index];
+            if (_filteredProducts.isEmpty)
+              _buildEmptySearchState(isCompact: isCompact)
+            else
+              GridView.builder(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                itemCount: _filteredProducts.length,
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: 2,
+                  crossAxisSpacing: isCompact ? 8 : 14,
+                  mainAxisSpacing: isCompact ? 10 : 14,
+                  childAspectRatio: isCompact ? 0.52 : 0.51,
+                ),
+                itemBuilder: (context, index) {
+                  final product = _filteredProducts[index];
 
-                return ProductCard(
-                  product: product,
-                  onTap: () {
-                    _openProductDetails(context, product);
-                  },
-                );
-              },
-            ),
+                  return ProductCard(
+                    product: product,
+                    onTap: () {
+                      _openProductDetails(context, product);
+                    },
+                  );
+                },
+              ),
           ],
         ),
       ),
@@ -438,6 +563,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
     required String title,
     required String subtitle,
     required bool isCompact,
+    String trailingLabel = 'See All',
+    VoidCallback? onTrailingTap,
   }) {
     return Row(
       children: [
@@ -465,15 +592,64 @@ class _ProductListScreenState extends State<ProductListScreen> {
             ],
           ),
         ),
-        Text(
-          'See All',
-          style: TextStyle(
-            fontSize: isCompact ? 11 : 13,
-            fontWeight: FontWeight.w800,
-            color: const Color(0xFF111827),
+        InkWell(
+          onTap: onTrailingTap,
+          borderRadius: BorderRadius.circular(18),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 6),
+            child: Text(
+              trailingLabel,
+              style: TextStyle(
+                fontSize: isCompact ? 11 : 13,
+                fontWeight: FontWeight.w800,
+                color: const Color(0xFF111827),
+              ),
+            ),
           ),
         ),
       ],
+    );
+  }
+
+  Widget _buildEmptySearchState({required bool isCompact}) {
+    return Container(
+      width: double.infinity,
+      padding: EdgeInsets.all(isCompact ? 18 : 22),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        children: [
+          const Icon(Icons.search_off, size: 38, color: Color(0xFF6B7280)),
+          const SizedBox(height: 10),
+          Text(
+            'No products found',
+            style: TextStyle(
+              fontSize: isCompact ? 15 : 17,
+              fontWeight: FontWeight.w900,
+              color: const Color(0xFF111827),
+            ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            'Try another product name, brand, color, or style.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: isCompact ? 12 : 13,
+              color: const Color(0xFF6B7280),
+              height: 1.35,
+            ),
+          ),
+          const SizedBox(height: 14),
+          OutlinedButton.icon(
+            onPressed: _openSearchScreen,
+            icon: const Icon(Icons.search),
+            label: const Text('Search Again'),
+          ),
+        ],
+      ),
     );
   }
 }
