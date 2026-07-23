@@ -79,6 +79,18 @@ class _ProductListScreenState extends State<ProductListScreen> {
     ),
   ];
 
+  List<ProductModel> get _filteredProducts {
+    if (_selectedStyleFilter.toLowerCase() == 'all') {
+      return sampleProducts;
+    }
+
+    return sampleProducts.where((product) {
+      return product.style.any(
+        (style) => style.toLowerCase() == _selectedStyleFilter.toLowerCase(),
+      );
+    }).toList();
+  }
+
   void _openSavedOutfits(BuildContext context) {
     Navigator.push(
       context,
@@ -211,7 +223,15 @@ class _ProductListScreenState extends State<ProductListScreen> {
         ),
         actions: [
           IconButton(
-            onPressed: () {},
+            tooltip: 'Search',
+            onPressed: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Search will be added next.'),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
             icon: const Icon(Icons.search, color: Color(0xFF111827)),
           ),
           IconButton(
@@ -249,7 +269,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
             GridView.builder(
               shrinkWrap: true,
               physics: const NeverScrollableScrollPhysics(),
-              itemCount: sampleProducts.length,
+              itemCount: _filteredProducts.length,
               gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
                 crossAxisCount: 2,
                 crossAxisSpacing: isCompact ? 8 : 14,
@@ -257,7 +277,7 @@ class _ProductListScreenState extends State<ProductListScreen> {
                 childAspectRatio: isCompact ? 0.52 : 0.51,
               ),
               itemBuilder: (context, index) {
-                final product = sampleProducts[index];
+                final product = _filteredProducts[index];
 
                 return ProductCard(
                   product: product,
@@ -308,8 +328,6 @@ class _ProductListScreenState extends State<ProductListScreen> {
       ),
     );
   }
-
-
 
   Widget _buildExploreStylesSection({required bool isCompact}) {
     final styles = ['All', 'Casual', 'Formal', 'Trendy'];

@@ -53,6 +53,8 @@ class OutfitApiService {
           'Failed to generate outfits';
 
       throw Exception(errorMessage);
+    } on Exception {
+      rethrow; // keep already-formed Exception messages as-is
     } catch (error) {
       throw Exception('Backend connection failed: $error');
     }

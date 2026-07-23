@@ -8,15 +8,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:senu_outfit_frontend/main.dart';
+import 'package:senu_outfit_frontend/screens/product_list_screen.dart';
 import 'package:senu_outfit_frontend/widgets/custom_bottom_nav_bar.dart';
 
 void main() {
   testWidgets('App loads product list screen', (WidgetTester tester) async {
-    await tester.pumpWidget(const SenuOutfitApp());
+    await tester.pumpWidget(const MaterialApp(home: ProductListScreen()));
 
     expect(find.text('OutfitIQ'), findsOneWidget);
     expect(find.text('Find your best outfit'), findsOneWidget);
+    expect(find.text('Popular Brand'), findsOneWidget);
     expect(find.text('Explore styles'), findsOneWidget);
 
     final mainScrollView = find.byType(Scrollable).first;

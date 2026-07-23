@@ -32,6 +32,8 @@ class SavedOutfitApiService {
           'Failed to save outfit';
 
       throw Exception(errorMessage);
+    } on Exception {
+      rethrow;
     } catch (error) {
       throw Exception('Save outfit failed: $error');
     }
@@ -62,6 +64,8 @@ class SavedOutfitApiService {
           'Failed to load saved outfits';
 
       throw Exception(errorMessage);
+    } on Exception {
+      rethrow;
     } catch (error) {
       throw Exception('Load saved outfits failed: $error');
     }
@@ -92,6 +96,8 @@ class SavedOutfitApiService {
           'Failed to load outfit details';
 
       throw Exception(errorMessage);
+    } on Exception {
+      rethrow;
     } catch (error) {
       throw Exception('Reuse outfit failed: $error');
     }
@@ -122,6 +128,8 @@ class SavedOutfitApiService {
           'Failed to remove saved outfit';
 
       throw Exception(errorMessage);
+    } on Exception {
+      rethrow;
     } catch (error) {
       throw Exception('Remove saved outfit failed: $error');
     }
