@@ -64,7 +64,7 @@ def generate_outfits(
 
         return {
             "status": "success",
-            "message": "Outfits generated successfully. Previous saved outfits for the same selected item were replaced.",
+            "message": "Outfits generated successfully. Saved outfits were kept in the database.",
             "user_id": result["user_id"],
             "selected_item_id": result["selected_item_id"],
             "outfits": saved_outfits,
