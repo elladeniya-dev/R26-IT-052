@@ -3,7 +3,7 @@ from typing import Dict, List
 
 from sqlalchemy.orm import Session
 
-from app.models import OutfitSuggestion, OutfitItem, Product
+from app.s_models import OutfitSuggestion, OutfitItem, Product
 
 
 def create_unique_batch_id(user_id: str, selected_item_id: str) -> str:

@@ -2,8 +2,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.database import engine, Base
-from app import models
+from app.s_database import engine, Base
+from app import s_models
 from fastapi.middleware.cors import CORSMiddleware
 from app.routers import (
     health_router,

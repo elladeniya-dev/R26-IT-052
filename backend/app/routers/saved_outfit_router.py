@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.database import get_db
-from app.models import OutfitSuggestion
-from app.outfit_storage import outfit_record_to_response
+from app.s_database import get_db
+from app.s_models import OutfitSuggestion
+from app.s_outfit_storage import outfit_record_to_response
 
 
 router = APIRouter(

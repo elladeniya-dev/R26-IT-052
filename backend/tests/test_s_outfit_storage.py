@@ -15,9 +15,9 @@ test_database = ModuleType("app.database")
 test_database.Base = declarative_base()
 sys.modules["app.database"] = test_database
 
-from app.database import Base
-from app.models import OutfitSuggestion
-from app.outfit_storage import (
+from app.s_database import Base
+from app.s_models import OutfitSuggestion
+from app.s_outfit_storage import (
     delete_unsaved_outfits_for_selected_item,
     outfit_record_to_response,
 )

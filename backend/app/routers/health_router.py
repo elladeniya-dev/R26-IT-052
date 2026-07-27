@@ -1,7 +1,7 @@
 from fastapi import APIRouter
 from sqlalchemy import text
 
-from app.database import engine
+from app.s_database import engine
 
 
 router = APIRouter(

@@ -8,8 +8,8 @@ if str(SERVER_ROOT) not in sys.path:
 
 
 def main():
-    from app.database import SessionLocal
-    from app.outfit_generator import generate_outfits_for_selected_item
+    from app.s_database import SessionLocal
+    from app.s_outfit_generator import generate_outfits_for_selected_item
 
     db = SessionLocal()
 

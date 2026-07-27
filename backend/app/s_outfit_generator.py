@@ -3,9 +3,9 @@ from itertools import product as cartesian_product
 
 from sqlalchemy.orm import Session
 
-from app.models import Product
-from app.compatibility import calculate_compatibility_score
-from app.ml_predictor import calculate_outfit_ml_score
+from app.s_models import Product
+from app.s_compatibility import calculate_compatibility_score
+from app.s_ml_predictor import calculate_outfit_ml_score
 
 
 def product_to_dict(product: Product) -> Dict:

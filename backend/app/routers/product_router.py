@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.database import get_db
-from app import models
+from app.s_database import get_db
+from app import s_models
 
 
 router = APIRouter(
@@ -14,7 +14,7 @@ router = APIRouter(
 @router.get("")
 def get_all_products(db: Session = Depends(get_db)):
     try:
-        products = db.query(models.Product).all()
+        products = db.query(s_models.Product).all()
 
         return {
             "status": "success",
@@ -62,8 +62,8 @@ def get_product_by_id(
 
         cleaned_item_id = item_id.strip()
 
-        product = db.query(models.Product).filter(
-            models.Product.item_id == cleaned_item_id
+        product = db.query(s_models.Product).filter(
+            s_models.Product.item_id == cleaned_item_id
         ).first()
 
         if not product:

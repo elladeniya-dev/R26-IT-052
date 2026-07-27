@@ -6,7 +6,7 @@ SERVER_ROOT = Path(__file__).resolve().parents[1]
 if str(SERVER_ROOT) not in sys.path:
     sys.path.insert(0, str(SERVER_ROOT))
 
-from app.compatibility import calculate_compatibility_score
+from app.s_compatibility import calculate_compatibility_score
 
 
 def test_calculate_compatibility_score_for_casual_outfit():
