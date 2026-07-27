@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 
-import '../models/outfit_model.dart';
-import '../models/product_model.dart';
-import '../services/outfit_api_service.dart';
-import '../widgets/outfit_card.dart';
-import 'saved_outfits_screen.dart';
+import '../models/s_outfit_model.dart';
+import '../models/s_product_model.dart';
+import '../services/s_outfit_api_service.dart';
+import '../widgets/s_outfit_card.dart';
+import 's_saved_outfits_screen.dart';
 
 class CompleteTheLookScreen extends StatefulWidget {
   final ProductModel selectedProduct;

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../models/product_model.dart';
+import '../models/s_product_model.dart';
 
 class SearchScreen extends StatefulWidget {
   final List<ProductModel> allProducts;

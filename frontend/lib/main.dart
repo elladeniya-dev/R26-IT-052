@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'screens/splash_screen.dart';
+import 'screens/s_splash_screen.dart';
 
 void main() {
   runApp(const SenuOutfitApp());

@@ -1,4 +1,4 @@
-import 'product_model.dart';
+import 's_product_model.dart';
 
 class OutfitModel {
   final String outfitId;

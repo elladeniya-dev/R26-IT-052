@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'notification_detail_screen.dart';
+import 's_notification_detail_screen.dart';
 
 /// A single notification data model
 class AppNotification {

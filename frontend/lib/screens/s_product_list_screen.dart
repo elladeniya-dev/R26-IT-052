@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 
-import '../models/product_model.dart';
-import '../widgets/custom_bottom_nav_bar.dart';
-import '../widgets/product_card.dart';
-import 'notifications_screen.dart';
-import 'product_detail_screen.dart';
-import 'saved_outfits_screen.dart';
-import 'search_screen.dart';
+import '../models/s_product_model.dart';
+import '../widgets/s_nav_bar.dart';
+import '../widgets/s_product_card.dart';
+import 's_notifications_screen.dart';
+import 's_product_detail_screen.dart';
+import 's_saved_outfits_screen.dart';
+import 's_search_screen.dart';
 
 class ProductListScreen extends StatefulWidget {
   const ProductListScreen({super.key});

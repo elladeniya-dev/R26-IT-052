@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'notifications_screen.dart';
+import 's_notifications_screen.dart';
 
 class NotificationDetailScreen extends StatelessWidget {
   final AppNotification notification;

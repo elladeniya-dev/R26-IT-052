@@ -8,8 +8,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-import 'package:senu_outfit_frontend/screens/product_list_screen.dart';
-import 'package:senu_outfit_frontend/widgets/custom_bottom_nav_bar.dart';
+import 'package:senu_outfit_frontend/screens/s_product_list_screen.dart';
+import 'package:senu_outfit_frontend/widgets/s_nav_bar.dart';
 
 void main() {
   testWidgets('App loads product list screen', (WidgetTester tester) async {

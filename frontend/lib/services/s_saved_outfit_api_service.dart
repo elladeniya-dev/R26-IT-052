@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../constants/api_constants.dart';
-import '../models/saved_outfit_model.dart';
+import '../constants/s_api_constants.dart';
+import '../models/s_saved_outfit_model.dart';
 
 class SavedOutfitApiService {
   Future<SaveOutfitResponse> saveOutfit({

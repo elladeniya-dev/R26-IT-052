@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../models/saved_outfit_model.dart';
-import '../services/saved_outfit_api_service.dart';
-import '../widgets/saved_outfit_card.dart';
+import '../models/s_saved_outfit_model.dart';
+import '../services/s_saved_outfit_api_service.dart';
+import '../widgets/s_saved_outfit_card.dart';
 
 class SavedOutfitsScreen extends StatefulWidget {
   const SavedOutfitsScreen({super.key});
