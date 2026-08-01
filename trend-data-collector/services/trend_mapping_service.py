@@ -194,14 +194,24 @@ def map_products_to_trend_observations(
     products: list[dict], source_name: str, source_type: str
 ) -> list[dict]:
     grouped_signals = defaultdict(
-        lambda: {"mention_count": 0, "rank_positions": [], "keywords": set()}
+        lambda: {
+            "mention_count": 0,
+            "rank_positions": [],
+            "keywords": set(),
+            "segments": set(),
+        }
     )
 
     for product in products:
         title = product.get("title", "")
         rank_position = product.get("rank_position")
+        shopify_tags = " ".join(product.get("shopify_tags", []))
+        product_type = product.get("product_type", "")
+        market_segment = product.get("market_segment", "General")
 
-        searchable_text = f" {title.lower()} "
+        searchable_text = (
+            f" {title.lower()} {product_type.lower()} {shopify_tags.lower()} "
+        )
 
         for attribute_type, keywords in KEYWORD_MAP.items():
             for keyword in keywords:
@@ -221,6 +231,7 @@ def map_products_to_trend_observations(
                         grouped_signals[key]["rank_positions"].append(rank_position)
 
                     grouped_signals[key]["keywords"].add(keyword_lower)
+                    grouped_signals[key]["segments"].add(market_segment)
 
     observations = []
     collected_at = datetime.now(timezone.utc).isoformat()
@@ -233,6 +244,8 @@ def map_products_to_trend_observations(
         else:
             average_rank = None
 
+        segments_str = ", ".join(sorted(data["segments"]))
+
         observations.append(
             {
                 "source_name": source_name,
@@ -243,6 +256,7 @@ def map_products_to_trend_observations(
                 "mention_count": data["mention_count"],
                 "rank_position": average_rank,
                 "collected_at": collected_at,
+                "market_segment": segments_str,
             }
         )
 
