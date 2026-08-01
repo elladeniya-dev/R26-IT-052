@@ -8,7 +8,7 @@ import os
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
-OUTPUT_FILE = Path("output") / "combined_trend_observations.json"
+OUTPUT_FILE = Path("output") / "combined_srilanka_trend_observations.json"
 
 
 def parse_datetime(value: str):

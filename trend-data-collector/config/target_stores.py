@@ -265,7 +265,7 @@ SRI_LANKA_TARGET_STORES = [
     {
         "brand_name": "Amante",
         "domain": "amante.lk",
-        "base_url": "https://amanteboutique.com",
+        "base_url": "https://amante.lk",
         "primary_style_focus": "Loungewear, activewear, intimates",
         "segment": SEGMENT_SPECIALTY_WORKWEAR,
         "ingestion_tier": TIER_1_SHOPIFY,

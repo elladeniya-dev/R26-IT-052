@@ -11,8 +11,7 @@ from config.target_stores import (
     SEGMENT_MASS_MARKET_DEPARTMENT,
     SEGMENT_SPECIALTY_WORKWEAR,
 )
-from collectors.shopify_collector import collect_store_products_json
-from collectors.crawl4ai_collector import collect_store_crawl4ai
+from services.harvester import harvest_store_catalog
 from services.trend_mapping_service import map_products_to_trend_observations
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
@@ -45,7 +44,7 @@ def run_hybrid_harvester(
         stores_to_harvest = filtered
 
     logging.info(
-        f"=== Starting OutfitIQ Hybrid Two-Tier Harvester ({len(stores_to_harvest)} Stores) ==="
+        f"=== Starting OutfitIQ Multi-Tiered Data Harvesting Pipeline ({len(stores_to_harvest)} Stores) ==="
     )
     start_time = time.time()
 
@@ -63,41 +62,21 @@ def run_hybrid_harvester(
         segment = store.get("segment", "General")
         tier = store.get("ingestion_tier", TIER_1_SHOPIFY)
 
-        logging.info(
-            f"\n---> Preparing ingestion for [{brand}] ({segment}) via [{tier}]"
-        )
         garments = []
 
         try:
-            if tier == TIER_1_SHOPIFY:
-                garments = collect_store_products_json(store)
-                if not garments:
-                    logging.info(
-                        f"No Shopify JSON items returned for {brand}; attempting Tier 2 Crawl4AI fallback on web collection pages..."
-                    )
-                    fallback_store = store.copy()
-                    web_endpoints = [
-                        ep.split(".json")[0] if ".json" in ep else ep
-                        for ep in store.get("target_endpoints", [])
-                    ]
-                    fallback_store["target_endpoints"] = [
-                        ep if ep != "/products" else "/collections/all"
-                        for ep in web_endpoints
-                    ]
-                    garments = collect_store_crawl4ai(fallback_store)
-            elif tier == TIER_2_CRAWL4AI:
-                garments = collect_store_crawl4ai(store)
-            else:
-                logging.warning(f"Unknown tier {tier} for {brand}. Skipping.")
-
+            garments = harvest_store_catalog(store)
         except Exception as e:
             logging.error(f"Error harvesting store {brand}: {e}")
+
+        # Determine authoritative source_type from extracted items or fallback to hint
+        actual_tier = garments[0].get("source_type", tier) if garments else tier
 
         # Map collected garments to trend observations
         observations = map_products_to_trend_observations(
             products=garments,
             source_name=brand,
-            source_type=tier,
+            source_type=actual_tier,
         )
 
         # Store statistics
