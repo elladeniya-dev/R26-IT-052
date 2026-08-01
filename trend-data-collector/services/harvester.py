@@ -60,7 +60,7 @@ def harvest_store_catalog(store_config: Dict[str, Any]) -> List[Dict[str, Any]]:
     # -------------------------------------------------------------------------
     # STEP 1: Fast Tier 1 (Shopify Direct API & Storefront AJAX Bypass)
     # -------------------------------------------------------------------------
-    if configured_tier == "tier1_shopify_json" or configured_tier == "unknown":
+    if configured_tier in ["shopify_json_direct", "tier1_shopify_json", "unknown"]:
         try:
             logger.info(f"   [Tier 1] Checking direct Shopify interfaces & Storefront AJAX on {brand}...")
             garments = execute_tier1_shopify_json(store_config)
@@ -80,7 +80,7 @@ def harvest_store_catalog(store_config: Dict[str, Any]) -> List[Dict[str, Any]]:
     # -------------------------------------------------------------------------
     # STEP 3: Tier 2 Schema.org JSON-LD Microdata
     # -------------------------------------------------------------------------
-    if not garments and (configured_tier in ["tier1_shopify_json", "tier2_json_ld", "unknown"]):
+    if not garments and (configured_tier in ["shopify_json_direct", "json_ld_schema", "tier1_shopify_json", "tier2_json_ld", "unknown"]):
         try:
             logger.info(f"   [Tier 2] Analyzing embedded Schema.org JSON-LD microdata on {brand}...")
             garments = execute_tier2_json_ld(store_config, sitemap_urls=sitemap_urls)
