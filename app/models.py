@@ -2,7 +2,7 @@ from sqlalchemy import Column, String, Float, DateTime, Boolean, Integer, Foreig
 from sqlalchemy.dialects.postgresql import ARRAY
 from datetime import datetime, timezone
 
-from app.database import Base
+from app.core.database import Base
 
 
 class Product(Base):

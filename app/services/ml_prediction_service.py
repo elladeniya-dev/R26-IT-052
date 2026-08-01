@@ -3,7 +3,7 @@ from pathlib import Path
 import joblib
 import numpy as np
 
-BASE_DIR = Path(__file__).resolve().parent.parent
+BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 MODEL_PATH = BASE_DIR / "ml" / "models" / "trend_random_forest_model.pkl"
 ATTRIBUTE_TYPE_ENCODER_PATH = BASE_DIR / "ml" / "models" / "attribute_type_encoder.pkl"

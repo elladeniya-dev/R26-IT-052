@@ -1,7 +1,7 @@
 from pathlib import Path
 import joblib
 
-BASE_DIR = Path(__file__).resolve().parent
+BASE_DIR = Path(__file__).resolve().parent.parent
 
 MODEL_PATH = BASE_DIR / "ml" / "models" / "trend_random_forest_model.pkl"
 ATTRIBUTE_TYPE_ENCODER_PATH = BASE_DIR / "ml" / "models" / "attribute_type_encoder.pkl"
@@ -24,7 +24,7 @@ def main():
     attribute_value_encoder = joblib.load(ATTRIBUTE_VALUE_ENCODER_PATH)
     label_encoder = joblib.load(LABEL_ENCODER_PATH)
 
-    print("\nModel loaded successfully ✅")
+    print("\nModel loaded successfully [OK]")
     print("Model type:", type(model))
     print("Attribute type classes:", attribute_type_encoder.classes_)
     print("Total attribute value classes:", len(attribute_value_encoder.classes_))
