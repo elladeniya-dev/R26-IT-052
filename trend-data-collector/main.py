@@ -73,9 +73,18 @@ def run_hybrid_harvester(
                 garments = collect_store_products_json(store)
                 if not garments:
                     logging.info(
-                        f"No Shopify JSON items returned for {brand}; attempting Tier 2 Crawl4AI fallback..."
+                        f"No Shopify JSON items returned for {brand}; attempting Tier 2 Crawl4AI fallback on web collection pages..."
                     )
-                    garments = collect_store_crawl4ai(store)
+                    fallback_store = store.copy()
+                    web_endpoints = [
+                        ep.split(".json")[0] if ".json" in ep else ep
+                        for ep in store.get("target_endpoints", [])
+                    ]
+                    fallback_store["target_endpoints"] = [
+                        ep if ep != "/products" else "/collections/all"
+                        for ep in web_endpoints
+                    ]
+                    garments = collect_store_crawl4ai(fallback_store)
             elif tier == TIER_2_CRAWL4AI:
                 garments = collect_store_crawl4ai(store)
             else:

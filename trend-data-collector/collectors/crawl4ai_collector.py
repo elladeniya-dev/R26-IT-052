@@ -102,13 +102,63 @@ def _extract_products_from_html(
     products = []
     rank = start_rank
 
-    # Hunt for product card anchors common in SL stores (Odel, Cool Planet, Nolimit, House of Fashions)
+    # Check if page returned raw JSON wrapped in HTML (e.g. from hitting a .json endpoint directly)
+    text_content = soup.get_text().strip()
+    if text_content.startswith('{"products":') or (
+        text_content.startswith('{"') and '"products":[' in text_content
+    ):
+        import json
+        try:
+            data = json.loads(text_content)
+            for item in data.get("products", []):
+                handle = item.get("handle")
+                title = item.get("title", "").strip()
+                if title and handle:
+                    prod_url = urljoin(base_url, f"/products/{handle}")
+                    if prod_url not in seen:
+                        seen.add(prod_url)
+                        products.append(
+                            {
+                                "rank_position": rank,
+                                "title": title,
+                                "product_url": prod_url,
+                                "published_at": str(
+                                    item.get("published_at") or ""
+                                ),
+                                "price_lkr": 0.0,
+                                "primary_image_url": "",
+                                "image_array": [],
+                                "shopify_tags": [
+                                    t.strip().lower()
+                                    for t in str(item.get("tags", "")).split(
+                                        ","
+                                    )
+                                    if t.strip()
+                                ],
+                                "product_type": str(
+                                    item.get("product_type", "")
+                                )
+                                .strip()
+                                .lower(),
+                                "source_name": brand_name,
+                                "source_type": "crawl4ai_json_extraction",
+                                "market_segment": segment,
+                            }
+                        )
+                        rank += 1
+            if products:
+                return products
+        except Exception:
+            pass
+
+    # Hunt for product card anchors common in SL & Shopify stores
     product_links = soup.find_all(
         "a",
         href=lambda href: href
         and any(
             k in href.lower()
             for k in [
+                "/products/",
                 "/product/",
                 "/p/",
                 "/item/",
@@ -116,6 +166,8 @@ def _extract_products_from_html(
                 "-p-",
                 "/clothing/",
                 "/women/",
+                "/dresses/",
+                "/collections/",
             ]
         ),
     )
