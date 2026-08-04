@@ -19,6 +19,14 @@ BLACKLISTED_TITLES = {
 # Regex pattern for isolating numeric currency figures in strings (e.g. "Rs. 12,490.00")
 PRICE_REGEX = re.compile(r"(\d+(?:,\d+)*(?:\.\d{1,2})?)")
 
+# Demographic exclusion regex: strictly reject menswear, children's clothing, and baby items
+# Utilizes word boundaries (\b) to avoid false matches on terms like "women" or "garment"
+EXCLUDED_DEMOGRAPHIC_REGEX = re.compile(
+    r"\b(mens?|gent(s|lemen)?|males?|boys?|kids?|bab(y|ies)|toddlers?|children|maternity|newborn|infants?)\b",
+    re.IGNORECASE
+)
+EXCLUDED_URL_PATHS = {"/men/", "/mens/", "/gents/", "/male/", "/kids/", "/boys/", "/baby/", "/children/", "/maternity/"}
+
 
 class GarmentValidator:
     """
@@ -34,18 +42,27 @@ class GarmentValidator:
         if not isinstance(item, dict):
             return {}
             
-        # 1. Validate Product Title
+        # 1. Validate Product Title & Demographic Target (Women 18-30 focus, excluding menswear/kids)
         raw_title = str(item.get("title", "")).strip()
         if len(raw_title) < 3 or len(raw_title) > 200:
             return {}
         if raw_title.lower() in BLACKLISTED_TITLES or re.match(r"^\d+$", raw_title):
             return {}
+        if EXCLUDED_DEMOGRAPHIC_REGEX.search(raw_title):
+            return {}
 
-        # 2. Sanitize and Verify Product URL
+        # 2. Sanitize and Verify Product URL (Excluding menswear/kids navigation paths)
         raw_url = str(item.get("product_url", "")).strip()
         if not raw_url or not raw_url.startswith("http"):
             return {}
         if "javascript:" in raw_url.lower() or "data:" in raw_url.lower():
+            return {}
+        url_lower_path = raw_url.lower()
+        if any(bad_path in url_lower_path for bad_path in EXCLUDED_URL_PATHS):
+            return {}
+        # Also check tags if available
+        tags = [str(t).lower().strip() for t in item.get("shopify_tags", []) if isinstance(t, str)]
+        if any(EXCLUDED_DEMOGRAPHIC_REGEX.search(tag) for tag in tags):
             return {}
 
         # 3. Price Sanitization and Normalization (> 0 LKR required)

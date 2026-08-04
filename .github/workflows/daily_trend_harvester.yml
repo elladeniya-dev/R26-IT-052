@@ -1,0 +1,77 @@
+name: OutfitIQ Daily Trend Data Collector
+
+on:
+  # 1. Automated Cron Schedule: Executes daily at midnight (00:00 UTC / 5:30 AM Sri Lanka Time)
+  schedule:
+    - cron: '0 0 * * *'
+  
+  # 2. Manual Workflow Dispatch: Allows triggering extraction directly via a button click on GitHub
+  workflow_dispatch:
+
+permissions:
+  contents: write  # Required for committing updated JSON output snapshots back to the repository
+
+jobs:
+  harvest:
+    name: Run Sri Lankan E-Commerce Harvester
+    runs-on: ubuntu-latest
+    timeout-minutes: 35  # Safety boundary for browser rendering loops
+
+    steps:
+      - name: Checkout Repository Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Configure Python 3.11 Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: trend-data-collector/requirements.txt
+
+      - name: Install Harvester & Playwright Browser Dependencies
+        working-directory: ./trend-data-collector
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+
+      - name: Execute Multi-Tier Harvester Pipeline
+        working-directory: ./trend-data-collector
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PYTHONUNBUFFERED: "1"
+        run: |
+          python main.py
+
+      - name: Insert Derived Observations into Cloud PostgreSQL Database
+        working-directory: ./trend-data-collector
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "[Notice] DATABASE_URL secret not provided in GitHub Actions. Skipping direct DB load."
+          else
+            python load_observations_to_db.py
+          fi
+
+      - name: Upload Downloadable Backup Artifact (ZIP Bundle)
+        uses: actions/upload-artifact@v4
+        with:
+          name: outfitiq-trend-data-${{ github.run_id }}
+          path: trend-data-collector/output/
+          retention-days: 90
+
+      - name: Auto-Commit Updated JSON Datasets to Repository
+        working-directory: ./trend-data-collector
+        run: |
+          git config --local user.email "actions@github.com"
+          git config --local user.name "GitHub Actions Bot"
+          git add output/ || true
+          if git diff --staged --quiet; then
+            echo "No changes in extracted data to commit."
+          else
+            git commit -m "chore(data): automated daily trend collection snapshot [skip ci]"
+            git push origin HEAD:${{ github.ref }}
+          fi

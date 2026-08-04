@@ -4,6 +4,7 @@ Provides self-healing e-commerce extraction that reads page meaning instead of b
 Immune to frontend design layout shifts and intelligently rejects base64 image placeholders and menu clutter.
 """
 import os
+import time
 import json
 import logging
 from typing import List, Dict, Any, Optional
@@ -66,7 +67,7 @@ Below is the content from a fashion retailer catalog page: Brand '{brand_name}',
 
 Your instructions:
 1. Analyze the semantic meaning of the text and links, ignoring CSS style variations or frontend layout complexities.
-2. Extract all authentic women's fashion garment items present in this catalog page.
+2. Extract authentic WOMEN'S fashion garment items suitable for the trendy 18-30 young female demographic (dresses, tops, casuals, co-ord sets, sarees, partywear, workwear). STRICTLY EXCLUDE and IGNORE any menswear, boys' attire, kids' clothing, baby products, or non-apparel homeware.
 3. Completely ignore website navigation buttons, category banners (like 'New Arrivals', 'Clear All', 'Shop By Size', 'Next', 'Cart'), and promotional footers.
 4. For each identified fashion item, provide exact details:
    - title: Exact descriptive name of the dress, outfit, or apparel item.
@@ -91,14 +92,34 @@ Catalog Page Content:
 """
             logging.info(f"   [Autonomous AI Scraper] Invoking Gemini Flash (gemini-2.5-flash) on {brand_name} catalog page...")
             
-            response = client.models.generate_content(
-                model="gemini-2.5-flash",
-                contents=prompt,
-                config=types.GenerateContentConfig(
-                    response_mime_type="application/json",
-                    temperature=0.1,
-                )
-            )
+            max_retries = 3
+            response = None
+            for attempt in range(max_retries):
+                try:
+                    response = client.models.generate_content(
+                        model="gemini-2.5-flash",
+                        contents=prompt,
+                        config=types.GenerateContentConfig(
+                            response_mime_type="application/json",
+                            temperature=0.1,
+                        )
+                    )
+                    break
+                except Exception as api_err:
+                    err_str = str(api_err)
+                    if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "quota" in err_str.lower():
+                        backoff_sec = (attempt + 1) * 15.0
+                        logging.warning(f"   [Gemini AI Rate Limit] 429 Resource Exhausted on {brand_name}. Pausing for {backoff_sec}s before retry {attempt + 1}/{max_retries}...")
+                        time.sleep(backoff_sec)
+                    else:
+                        logging.warning(f"   [Gemini AI API Error on {brand_name}]: {api_err}")
+                        break
+
+            if not response or not getattr(response, "text", None):
+                return []
+                
+            # Polite inter-request throttling to preserve Free-Tier instantaneous quota (15 RPM)
+            time.sleep(3.5)
             
             result_text = response.text
             data = json.loads(result_text)

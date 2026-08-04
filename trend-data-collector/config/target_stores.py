@@ -40,12 +40,12 @@ SRI_LANKA_TARGET_STORES = [
     },
     {
         "brand_name": "Chenara Dodge",
-        "domain": "chenaradodge.lk",
-        "base_url": "https://chenaradodge.lk",
+        "domain": "chenaradodge.com",
+        "base_url": "https://chenaradodge.com",
         "primary_style_focus": "Printed maxi/midi dresses, partywear",
         "segment": SEGMENT_HIGH_VELOCITY_BOUTIQUES,
-        "ingestion_tier": TIER_1_SHOPIFY,
-        "target_endpoints": ["/products.json?limit=250"],
+        "ingestion_tier": TIER_2_CRAWL4AI,
+        "target_endpoints": ["/new-arrivals", "/dresses", "/shop"],
     },
     {
         "brand_name": "Arienti",
@@ -70,8 +70,8 @@ SRI_LANKA_TARGET_STORES = [
     },
     {
         "brand_name": "Nils Store",
-        "domain": "nilsstore.com",
-        "base_url": "https://nilsstore.com",
+        "domain": "nilsonline.lk",
+        "base_url": "https://www.nilsonline.lk",
         "primary_style_focus": "Office casuals, everyday dresses, tunics",
         "segment": SEGMENT_HIGH_VELOCITY_BOUTIQUES,
         "ingestion_tier": TIER_1_SHOPIFY,
@@ -131,8 +131,8 @@ SRI_LANKA_TARGET_STORES = [
         "base_url": "https://flamingosl.com",
         "primary_style_focus": "Party dresses, statement evening wear",
         "segment": SEGMENT_HIGH_VELOCITY_BOUTIQUES,
-        "ingestion_tier": TIER_1_SHOPIFY,
-        "target_endpoints": ["/products.json?limit=250"],
+        "ingestion_tier": TIER_2_CRAWL4AI,
+        "target_endpoints": ["/shop", "/women", "/collections/all"],
     },
     {
         "brand_name": "Jezza Fashion",

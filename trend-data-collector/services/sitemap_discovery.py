@@ -18,10 +18,11 @@ FASHION_CATEGORY_KEYWORDS: Set[str] = {
     "jackets", "apparel", "clothing", "new-arrivals", "workwear", "lounge"
 }
 
-# Paths typically excluded from garment harvesting
+# Paths typically excluded from garment harvesting (including menswear and children's sections)
 EXCLUDE_URL_PATTERNS: Set[str] = {
     "/account", "/cart", "/checkout", "/contact", "/about", "/faq", 
-    "/privacy", "/terms", "/blog", "/pages/", "/search", "/return"
+    "/privacy", "/terms", "/blog", "/pages/", "/search", "/return",
+    "/men/", "/mens/", "/gents/", "/male/", "/boys/", "/kids/", "/baby/", "/children/", "/maternity/"
 }
 
 
