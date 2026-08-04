@@ -217,15 +217,16 @@ SRI_LANKA_TARGET_STORES = [
         "target_endpoints": ["/women"],
     },
     # --- 3. Workwear, Premium & Specialty Designers ---
-    {
-        "brand_name": "Mondy",
-        "domain": "mondy.lk",
-        "base_url": "https://www.mondy.lk",
-        "primary_style_focus": "Power dressing, formal trousers, blazers",
-        "segment": SEGMENT_SPECIALTY_WORKWEAR,
-        "ingestion_tier": TIER_2_CRAWL4AI,
-        "target_endpoints": ["/work-wear", "/dresses"],
-    },
+    # [Offline/DNS Unresolved in 2026]
+    # {
+    #     "brand_name": "Mondy",
+    #     "domain": "mondy.lk",
+    #     "base_url": "https://www.mondy.lk",
+    #     "primary_style_focus": "Power dressing, formal trousers, blazers",
+    #     "segment": SEGMENT_SPECIALTY_WORKWEAR,
+    #     "ingestion_tier": TIER_2_CRAWL4AI,
+    #     "target_endpoints": ["/work-wear", "/dresses"],
+    # },
     {
         "brand_name": "Avirate",
         "domain": "aviratefashion.com",
@@ -253,15 +254,16 @@ SRI_LANKA_TARGET_STORES = [
         "ingestion_tier": TIER_1_SHOPIFY,
         "target_endpoints": ["/products.json?limit=250"],
     },
-    {
-        "brand_name": "KYRA",
-        "domain": "kyraloves.com",
-        "base_url": "https://kyraloves.com",
-        "primary_style_focus": "Trendy casual tops, youthful dresses",
-        "segment": SEGMENT_SPECIALTY_WORKWEAR,
-        "ingestion_tier": TIER_1_SHOPIFY,
-        "target_endpoints": ["/products.json?limit=250"],
-    },
+    # [Offline/DNS Unresolved in 2026]
+    # {
+    #     "brand_name": "KYRA",
+    #     "domain": "kyraloves.com",
+    #     "base_url": "https://kyraloves.com",
+    #     "primary_style_focus": "Trendy casual tops, youthful dresses",
+    #     "segment": SEGMENT_SPECIALTY_WORKWEAR,
+    #     "ingestion_tier": TIER_1_SHOPIFY,
+    #     "target_endpoints": ["/products.json?limit=250"],
+    # },
     {
         "brand_name": "Amante",
         "domain": "amante.lk",

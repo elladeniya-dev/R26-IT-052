@@ -90,30 +90,38 @@ Return a JSON object containing a single key "items" with an array of matching g
 Catalog Page Content:
 {clean_snippet}
 """
-            logging.info(f"   [Autonomous AI Scraper] Invoking Gemini Flash (gemini-2.5-flash) on {brand_name} catalog page...")
+            logging.info(f"   [Autonomous AI Scraper] Invoking Gemini Flash on {brand_name} catalog page...")
             
-            max_retries = 3
+            models_to_try = ["gemini-2.5-flash", "gemini-1.5-flash"]
             response = None
-            for attempt in range(max_retries):
-                try:
-                    response = client.models.generate_content(
-                        model="gemini-2.5-flash",
-                        contents=prompt,
-                        config=types.GenerateContentConfig(
-                            response_mime_type="application/json",
-                            temperature=0.1,
+            for model_name in models_to_try:
+                for attempt in range(2):
+                    try:
+                        response = client.models.generate_content(
+                            model=model_name,
+                            contents=prompt,
+                            config=types.GenerateContentConfig(
+                                response_mime_type="application/json",
+                                temperature=0.1,
+                            )
                         )
-                    )
-                    break
-                except Exception as api_err:
-                    err_str = str(api_err)
-                    if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "quota" in err_str.lower():
-                        backoff_sec = (attempt + 1) * 15.0
-                        logging.warning(f"   [Gemini AI Rate Limit] 429 Resource Exhausted on {brand_name}. Pausing for {backoff_sec}s before retry {attempt + 1}/{max_retries}...")
-                        time.sleep(backoff_sec)
-                    else:
-                        logging.warning(f"   [Gemini AI API Error on {brand_name}]: {api_err}")
                         break
+                    except Exception as api_err:
+                        err_str = str(api_err)
+                        if "429" in err_str or "RESOURCE_EXHAUSTED" in err_str or "quota" in err_str.lower():
+                            if attempt == 0 and model_name == models_to_try[0]:
+                                logging.warning(f"   [Gemini Quota Notice] Model {model_name} quota/rate limited on {brand_name}. Engaging fallback to gemini-1.5-flash...")
+                                time.sleep(5.0)
+                                break  # Break attempt loop to immediately attempt next fallback model
+                            else:
+                                backoff_sec = 15.0
+                                logging.warning(f"   [Gemini AI Rate Limit on {model_name}] Pausing for {backoff_sec}s...")
+                                time.sleep(backoff_sec)
+                        else:
+                            logging.warning(f"   [Gemini AI API Error on {model_name}]: {api_err}")
+                            break
+                if response and getattr(response, "text", None):
+                    break
 
             if not response or not getattr(response, "text", None):
                 return []
