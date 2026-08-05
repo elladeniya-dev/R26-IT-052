@@ -159,8 +159,8 @@ SRI_LANKA_TARGET_STORES = [
         "base_url": "https://coolplanet.lk",
         "primary_style_focus": "Mass-market apparel, denim, casuals",
         "segment": SEGMENT_MASS_MARKET_DEPARTMENT,
-        "ingestion_tier": TIER_2_CRAWL4AI,
-        "target_endpoints": ["/collections/women"],
+        "ingestion_tier": TIER_1_SHOPIFY,
+        "target_endpoints": ["/products.json?limit=250"],
     },
     {
         "brand_name": "Nolimit",
@@ -207,15 +207,16 @@ SRI_LANKA_TARGET_STORES = [
         "ingestion_tier": TIER_2_CRAWL4AI,
         "target_endpoints": ["/product-category/women/"],
     },
-    {
-        "brand_name": "TFC (The Factory Outlet)",
-        "domain": "tfcostore.com",
-        "base_url": "https://tfcostore.com",
-        "primary_style_focus": "Discounted fashion, casual basics",
-        "segment": SEGMENT_MASS_MARKET_DEPARTMENT,
-        "ingestion_tier": TIER_2_CRAWL4AI,
-        "target_endpoints": ["/women"],
-    },
+    # [Offline/DNS Unresolved in 2026]
+    # {
+    #     "brand_name": "TFC (The Factory Outlet)",
+    #     "domain": "tfcostore.com",
+    #     "base_url": "https://tfcostore.com",
+    #     "primary_style_focus": "Discounted fashion, casual basics",
+    #     "segment": SEGMENT_MASS_MARKET_DEPARTMENT,
+    #     "ingestion_tier": TIER_2_CRAWL4AI,
+    #     "target_endpoints": ["/women"],
+    # },
     # --- 3. Workwear, Premium & Specialty Designers ---
     # [Offline/DNS Unresolved in 2026]
     # {
@@ -236,15 +237,16 @@ SRI_LANKA_TARGET_STORES = [
         "ingestion_tier": TIER_2_CRAWL4AI,
         "target_endpoints": ["/collections/dresses", "/collections/evening-wear"],
     },
-    {
-        "brand_name": "Cotton Collection",
-        "domain": "cottoncollection.lk",
-        "base_url": "https://cottoncollection.lk",
-        "primary_style_focus": "Pure cotton, boho-chic, relaxed lounge",
-        "segment": SEGMENT_SPECIALTY_WORKWEAR,
-        "ingestion_tier": TIER_2_CRAWL4AI,
-        "target_endpoints": ["/women"],
-    },
+    # [Offline/DNS Unresolved in 2026]
+    # {
+    #     "brand_name": "Cotton Collection",
+    #     "domain": "cottoncollection.lk",
+    #     "base_url": "https://cottoncollection.lk",
+    #     "primary_style_focus": "Pure cotton, boho-chic, relaxed lounge",
+    #     "segment": SEGMENT_SPECIALTY_WORKWEAR,
+    #     "ingestion_tier": TIER_2_CRAWL4AI,
+    #     "target_endpoints": ["/women"],
+    # },
     {
         "brand_name": "Lovi Ceylon",
         "domain": "loviceylon.com",

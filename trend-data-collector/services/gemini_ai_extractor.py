@@ -92,7 +92,7 @@ Catalog Page Content:
 """
             logging.info(f"   [Autonomous AI Scraper] Invoking Gemini Flash on {brand_name} catalog page...")
             
-            models_to_try = ["gemini-2.5-flash", "gemini-1.5-flash"]
+            models_to_try = ["gemini-2.5-flash", "gemini-2.0-flash", "gemini-2.0-flash-lite"]
             response = None
             for model_name in models_to_try:
                 for attempt in range(2):
