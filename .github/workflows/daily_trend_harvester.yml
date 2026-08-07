@@ -15,7 +15,7 @@ jobs:
   harvest:
     name: Run Sri Lankan E-Commerce Harvester
     runs-on: ubuntu-latest
-    timeout-minutes: 35  # Safety boundary for browser rendering loops
+    timeout-minutes: 90  # Extended to 90 minutes to accommodate heavy Playwright/Gemini AI browser extraction loops over 20+ stores
 
     steps:
       - name: Checkout Repository Code
