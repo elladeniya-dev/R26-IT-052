@@ -1,48 +1,187 @@
+import 'dart:async';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../widgets/google_web_sign_in_button.dart';
 import '../onboarding/onboarding_screen.dart';
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends StatefulWidget {
   const WelcomeScreen({super.key});
 
-  Future<void> _handleGoogleSignIn(BuildContext context) async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+  @override
+  State<WelcomeScreen> createState() => _WelcomeScreenState();
+}
 
-    final bool success = await authProvider.signInWithGoogle();
+class _WelcomeScreenState extends State<WelcomeScreen> {
+  StreamSubscription<GoogleSignInAuthenticationEvent>?
+      _googleAuthenticationSubscription;
+
+  bool _webGoogleInitialized = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    if (kIsWeb) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _initializeGoogleWebSignIn();
+      });
+    }
+  }
+
+  Future<void> _initializeGoogleWebSignIn() async {
+    if (_webGoogleInitialized) {
+      return;
+    }
+
+    _webGoogleInitialized = true;
+
+    final authProvider =
+        Provider.of<AuthProvider>(context, listen: false);
+
+    try {
+      await authProvider.initializeGoogleSignIn();
+
+      _googleAuthenticationSubscription =
+          GoogleSignIn.instance.authenticationEvents.listen(
+        (event) async {
+          if (event is GoogleSignInAuthenticationEventSignIn) {
+            await _handleGoogleWebSignIn(
+              event.user,
+            );
+          }
+        },
+        onError: (Object error) {
+          if (!mounted) {
+            return;
+          }
+
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(
+                'Google Sign-In failed: $error',
+              ),
+              backgroundColor: AppTheme.errorColor,
+            ),
+          );
+        },
+      );
+    } catch (error) {
+      if (!mounted) {
+        return;
+      }
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Could not initialize Google Sign-In: $error',
+          ),
+          backgroundColor: AppTheme.errorColor,
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleGoogleSignIn(
+    BuildContext context,
+  ) async {
+    final authProvider =
+        Provider.of<AuthProvider>(context, listen: false);
+
+    final bool success =
+        await authProvider.signInWithGoogle();
 
     if (!context.mounted) {
       return;
     }
 
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Welcome ${authProvider.currentUser?.fullName ?? 'back'}!',
-          ),
-          backgroundColor: AppTheme.darkTextColor,
-        ),
-      );
-
-      Navigator.pushReplacement(
+      _goToOnboarding(
         context,
-        MaterialPageRoute(
-          builder: (context) => const OnboardingScreen(),
-        ),
+        authProvider,
       );
     } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            authProvider.errorMessage ?? 'Google Sign-In failed.',
-          ),
-          backgroundColor: AppTheme.errorColor,
-        ),
+      _showLoginError(
+        context,
+        authProvider,
       );
     }
+  }
+
+  Future<void> _handleGoogleWebSignIn(
+    GoogleSignInAccount googleUser,
+  ) async {
+    final authProvider =
+        Provider.of<AuthProvider>(context, listen: false);
+
+    final bool success =
+        await authProvider.signInWithGoogleWeb(
+      googleUser,
+    );
+
+    if (!mounted) {
+      return;
+    }
+
+    if (success) {
+      _goToOnboarding(
+        context,
+        authProvider,
+      );
+    } else {
+      _showLoginError(
+        context,
+        authProvider,
+      );
+    }
+  }
+
+  void _goToOnboarding(
+    BuildContext context,
+    AuthProvider authProvider,
+  ) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          'Welcome ${authProvider.currentUser?.fullName ?? 'back'}!',
+        ),
+        backgroundColor: AppTheme.darkTextColor,
+      ),
+    );
+
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            const OnboardingScreen(),
+      ),
+    );
+  }
+
+  void _showLoginError(
+    BuildContext context,
+    AuthProvider authProvider,
+  ) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          authProvider.errorMessage ??
+              'Google Sign-In failed.',
+        ),
+        backgroundColor: AppTheme.errorColor,
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _googleAuthenticationSubscription?.cancel();
+    super.dispose();
   }
 
   @override
@@ -51,7 +190,11 @@ class WelcomeScreen extends StatelessWidget {
       backgroundColor: AppTheme.backgroundColor,
       body: SafeArea(
         child: Consumer<AuthProvider>(
-          builder: (context, authProvider, child) {
+          builder: (
+            context,
+            authProvider,
+            child,
+          ) {
             return Stack(
               children: [
                 const _WelcomeBackground(),
@@ -77,7 +220,8 @@ class WelcomeScreen extends StatelessWidget {
                         'Discover Your Ultimate\nFashion Destination!',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: AppTheme.darkTextColor,
+                          color:
+                              AppTheme.darkTextColor,
                           fontSize: 29,
                           height: 1.25,
                           fontWeight: FontWeight.bold,
@@ -90,7 +234,8 @@ class WelcomeScreen extends StatelessWidget {
                         'Unleash your unique style with personalized fashion recommendations, just for you!',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color: AppTheme.lightTextColor,
+                          color:
+                              AppTheme.lightTextColor,
                           fontSize: 15,
                           height: 1.6,
                           fontWeight: FontWeight.w500,
@@ -101,68 +246,135 @@ class WelcomeScreen extends StatelessWidget {
 
                       Container(
                         width: double.infinity,
-                        padding: const EdgeInsets.all(18),
+                        padding:
+                            const EdgeInsets.all(18),
                         decoration: BoxDecoration(
-                          color: AppTheme.cardBackgroundColor,
-                          borderRadius: BorderRadius.circular(28),
+                          color:
+                              AppTheme.cardBackgroundColor,
+                          borderRadius:
+                              BorderRadius.circular(28),
                           boxShadow: [
                             BoxShadow(
-                              color: AppTheme.primaryColor.withOpacity(0.10),
+                              color: AppTheme
+                                  .primaryColor
+                                  .withOpacity(0.10),
                               blurRadius: 28,
-                              offset: const Offset(0, 12),
+                              offset:
+                                  const Offset(0, 12),
                             ),
                           ],
                         ),
                         child: Column(
                           children: [
-                            SizedBox(
-                              width: double.infinity,
-                              height: 58,
-                              child: ElevatedButton(
-                                onPressed: authProvider.isLoading
-                                    ? null
-                                    : () => _handleGoogleSignIn(context),
-                                style: ElevatedButton.styleFrom(
-                                  backgroundColor: AppTheme.primaryColor,
-                                  foregroundColor: AppTheme.whiteColor,
-                                  disabledBackgroundColor:
-                                      AppTheme.primaryColor.withOpacity(0.65),
-                                  disabledForegroundColor:
-                                      AppTheme.whiteColor.withOpacity(0.85),
-                                  elevation: 0,
-                                  shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(32),
-                                  ),
+                            if (kIsWeb)
+                              SizedBox(
+                                width: double.infinity,
+                                child: Center(
+                                  child:
+                                      buildGoogleWebSignInButton(),
                                 ),
-                                child: authProvider.isLoading
-                                    ? const SizedBox(
-                                        width: 24,
-                                        height: 24,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2.5,
-                                          color: AppTheme.whiteColor,
-                                        ),
-                                      )
-                                    : const Row(
-                                        mainAxisAlignment:
-                                            MainAxisAlignment.center,
-                                        children: [
-                                          Icon(
-                                            Icons.login_rounded,
-                                            size: 20,
-                                          ),
-                                          SizedBox(width: 10),
-                                          Text(
-                                            'Sign in with Google',
-                                            style: TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
+                              )
+                            else
+                              SizedBox(
+                                width: double.infinity,
+                                height: 58,
+                                child: ElevatedButton(
+                                  onPressed:
+                                      authProvider
+                                              .isLoading
+                                          ? null
+                                          : () =>
+                                              _handleGoogleSignIn(
+                                                context,
+                                              ),
+                                  style:
+                                      ElevatedButton
+                                          .styleFrom(
+                                    backgroundColor:
+                                        AppTheme
+                                            .primaryColor,
+                                    foregroundColor:
+                                        AppTheme
+                                            .whiteColor,
+                                    disabledBackgroundColor:
+                                        AppTheme
+                                            .primaryColor
+                                            .withOpacity(
+                                                0.65),
+                                    disabledForegroundColor:
+                                        AppTheme
+                                            .whiteColor
+                                            .withOpacity(
+                                                0.85),
+                                    elevation: 0,
+                                    shape:
+                                        RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius
+                                              .circular(
+                                                  32),
+                                    ),
+                                  ),
+                                  child:
+                                      authProvider
+                                              .isLoading
+                                          ? const SizedBox(
+                                              width: 24,
+                                              height: 24,
+                                              child:
+                                                  CircularProgressIndicator(
+                                                strokeWidth:
+                                                    2.5,
+                                                color:
+                                                    AppTheme
+                                                        .whiteColor,
+                                              ),
+                                            )
+                                          : const Row(
+                                              mainAxisAlignment:
+                                                  MainAxisAlignment
+                                                      .center,
+                                              children: [
+                                                Icon(
+                                                  Icons
+                                                      .login_rounded,
+                                                  size:
+                                                      20,
+                                                ),
+                                                SizedBox(
+                                                    width:
+                                                        10),
+                                                Text(
+                                                  'Sign in with Google',
+                                                  style:
+                                                      TextStyle(
+                                                    fontSize:
+                                                        16,
+                                                    fontWeight:
+                                                        FontWeight
+                                                            .bold,
+                                                  ),
+                                                ),
+                                              ],
                                             ),
-                                          ),
-                                        ],
-                                      ),
+                                ),
                               ),
-                            ),
+
+                            if (authProvider.isLoading) ...[
+                              const SizedBox(
+                                height: 14,
+                              ),
+                              const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child:
+                                    CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color:
+                                      AppTheme.primaryColor,
+                                ),
+                              ),
+                            ],
 
                             const SizedBox(height: 14),
 
@@ -170,9 +382,11 @@ class WelcomeScreen extends StatelessWidget {
                               'Continue to your personal fashion assistant',
                               textAlign: TextAlign.center,
                               style: TextStyle(
-                                color: AppTheme.lightTextColor,
+                                color:
+                                    AppTheme.lightTextColor,
                                 fontSize: 12,
-                                fontWeight: FontWeight.w500,
+                                fontWeight:
+                                    FontWeight.w500,
                               ),
                             ),
                           ],
@@ -277,14 +491,16 @@ class _AppLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisAlignment:
+          MainAxisAlignment.center,
       children: [
         Container(
           width: 34,
           height: 34,
           decoration: BoxDecoration(
             color: AppTheme.primaryColor,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius:
+                BorderRadius.circular(10),
           ),
           child: const Icon(
             Icons.diamond_outlined,
@@ -319,45 +535,61 @@ class _FashionIconCard extends StatelessWidget {
       height: 285,
       decoration: BoxDecoration(
         color: AppTheme.cardBackgroundColor,
-        borderRadius: BorderRadius.circular(34),
+        borderRadius:
+            BorderRadius.circular(34),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryColor.withOpacity(0.12),
+            color: AppTheme.primaryColor
+                .withOpacity(0.12),
             blurRadius: 30,
             offset: const Offset(0, 16),
           ),
         ],
       ),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(34),
+        borderRadius:
+            BorderRadius.circular(34),
         child: Stack(
           fit: StackFit.expand,
           children: [
             Image.network(
               imageUrl,
               fit: BoxFit.cover,
-              loadingBuilder: (context, child, loadingProgress) {
+              loadingBuilder: (
+                context,
+                child,
+                loadingProgress,
+              ) {
                 if (loadingProgress == null) {
                   return child;
                 }
 
                 return Container(
-                  color: AppTheme.softHighlightColor,
+                  color:
+                      AppTheme.softHighlightColor,
                   child: const Center(
-                    child: CircularProgressIndicator(
-                      color: AppTheme.primaryColor,
+                    child:
+                        CircularProgressIndicator(
+                      color:
+                          AppTheme.primaryColor,
                     ),
                   ),
                 );
               },
-              errorBuilder: (context, error, stackTrace) {
+              errorBuilder: (
+                context,
+                error,
+                stackTrace,
+              ) {
                 return Container(
-                  color: AppTheme.softHighlightColor,
+                  color:
+                      AppTheme.softHighlightColor,
                   child: const Center(
                     child: Icon(
                       Icons.checkroom_rounded,
                       size: 90,
-                      color: AppTheme.primaryColor,
+                      color:
+                          AppTheme.primaryColor,
                     ),
                   ),
                 );
@@ -370,26 +602,30 @@ class _FashionIconCard extends StatelessWidget {
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
                   colors: [
-                    AppTheme.darkAccentColor.withOpacity(0.05),
-                    AppTheme.darkAccentColor.withOpacity(0.35),
+                    AppTheme.darkAccentColor
+                        .withOpacity(0.05),
+                    AppTheme.darkAccentColor
+                        .withOpacity(0.35),
                   ],
                 ),
               ),
             ),
 
-            Positioned(
+            const Positioned(
               top: 22,
               right: 22,
               child: _MiniFashionBadge(
-                icon: Icons.auto_awesome_rounded,
+                icon:
+                    Icons.auto_awesome_rounded,
               ),
             ),
 
-            Positioned(
+            const Positioned(
               bottom: 22,
               left: 22,
               child: _MiniFashionBadge(
-                icon: Icons.shopping_bag_rounded,
+                icon:
+                    Icons.shopping_bag_rounded,
               ),
             ),
 
@@ -398,21 +634,26 @@ class _FashionIconCard extends StatelessWidget {
               right: 24,
               bottom: 24,
               child: Container(
-                padding: const EdgeInsets.symmetric(
+                padding:
+                    const EdgeInsets.symmetric(
                   horizontal: 16,
                   vertical: 12,
                 ),
                 decoration: BoxDecoration(
-                  color: AppTheme.whiteColor.withOpacity(0.88),
-                  borderRadius: BorderRadius.circular(22),
+                  color: AppTheme.whiteColor
+                      .withOpacity(0.88),
+                  borderRadius:
+                      BorderRadius.circular(22),
                 ),
                 child: const Text(
                   'Style inspiration, picked for you',
                   textAlign: TextAlign.center,
                   style: TextStyle(
-                    color: AppTheme.darkTextColor,
+                    color:
+                        AppTheme.darkTextColor,
                     fontSize: 14,
-                    fontWeight: FontWeight.bold,
+                    fontWeight:
+                        FontWeight.bold,
                   ),
                 ),
               ),
@@ -424,7 +665,8 @@ class _FashionIconCard extends StatelessWidget {
   }
 }
 
-class _MiniFashionBadge extends StatelessWidget {
+class _MiniFashionBadge
+    extends StatelessWidget {
   final IconData icon;
 
   const _MiniFashionBadge({
@@ -438,10 +680,12 @@ class _MiniFashionBadge extends StatelessWidget {
       height: 46,
       decoration: BoxDecoration(
         color: AppTheme.whiteColor,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius:
+            BorderRadius.circular(18),
         boxShadow: [
           BoxShadow(
-            color: AppTheme.primaryColor.withOpacity(0.12),
+            color: AppTheme.primaryColor
+                .withOpacity(0.12),
             blurRadius: 18,
             offset: const Offset(0, 8),
           ),

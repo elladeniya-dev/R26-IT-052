@@ -1,3 +1,4 @@
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
@@ -28,6 +29,17 @@ app = FastAPI(
     title="Smart Fashion Assistant - Chala Backend",
     description="Backend for Google Sign-In, Onboarding, User Profile, and User Learning Engine",
     version="1.0.0"
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=[
+        "http://localhost:5000",
+        "http://127.0.0.1:5000",
+    ],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
