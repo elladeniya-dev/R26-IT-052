@@ -1,6 +1,7 @@
 from app.models.product import Product
 from app.services.crawlers.carnage_crawler import crawl_carnage_crop_tops
 from app.services.crawlers.gflock_crawler import crawl_gflock_dresses
+from app.services.crawlers.kelly_felder_crawler import crawl_kelly_felder_dresses
 
 
 def save_crawled_products(db, products):
@@ -9,9 +10,11 @@ def save_crawled_products(db, products):
     updated_count = 0
 
     for product_data in products:
-        existing_product = db.query(Product).filter(
-            Product.item_id == product_data["item_id"]
-        ).first()
+        existing_product = (
+            db.query(Product)
+            .filter(Product.item_id == product_data["item_id"])
+            .first()
+        )
 
         if existing_product:
             existing_product.title = product_data["title"]
@@ -40,18 +43,57 @@ def save_crawled_products(db, products):
     return inserted_count, skipped_count, updated_count
 
 
+def _safe_run_crawler(crawler_name, crawler_function, max_items):
+    """
+    Runs one crawler safely.
+
+    If one store is down, the whole crawler endpoint should not crash.
+    Example:
+    - Gflock fails with 503
+    - Kelly Felder still runs and saves products
+    """
+
+    try:
+        products = crawler_function(max_items=max_items)
+        print(f"{crawler_name} crawler success: {len(products)} products")
+        return products
+
+    except Exception as error:
+        print(f"{crawler_name} crawler failed: {error}")
+        return []
+
+
 def generate_sample_crawled_products(request):
     """
     Main crawler coordinator.
 
-    Keeps the existing route contract while choosing the correct brand/category
-    crawler for the request.
+    Current supported crawlers:
+    - category = "top"   -> Carnage crop tops
+    - category = "dress" -> Gflock dresses + Kelly Felder dresses
+
+    If one crawler fails, the remaining crawler still continues.
     """
 
     category = (request.category or "top").lower()
     max_items = request.max_items or 10
 
     if category == "dress":
-        return crawl_gflock_dresses(max_items=max_items)
+        gflock_products = _safe_run_crawler(
+            crawler_name="Gflock",
+            crawler_function=crawl_gflock_dresses,
+            max_items=max_items,
+        )
 
-    return crawl_carnage_crop_tops(max_items=max_items)
+        kelly_felder_products = _safe_run_crawler(
+            crawler_name="Kelly Felder",
+            crawler_function=crawl_kelly_felder_dresses,
+            max_items=max_items,
+        )
+
+        return gflock_products + kelly_felder_products
+
+    return _safe_run_crawler(
+        crawler_name="Carnage",
+        crawler_function=crawl_carnage_crop_tops,
+        max_items=max_items,
+    )
