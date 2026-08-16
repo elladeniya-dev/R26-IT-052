@@ -56,3 +56,33 @@ koji_frontend/android/.gradle/
 # OS files
 .DS_Store
 EOF
+
+# Python virtual environments
+venv/
+.venv/
+koji-backend/venv/
+
+# Environment files
+.env
+*.env
+koji-backend/.env
+
+# Local ML models
+ml_models/
+**/ml_models/
+
+# Flutter generated/cache files
+.dart_tool/
+**/.dart_tool/
+build/
+**/build/
+
+# iOS CocoaPods generated folder
+Pods/
+**/Pods/
+
+# macOS / IDE
+.DS_Store
+.idea/
+.vscode/
+*.iml
