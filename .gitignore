@@ -1,34 +1,58 @@
+cat > .gitignore <<'EOF'
 # Python
 __pycache__/
 *.py[cod]
 *.pyo
 *.pyd
-.Python
 
-# Virtual environment
+# Virtual environments
 venv/
-.env/
 .venv/
+koji-backend/venv/
 
-# Environment variables
+# Environment files
 .env
+*.env
+koji-backend/.env
 
-# VS Code
-.vscode/
-
-# macOS
-.DS_Store
-
-# Logs
-*.log
-
-# Database / local files
-*.sqlite3
-*.db
-
-# Pytest / coverage
-.pytest_cache/
-.coverage
-htmlcov/
-
+# ML models - too large for GitHub
 ml_models/
+koji-backend/ml_models/
+
+# FastAPI / Python cache
+.pytest_cache/
+.mypy_cache/
+
+# Flutter / Dart
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.packages
+.pub-cache/
+.pub/
+build/
+koji_frontend/build/
+koji_frontend/.dart_tool/
+
+# iOS / macOS
+Pods/
+ios/Pods/
+koji_frontend/ios/Pods/
+*.xcuserstate
+*.xcworkspace/xcuserdata/
+*.xcodeproj/project.xcworkspace/xcuserdata/
+DerivedData/
+
+# Android
+.gradle/
+android/.gradle/
+koji_frontend/android/.gradle/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# OS files
+.DS_Store
+EOF
