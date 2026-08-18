@@ -7,7 +7,9 @@ import 'package:provider/provider.dart';
 
 import '../../core/theme.dart';
 import '../../providers/auth_provider.dart';
+import '../../services/profile_service.dart';
 import '../../widgets/google_web_sign_in_button.dart';
+import '../home/home_screen.dart';
 import '../onboarding/onboarding_screen.dart';
 
 class WelcomeScreen extends StatefulWidget {
@@ -18,10 +20,13 @@ class WelcomeScreen extends StatefulWidget {
 }
 
 class _WelcomeScreenState extends State<WelcomeScreen> {
+  final ProfileService _profileService = ProfileService();
+
   StreamSubscription<GoogleSignInAuthenticationEvent>?
       _googleAuthenticationSubscription;
 
   bool _webGoogleInitialized = false;
+  bool _isCheckingUserProfile = false;
 
   @override
   void initState() {
@@ -101,7 +106,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     }
 
     if (success) {
-      _goToOnboarding(
+      await _navigateAfterLogin(
         context,
         authProvider,
       );
@@ -129,7 +134,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     }
 
     if (success) {
-      _goToOnboarding(
+      await _navigateAfterLogin(
         context,
         authProvider,
       );
@@ -141,26 +146,76 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
     }
   }
 
-  void _goToOnboarding(
+  Future<void> _navigateAfterLogin(
     BuildContext context,
     AuthProvider authProvider,
-  ) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          'Welcome ${authProvider.currentUser?.fullName ?? 'back'}!',
-        ),
-        backgroundColor: AppTheme.darkTextColor,
-      ),
-    );
+  ) async {
+    if (_isCheckingUserProfile) {
+      return;
+    }
 
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            const OnboardingScreen(),
-      ),
-    );
+    setState(() {
+      _isCheckingUserProfile = true;
+    });
+
+    try {
+      final Map<String, dynamic> profileData =
+          await _profileService.getProfile();
+
+      if (!context.mounted) {
+        return;
+      }
+
+      final dynamic onboardingPreferences =
+          profileData['onboarding_preferences'];
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Welcome ${authProvider.currentUser?.fullName ?? 'back'}!',
+          ),
+          backgroundColor: AppTheme.darkTextColor,
+        ),
+      );
+
+      if (onboardingPreferences == null) {
+        // New user:
+        // No onboarding preferences have been saved yet.
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) =>
+                const OnboardingScreen(),
+          ),
+        );
+      } else {
+        // Returning user:
+        // Onboarding already exists, so go directly home.
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (context) => HomeScreen(),
+          ),
+        );
+      }
+    } catch (error) {
+      if (!context.mounted) {
+        return;
+      }
+
+      setState(() {
+        _isCheckingUserProfile = false;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'Could not check your profile: $error',
+          ),
+          backgroundColor: AppTheme.errorColor,
+        ),
+      );
+    }
   }
 
   void _showLoginError(
@@ -195,6 +250,10 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
             authProvider,
             child,
           ) {
+            final bool isBusy =
+                authProvider.isLoading ||
+                _isCheckingUserProfile;
+
             return Stack(
               children: [
                 const _WelcomeBackground(),
@@ -220,8 +279,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         'Discover Your Ultimate\nFashion Destination!',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color:
-                              AppTheme.darkTextColor,
+                          color: AppTheme.darkTextColor,
                           fontSize: 29,
                           height: 1.25,
                           fontWeight: FontWeight.bold,
@@ -234,8 +292,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                         'Unleash your unique style with personalized fashion recommendations, just for you!',
                         textAlign: TextAlign.center,
                         style: TextStyle(
-                          color:
-                              AppTheme.lightTextColor,
+                          color: AppTheme.lightTextColor,
                           fontSize: 15,
                           height: 1.6,
                           fontWeight: FontWeight.w500,
@@ -246,8 +303,7 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
 
                       Container(
                         width: double.infinity,
-                        padding:
-                            const EdgeInsets.all(18),
+                        padding: const EdgeInsets.all(18),
                         decoration: BoxDecoration(
                           color:
                               AppTheme.cardBackgroundColor,
@@ -279,91 +335,70 @@ class _WelcomeScreenState extends State<WelcomeScreen> {
                                 width: double.infinity,
                                 height: 58,
                                 child: ElevatedButton(
-                                  onPressed:
-                                      authProvider
-                                              .isLoading
-                                          ? null
-                                          : () =>
-                                              _handleGoogleSignIn(
-                                                context,
-                                              ),
+                                  onPressed: isBusy
+                                      ? null
+                                      : () =>
+                                          _handleGoogleSignIn(
+                                            context,
+                                          ),
                                   style:
-                                      ElevatedButton
-                                          .styleFrom(
+                                      ElevatedButton.styleFrom(
                                     backgroundColor:
-                                        AppTheme
-                                            .primaryColor,
+                                        AppTheme.primaryColor,
                                     foregroundColor:
-                                        AppTheme
-                                            .whiteColor,
+                                        AppTheme.whiteColor,
                                     disabledBackgroundColor:
-                                        AppTheme
-                                            .primaryColor
-                                            .withOpacity(
-                                                0.65),
+                                        AppTheme.primaryColor
+                                            .withOpacity(0.65),
                                     disabledForegroundColor:
-                                        AppTheme
-                                            .whiteColor
-                                            .withOpacity(
-                                                0.85),
+                                        AppTheme.whiteColor
+                                            .withOpacity(0.85),
                                     elevation: 0,
                                     shape:
                                         RoundedRectangleBorder(
                                       borderRadius:
-                                          BorderRadius
-                                              .circular(
-                                                  32),
+                                          BorderRadius.circular(
+                                              32),
                                     ),
                                   ),
-                                  child:
-                                      authProvider
-                                              .isLoading
-                                          ? const SizedBox(
-                                              width: 24,
-                                              height: 24,
-                                              child:
-                                                  CircularProgressIndicator(
-                                                strokeWidth:
-                                                    2.5,
-                                                color:
-                                                    AppTheme
-                                                        .whiteColor,
-                                              ),
-                                            )
-                                          : const Row(
-                                              mainAxisAlignment:
-                                                  MainAxisAlignment
-                                                      .center,
-                                              children: [
-                                                Icon(
-                                                  Icons
-                                                      .login_rounded,
-                                                  size:
-                                                      20,
-                                                ),
-                                                SizedBox(
-                                                    width:
-                                                        10),
-                                                Text(
-                                                  'Sign in with Google',
-                                                  style:
-                                                      TextStyle(
-                                                    fontSize:
-                                                        16,
-                                                    fontWeight:
-                                                        FontWeight
-                                                            .bold,
-                                                  ),
-                                                ),
-                                              ],
+                                  child: isBusy
+                                      ? const SizedBox(
+                                          width: 24,
+                                          height: 24,
+                                          child:
+                                              CircularProgressIndicator(
+                                            strokeWidth: 2.5,
+                                            color: AppTheme
+                                                .whiteColor,
+                                          ),
+                                        )
+                                      : const Row(
+                                          mainAxisAlignment:
+                                              MainAxisAlignment
+                                                  .center,
+                                          children: [
+                                            Icon(
+                                              Icons
+                                                  .login_rounded,
+                                              size: 20,
                                             ),
+                                            SizedBox(width: 10),
+                                            Text(
+                                              'Sign in with Google',
+                                              style: TextStyle(
+                                                fontSize: 16,
+                                                fontWeight:
+                                                    FontWeight
+                                                        .bold,
+                                              ),
+                                            ),
+                                          ],
+                                        ),
                                 ),
                               ),
 
-                            if (authProvider.isLoading) ...[
-                              const SizedBox(
-                                height: 14,
-                              ),
+                            if (isBusy && kIsWeb) ...[
+                              const SizedBox(height: 14),
                               const SizedBox(
                                 width: 22,
                                 height: 22,
