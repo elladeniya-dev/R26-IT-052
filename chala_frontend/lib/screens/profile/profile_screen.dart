@@ -6,6 +6,7 @@ import '../../providers/auth_provider.dart';
 import '../../services/interaction_history_service.dart';
 import 'my_preferences_screen.dart';
 import 'my_learning_profile_screen.dart';
+import 'my_current_preferences_screen.dart';
 import 'interaction_history_screen.dart';
 import '../auth/welcome_screen.dart';
 
@@ -130,6 +131,24 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         );
                       },
                     ),
+
+                    _buildMenuItem(
+  icon: Icons.auto_awesome_rounded,
+  title: 'My Current Preferences',
+  subtitle: 'Your current likes based on preferences and activity',
+  onTap: () {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) =>
+            const MyCurrentPreferencesScreen(),
+      ),
+    );
+  },
+),
+
+
+
                     _buildMenuItem(
                       icon: Icons.history_rounded,
                       title: 'Interaction History',

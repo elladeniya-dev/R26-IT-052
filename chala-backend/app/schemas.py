@@ -115,3 +115,10 @@ class InteractionHistoryResponse(BaseModel):
     stats: InteractionStatsResponse
     interactions: List[InteractionHistoryItem]
 
+
+class CurrentPreferencesResponse(BaseModel):
+    category_scores: Dict[str, float]
+    color_scores: Dict[str, float]
+    style_scores: Dict[str, float]
+    brand_scores: Dict[str, float]
+

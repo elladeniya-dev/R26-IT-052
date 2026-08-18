@@ -2,6 +2,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI, Depends
 from fastapi.responses import FileResponse
 from sqlalchemy.orm import Session
+from collections import defaultdict
 from app.fashion_embedding_service import (
     get_image_embedding,
     create_user_preference_vector,
@@ -17,7 +18,8 @@ from app.schemas import (
     ProfileResponse,
     InteractionRequest,
     InteractionResponse,
-    InteractionHistoryResponse
+    InteractionHistoryResponse,
+    CurrentPreferencesResponse
 )
 from app.auth import verify_google_token, create_access_token, get_current_user
 from app.learning_engine import calculate_learned_preferences
@@ -173,6 +175,8 @@ def get_profile(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
+    
+    
     """
     Returns the logged-in user's profile, onboarding preferences,
     and learned preferences.
@@ -191,6 +195,209 @@ def get_profile(
         "onboarding_preferences": onboarding_preferences,
         "learned_preferences": learned_preferences
     }
+
+
+
+def normalize_current_preference_scores(scores: dict) -> dict:
+    """
+    Normalizes combined preference scores to values between 0 and 1.
+
+    Example:
+    {
+        "Black": 2.0,
+        "Blue": 1.0
+    }
+
+    becomes:
+
+    {
+        "Black": 1.0,
+        "Blue": 0.5
+    }
+    """
+
+    if not scores:
+        return {}
+
+    positive_scores = {
+        key: value
+        for key, value in scores.items()
+        if value > 0
+    }
+
+    if not positive_scores:
+        return {}
+
+    max_score = max(positive_scores.values())
+
+    normalized_scores = {
+        key: round(value / max_score, 2)
+        for key, value in positive_scores.items()
+    }
+
+    return dict(
+        sorted(
+            normalized_scores.items(),
+            key=lambda item: item[1],
+            reverse=True
+        )
+    )
+
+
+def combine_current_preferences(
+    onboarding_values,
+    learned_weights
+) -> dict:
+    """
+    Combines:
+    1. Explicit onboarding preferences
+    2. Dynamically learned interaction preferences
+
+    Each onboarding preference receives a base score of 1.0.
+
+    The learned normalized score is then added to that value.
+
+    Example:
+
+    Onboarding:
+        Black -> 1.0
+
+    Learned:
+        Black -> 0.8
+
+    Combined:
+        Black -> 1.8
+
+    Finally, all combined values are normalized to 0-1.
+    """
+
+    combined_scores = defaultdict(float)
+
+    if onboarding_values:
+        for value in onboarding_values:
+            if value:
+                combined_scores[value] += 1.0
+
+    if learned_weights:
+        for key, value in learned_weights.items():
+            if key and value is not None:
+                combined_scores[key] += float(value)
+
+    return normalize_current_preference_scores(
+        dict(combined_scores)
+    )
+
+
+@app.get(
+    "/profile/current-preferences",
+    response_model=CurrentPreferencesResponse
+)
+def get_current_preferences(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Returns the user's current overall fashion preferences.
+
+    Current preferences are calculated by combining:
+
+    - Explicit preferences selected during onboarding
+    - Dynamically learned preferences from user interactions
+
+    No new database table is required because the values are
+    calculated whenever this endpoint is requested.
+    """
+
+    onboarding_preferences = (
+        db.query(UserOnboardingPreference)
+        .filter(
+            UserOnboardingPreference.user_id
+            == current_user.user_id
+        )
+        .first()
+    )
+
+    learned_preferences = (
+        db.query(UserLearnedPreference)
+        .filter(
+            UserLearnedPreference.user_id
+            == current_user.user_id
+        )
+        .first()
+    )
+
+    onboarding_categories = (
+        onboarding_preferences.preferred_categories
+        if onboarding_preferences
+        else []
+    )
+
+    onboarding_colors = (
+        onboarding_preferences.preferred_colors
+        if onboarding_preferences
+        else []
+    )
+
+    onboarding_styles = (
+        onboarding_preferences.preferred_styles
+        if onboarding_preferences
+        else []
+    )
+
+    onboarding_brands = (
+        onboarding_preferences.preferred_brands
+        if onboarding_preferences
+        else []
+    )
+
+    learned_categories = (
+        learned_preferences.category_weights
+        if learned_preferences
+        and learned_preferences.category_weights
+        else {}
+    )
+
+    learned_colors = (
+        learned_preferences.color_weights
+        if learned_preferences
+        and learned_preferences.color_weights
+        else {}
+    )
+
+    learned_styles = (
+        learned_preferences.style_weights
+        if learned_preferences
+        and learned_preferences.style_weights
+        else {}
+    )
+
+    learned_brands = (
+        learned_preferences.brand_weights
+        if learned_preferences
+        and learned_preferences.brand_weights
+        else {}
+    )
+
+    return {
+        "category_scores": combine_current_preferences(
+            onboarding_categories,
+            learned_categories
+        ),
+        "color_scores": combine_current_preferences(
+            onboarding_colors,
+            learned_colors
+        ),
+        "style_scores": combine_current_preferences(
+            onboarding_styles,
+            learned_styles
+        ),
+        "brand_scores": combine_current_preferences(
+            onboarding_brands,
+            learned_brands
+        ),
+    }
+
+
 
 
 def get_interaction_value(interaction_type: str) -> float:
@@ -233,8 +440,6 @@ def save_user_interaction(
     db.refresh(new_interaction)
 
     return new_interaction
-
-
 
 
 
@@ -320,6 +525,8 @@ def get_user_interaction_history(
         },
         "interactions": history_items
     }
+
+
 
 
 

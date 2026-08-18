@@ -8,18 +8,29 @@ import '../core/api_config.dart';
 class ProfileService {
   static const String _tokenKey = 'access_token';
 
-  final FlutterSecureStorage _secureStorage = const FlutterSecureStorage();
+  final FlutterSecureStorage _secureStorage =
+      const FlutterSecureStorage();
 
-  Future<Map<String, dynamic>> getProfile() async {
-    final String? token = await _secureStorage.read(key: _tokenKey);
+  Future<String> _getToken() async {
+    final String? token =
+        await _secureStorage.read(key: _tokenKey);
 
     if (token == null || token.isEmpty) {
-      throw Exception('Login token not found. Please sign in again.');
+      throw Exception(
+        'Login token not found. Please sign in again.',
+      );
     }
 
-    final url = Uri.parse('${ApiConfig.baseUrl}/profile');
+    return token;
+  }
 
-    final response = await http.get(
+  Future<Map<String, dynamic>> getProfile() async {
+    final String token = await _getToken();
+
+    final Uri url =
+        Uri.parse('${ApiConfig.baseUrl}/profile');
+
+    final http.Response response = await http.get(
       url,
       headers: {
         'Content-Type': 'application/json',
@@ -27,14 +38,45 @@ class ProfileService {
       },
     );
 
-    final Map<String, dynamic> responseData = jsonDecode(response.body);
+    final Map<String, dynamic> responseData =
+        jsonDecode(response.body);
 
     if (response.statusCode == 200) {
       return responseData;
-    } else {
-      throw Exception(
-        responseData['detail'] ?? 'Failed to load profile details.',
-      );
     }
+
+    throw Exception(
+      responseData['detail'] ??
+          'Failed to load profile details.',
+    );
+  }
+
+  Future<Map<String, dynamic>>
+      getCurrentPreferences() async {
+    final String token = await _getToken();
+
+    final Uri url = Uri.parse(
+      '${ApiConfig.baseUrl}/profile/current-preferences',
+    );
+
+    final http.Response response = await http.get(
+      url,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer $token',
+      },
+    );
+
+    final Map<String, dynamic> responseData =
+        jsonDecode(response.body);
+
+    if (response.statusCode == 200) {
+      return responseData;
+    }
+
+    throw Exception(
+      responseData['detail'] ??
+          'Failed to load current preferences.',
+    );
   }
 }
