@@ -59,7 +59,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> _handleLogout(BuildContext context) async {
-    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final authProvider = Provider.of<AuthProvider>(
+      context,
+      listen: false,
+    );
 
     await authProvider.logout();
 
@@ -82,6 +85,105 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Future<void> _showDeleteAccountDialog(
+    BuildContext context,
+  ) async {
+    final bool? confirmed = await showDialog<bool>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) {
+        return AlertDialog(
+          title: const Text(
+            'Delete Account?',
+          ),
+          content: const Text(
+            'This will permanently delete your account, '
+            'onboarding preferences, interaction history, '
+            'learned preferences, and saved personalization data.\n\n'
+            'This action cannot be undone.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(
+                  dialogContext,
+                  false,
+                );
+              },
+              child: const Text(
+                'Cancel',
+              ),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(
+                  dialogContext,
+                  true,
+                );
+              },
+              child: const Text(
+                'Delete',
+                style: TextStyle(
+                  color: Color(0xFFEF4444),
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    );
+
+    if (confirmed == true && context.mounted) {
+      await _handleDeleteAccount(context);
+    }
+  }
+
+  Future<void> _handleDeleteAccount(
+    BuildContext context,
+  ) async {
+    final authProvider = Provider.of<AuthProvider>(
+      context,
+      listen: false,
+    );
+
+    final bool success =
+        await authProvider.deleteAccount();
+
+    if (!context.mounted) {
+      return;
+    }
+
+    if (success) {
+      Navigator.pushAndRemoveUntil(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const WelcomeScreen(),
+        ),
+        (route) => false,
+      );
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Account deleted successfully.',
+          ),
+        ),
+      );
+
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          authProvider.errorMessage ??
+              'Failed to delete account.',
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authProvider = Provider.of<AuthProvider>(context);
@@ -95,32 +197,45 @@ class _ProfileScreenState extends State<ProfileScreen> {
             _buildHeader(context),
             Expanded(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 24),
+                padding: const EdgeInsets.fromLTRB(
+                  20,
+                  12,
+                  20,
+                  24,
+                ),
                 child: Column(
                   children: [
                     _buildProfileCard(
-                      fullName: user?.fullName ?? 'OutfitIQ User',
-                      email: user?.email ?? 'No email available',
-                      profilePicture: user?.profilePicture,
+                      fullName:
+                          user?.fullName ?? 'OutfitIQ User',
+                      email:
+                          user?.email ?? 'No email available',
+                      profilePicture:
+                          user?.profilePicture,
                     ),
                     const SizedBox(height: 20),
+
                     _buildMenuItem(
                       icon: Icons.tune_rounded,
                       title: 'My Preferences',
-                      subtitle: 'Style, colors and fashion preferences',
+                      subtitle:
+                          'Style, colors and fashion preferences',
                       onTap: () {
                         Navigator.push(
                           context,
                           MaterialPageRoute(
-                            builder: (context) => const MyPreferencesScreen(),
+                            builder: (context) =>
+                                const MyPreferencesScreen(),
                           ),
                         );
                       },
                     ),
+
                     _buildMenuItem(
                       icon: Icons.psychology_alt_rounded,
                       title: 'My Learning Profile',
-                      subtitle: 'Preferences learned from your interactions',
+                      subtitle:
+                          'Preferences learned from your interactions',
                       onTap: () {
                         Navigator.push(
                           context,
@@ -133,26 +248,26 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
 
                     _buildMenuItem(
-  icon: Icons.auto_awesome_rounded,
-  title: 'My Current Preferences',
-  subtitle: 'Your current likes based on preferences and activity',
-  onTap: () {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) =>
-            const MyCurrentPreferencesScreen(),
-      ),
-    );
-  },
-),
-
-
+                      icon: Icons.auto_awesome_rounded,
+                      title: 'My Current Preferences',
+                      subtitle:
+                          'Your current likes based on preferences and activity',
+                      onTap: () {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) =>
+                                const MyCurrentPreferencesScreen(),
+                          ),
+                        );
+                      },
+                    ),
 
                     _buildMenuItem(
                       icon: Icons.history_rounded,
                       title: 'Interaction History',
-                      subtitle: 'Clicked, selected and saved fashion items',
+                      subtitle:
+                          'Clicked, selected and saved fashion items',
                       onTap: () async {
                         await Navigator.push(
                           context,
@@ -165,10 +280,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         _loadProfileStats();
                       },
                     ),
+
                     _buildMenuItem(
                       icon: Icons.notifications_none_rounded,
                       title: 'Notifications',
-                      subtitle: 'Manage fashion update notifications',
+                      subtitle:
+                          'Manage fashion update notifications',
                       onTap: () {
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(
@@ -179,6 +296,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         );
                       },
                     ),
+
                     _buildMenuItem(
                       icon: Icons.privacy_tip_outlined,
                       title: 'Privacy & Security',
@@ -193,6 +311,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         );
                       },
                     ),
+
                     _buildMenuItem(
                       icon: Icons.help_outline_rounded,
                       title: 'Help Center',
@@ -207,7 +326,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         );
                       },
                     ),
+
                     const SizedBox(height: 8),
+
+                    _buildDeleteAccountCard(context),
+
+                    const SizedBox(height: 12),
+
                     _buildLogoutCard(context),
                   ],
                 ),
@@ -221,7 +346,12 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   Widget _buildHeader(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(8, 12, 20, 8),
+      padding: const EdgeInsets.fromLTRB(
+        8,
+        12,
+        20,
+        8,
+      ),
       child: Row(
         children: [
           IconButton(
@@ -266,23 +396,28 @@ class _ProfileScreenState extends State<ProfileScreen> {
             children: [
               CircleAvatar(
                 radius: 33,
-                backgroundColor: Colors.white.withOpacity(0.18),
+                backgroundColor:
+                    Colors.white.withOpacity(0.18),
                 backgroundImage:
-                    profilePicture != null && profilePicture.isNotEmpty
+                    profilePicture != null &&
+                            profilePicture.isNotEmpty
                         ? NetworkImage(profilePicture)
                         : null,
-                child: profilePicture == null || profilePicture.isEmpty
-                    ? const Icon(
-                        Icons.person_rounded,
-                        color: Colors.white,
-                        size: 36,
-                      )
-                    : null,
+                child:
+                    profilePicture == null ||
+                            profilePicture.isEmpty
+                        ? const Icon(
+                            Icons.person_rounded,
+                            color: Colors.white,
+                            size: 36,
+                          )
+                        : null,
               ),
               const SizedBox(width: 16),
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
                   children: [
                     Text(
                       fullName,
@@ -306,13 +441,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                     ),
                     const SizedBox(height: 8),
                     Container(
-                      padding: const EdgeInsets.symmetric(
+                      padding:
+                          const EdgeInsets.symmetric(
                         horizontal: 10,
                         vertical: 5,
                       ),
                       decoration: BoxDecoration(
-                        color: Colors.white.withOpacity(0.18),
-                        borderRadius: BorderRadius.circular(20),
+                        color:
+                            Colors.white.withOpacity(0.18),
+                        borderRadius:
+                            BorderRadius.circular(20),
                       ),
                       child: const Text(
                         'Edit Profile',
@@ -328,12 +466,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
             ],
           ),
+
           const SizedBox(height: 22),
+
           Divider(
             color: Colors.white.withOpacity(0.22),
             thickness: 1,
           ),
+
           const SizedBox(height: 16),
+
           Row(
             children: [
               const Expanded(
@@ -378,14 +520,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
           onTap: onTap,
           borderRadius: BorderRadius.circular(16),
           child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+            padding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 14,
+            ),
             child: Row(
               children: [
                 Container(
                   width: 42,
                   height: 42,
                   decoration: BoxDecoration(
-                    color: AppTheme.primaryColor.withOpacity(0.08),
+                    color: AppTheme.primaryColor
+                        .withOpacity(0.08),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(
@@ -397,14 +543,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 const SizedBox(width: 14),
                 Expanded(
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                    crossAxisAlignment:
+                        CrossAxisAlignment.start,
                     children: [
                       Text(
                         title,
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
-                          color: AppTheme.darkTextColor,
+                          color:
+                              AppTheme.darkTextColor,
                         ),
                       ),
                       const SizedBox(height: 3),
@@ -412,7 +560,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         subtitle,
                         style: const TextStyle(
                           fontSize: 12,
-                          color: AppTheme.lightTextColor,
+                          color:
+                              AppTheme.lightTextColor,
                         ),
                       ),
                     ],
@@ -431,6 +580,83 @@ class _ProfileScreenState extends State<ProfileScreen> {
     );
   }
 
+  Widget _buildDeleteAccountCard(
+    BuildContext context,
+  ) {
+    return Material(
+      color: const Color(0xFFFFF7F7),
+      borderRadius: BorderRadius.circular(16),
+      child: InkWell(
+        onTap: () {
+          _showDeleteAccountDialog(context);
+        },
+        borderRadius: BorderRadius.circular(16),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 16,
+          ),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            border: Border.all(
+              color: const Color(0xFFFFC7C7),
+              width: 1,
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: const BoxDecoration(
+                  color: Color(0xFFFFEEEE),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.delete_forever_rounded,
+                  color: Color(0xFFEF4444),
+                  size: 21,
+                ),
+              ),
+              const SizedBox(width: 14),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Delete Account',
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFFEF4444),
+                      ),
+                    ),
+                    SizedBox(height: 3),
+                    Text(
+                      'Permanently remove your account and saved data',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color:
+                            AppTheme.lightTextColor,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                size: 15,
+                color: Color(0xFFEF4444),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildLogoutCard(BuildContext context) {
     return Material(
       color: const Color(0xFFFFF7F7),
@@ -440,7 +666,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
         borderRadius: BorderRadius.circular(16),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 16),
+          padding: const EdgeInsets.symmetric(
+            horizontal: 14,
+            vertical: 16,
+          ),
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(16),
             border: Border.all(
@@ -466,7 +695,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
               const SizedBox(width: 14),
               const Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment:
+                      CrossAxisAlignment.start,
                   children: [
                     Text(
                       'Logout',
@@ -481,7 +711,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       'Sign out of your account',
                       style: TextStyle(
                         fontSize: 12,
-                        color: AppTheme.lightTextColor,
+                        color:
+                            AppTheme.lightTextColor,
                       ),
                     ),
                   ],

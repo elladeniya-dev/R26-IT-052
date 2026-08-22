@@ -28,10 +28,8 @@ class AuthService {
     }
 
     if (kIsWeb) {
-      // For Flutter Web, client ID is normally read from web/index.html.
       await GoogleSignIn.instance.initialize();
     } else {
-      // Android / iOS
       await GoogleSignIn.instance.initialize(
         serverClientId: _webClientId,
       );
@@ -41,9 +39,6 @@ class AuthService {
   }
 
   /// Public initializer.
-  ///
-  /// Useful for the Web login screen before displaying Google's
-  /// official sign-in button.
   Future<void> initializeGoogleSignIn() async {
     await _initializeGoogleSignIn();
   }
@@ -71,9 +66,6 @@ class AuthService {
   }
 
   /// Android / iOS Google Sign-In.
-  ///
-  /// IMPORTANT:
-  /// authenticate() is NOT supported on Flutter Web.
   Future<UserModel> signInWithGoogle() async {
     await _initializeGoogleSignIn();
 
@@ -106,10 +98,7 @@ class AuthService {
     );
   }
 
-  /// Handles a Google account returned by the Web authentication event.
-  ///
-  /// The Google rendered Web button signs the user in.
-  /// After that, this method sends Google's ID token to FastAPI.
+  /// Handles Google account returned by Web authentication.
   Future<UserModel> handleGoogleAccount(
     GoogleSignInAccount googleUser,
   ) async {
@@ -128,9 +117,6 @@ class AuthService {
   }
 
   /// Sends Google ID token to FastAPI backend.
-  ///
-  /// Backend:
-  /// POST /auth/google
   Future<UserModel> loginWithBackend(
     String googleIdToken,
   ) async {
@@ -209,6 +195,69 @@ class AuthService {
       detail?.toString() ??
           'Google login failed. Please try again.',
     );
+  }
+
+  /// Permanently deletes the logged-in user's account.
+  Future<void> deleteAccount() async {
+    final String? token = await getStoredToken();
+
+    if (token == null || token.isEmpty) {
+      throw Exception(
+        'Authentication token was not found.',
+      );
+    }
+
+    final Uri url = Uri.parse(
+      '${ApiConfig.baseUrl}/account',
+    );
+
+    final http.Response response;
+
+    try {
+      response = await http.delete(
+        url,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+    } catch (error) {
+      throw Exception(
+        'Could not connect to backend: $error',
+      );
+    }
+
+    Map<String, dynamic> responseData = {};
+
+    try {
+      if (response.body.isNotEmpty) {
+        responseData =
+            jsonDecode(response.body) as Map<String, dynamic>;
+      }
+    } catch (_) {
+      throw Exception(
+        'Backend returned an invalid response.',
+      );
+    }
+
+    if (response.statusCode != 200) {
+      final dynamic detail =
+          responseData['detail'];
+
+      throw Exception(
+        detail?.toString() ??
+            'Failed to delete account.',
+      );
+    }
+
+    // Remove local authentication after successful deletion.
+    await _initializeGoogleSignIn();
+
+    try {
+      await GoogleSignIn.instance.signOut();
+    } finally {
+      await clearToken();
+    }
   }
 
   /// Sign out from Google and remove backend JWT.

@@ -1,20 +1,22 @@
 from collections import defaultdict
+from datetime import datetime, timezone
+
+
+# Interaction influence becomes half after 30 days
+RECENCY_HALF_LIFE_DAYS = 30.0
 
 
 def normalize_weights(weight_dict: dict) -> dict:
     """
-    Converts raw scores into values between 0 and 1.
-    Example:
-    Raw: {"Tops": 8, "Dresses": 4}
-    Normalized: {"Tops": 1.0, "Dresses": 0.5}
+    Normalizes positive scores to values between 0 and 1.
     """
 
     if not weight_dict:
         return {}
 
-    # Remove zero/negative values from final positive preference result
     positive_weights = {
-        key: value for key, value in weight_dict.items()
+        key: value
+        for key, value in weight_dict.items()
         if value > 0
     }
 
@@ -23,16 +25,29 @@ def normalize_weights(weight_dict: dict) -> dict:
 
     max_value = max(positive_weights.values())
 
-    return {
+    normalized = {
         key: round(value / max_value, 2)
         for key, value in positive_weights.items()
     }
 
+    # Sort from strongest to weakest preference
+    return dict(
+        sorted(
+            normalized.items(),
+            key=lambda item: item[1],
+            reverse=True,
+        )
+    )
 
-def add_weight(weight_dict: dict, key, value: float):
+
+def add_weight(
+    weight_dict: dict,
+    key,
+    value: float,
+):
     """
-    Safely adds weight to a dictionary.
-    Handles empty/null values.
+    Adds a score to a product attribute.
+    Supports single values and lists.
     """
 
     if key is None:
@@ -43,21 +58,50 @@ def add_weight(weight_dict: dict, key, value: float):
             if item:
                 weight_dict[item] += value
     else:
-        weight_dict[key] += value
+        if key:
+            weight_dict[key] += value
 
 
-def calculate_learned_preferences(interactions: list, products_by_id: dict) -> dict:
+def calculate_recency_factor(created_at) -> float:
     """
-    Calculates learned user preferences using:
-    - user interactions
-    - product category, color, and style
+    Reduces the influence of older interactions.
+    """
 
-    Each interaction has an interaction_value:
-    view = 1
-    click = 2
-    save = 3
-    select = 4
-    dislike = -2
+    if created_at is None:
+        return 1.0
+
+    interaction_time = created_at
+
+    # Make sure the timestamp uses UTC
+    if interaction_time.tzinfo is None:
+        interaction_time = interaction_time.replace(
+            tzinfo=timezone.utc
+        )
+
+    current_time = datetime.now(timezone.utc)
+
+    age = current_time - interaction_time
+
+    age_in_days = max(
+        age.total_seconds() / 86400.0,
+        0.0,
+    )
+
+    # 30-day half-life time decay
+    recency_factor = 0.5 ** (
+        age_in_days / RECENCY_HALF_LIFE_DAYS
+    )
+
+    return recency_factor
+
+
+def calculate_learned_preferences(
+    interactions: list,
+    products_by_id: dict,
+) -> dict:
+    """
+    Learns category, color, style and brand preferences
+    from interaction strength and interaction recency.
     """
 
     category_scores = defaultdict(float)
@@ -66,21 +110,66 @@ def calculate_learned_preferences(interactions: list, products_by_id: dict) -> d
     brand_scores = defaultdict(float)
 
     for interaction in interactions:
-        product = products_by_id.get(interaction.item_id)
+        product = products_by_id.get(
+            interaction.item_id
+        )
 
         if not product:
             continue
 
-        value = interaction.interaction_value
+        interaction_value = (
+            interaction.interaction_value
+        )
 
-        add_weight(category_scores, product.category, value)
-        add_weight(color_scores, product.color, value)
-        add_weight(style_scores, product.style, value)
-        add_weight(brand_scores, product.brand, value)
+        if interaction_value is None:
+            continue
+
+        # Recent interactions have more influence
+        recency_factor = calculate_recency_factor(
+            interaction.created_at
+        )
+
+        effective_value = (
+            float(interaction_value)
+            * recency_factor
+        )
+
+        add_weight(
+            category_scores,
+            product.category,
+            effective_value,
+        )
+
+        add_weight(
+            color_scores,
+            product.color,
+            effective_value,
+        )
+
+        add_weight(
+            style_scores,
+            product.style,
+            effective_value,
+        )
+
+        add_weight(
+            brand_scores,
+            product.brand,
+            effective_value,
+        )
 
     return {
-        "category_weights": normalize_weights(category_scores),
-        "color_weights": normalize_weights(color_scores),
-        "style_weights": normalize_weights(style_scores),
-        "brand_weights": normalize_weights(brand_scores)
+        "category_weights": normalize_weights(
+            category_scores
+        ),
+        "color_weights": normalize_weights(
+            color_scores
+        ),
+        "style_weights": normalize_weights(
+            style_scores
+        ),
+        "brand_weights": normalize_weights(
+            brand_scores
+        ),
     }
+

@@ -37,9 +37,6 @@ class AuthProvider extends ChangeNotifier {
   }
 
   /// Android / iOS Google Sign-In.
-  ///
-  /// On Android/iOS this eventually uses authenticate().
-  /// Web does NOT call this method from the Google Web button.
   Future<bool> signInWithGoogle() async {
     _isLoading = true;
     _errorMessage = null;
@@ -66,11 +63,6 @@ class AuthProvider extends ChangeNotifier {
   }
 
   /// Flutter Web Google Sign-In.
-  ///
-  /// Google's rendered Web button creates a
-  /// GoogleSignInAccount through authenticationEvents.
-  /// We receive that account here and send its ID token
-  /// to the FastAPI backend.
   Future<bool> signInWithGoogleWeb(
     GoogleSignInAccount googleUser,
   ) async {
@@ -101,11 +93,34 @@ class AuthProvider extends ChangeNotifier {
   }
 
   /// Initializes Google Sign-In.
-  ///
-  /// WelcomeScreen will call this before listening to
-  /// Google's Web authentication events.
   Future<void> initializeGoogleSignIn() async {
     await _authService.initializeGoogleSignIn();
+  }
+
+  /// Permanently deletes the user's account and saved data.
+  Future<bool> deleteAccount() async {
+    _isLoading = true;
+    _errorMessage = null;
+    notifyListeners();
+
+    try {
+      await _authService.deleteAccount();
+
+      _currentUser = null;
+      _errorMessage = null;
+      _isLoading = false;
+
+      notifyListeners();
+
+      return true;
+    } catch (e) {
+      _errorMessage = _cleanErrorMessage(e);
+
+      _isLoading = false;
+      notifyListeners();
+
+      return false;
+    }
   }
 
   /// Logout from Google and clear backend JWT.
@@ -126,10 +141,7 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Removes prefixes such as:
-  ///
-  /// Exception: ...
-  /// Unsupported operation: ...
+  /// Removes prefixes such as Exception: from errors.
   String _cleanErrorMessage(Object error) {
     String message = error.toString();
 

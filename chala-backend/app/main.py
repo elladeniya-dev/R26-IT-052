@@ -121,6 +121,58 @@ def get_logged_in_user(current_user: User = Depends(get_current_user)):
         "auth_provider": current_user.auth_provider
     }
 
+
+
+@app.delete("/account")
+def delete_current_user_account(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Permanently deletes the logged-in user's account
+    and all related personalization data.
+    """
+
+    user_id = current_user.user_id
+
+    try:
+        # Delete ML preference data
+        db.query(UserMLPreference).filter(
+            UserMLPreference.user_id == user_id
+        ).delete(synchronize_session=False)
+
+        # Delete learned preferences
+        db.query(UserLearnedPreference).filter(
+            UserLearnedPreference.user_id == user_id
+        ).delete(synchronize_session=False)
+
+        # Delete interaction history
+        db.query(UserInteraction).filter(
+            UserInteraction.user_id == user_id
+        ).delete(synchronize_session=False)
+
+        # Delete onboarding preferences
+        db.query(UserOnboardingPreference).filter(
+            UserOnboardingPreference.user_id == user_id
+        ).delete(synchronize_session=False)
+
+        # Delete main user account
+        db.query(User).filter(
+            User.user_id == user_id
+        ).delete(synchronize_session=False)
+
+        db.commit()
+
+        return {
+            "message": "Account and all related data deleted successfully"
+        }
+
+    except Exception:
+        db.rollback()
+        raise
+
+
+
 @app.post("/onboarding", response_model=OnboardingResponse)
 def save_onboarding_preferences(
     request: OnboardingRequest,
@@ -175,8 +227,6 @@ def get_profile(
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    
-    
     """
     Returns the logged-in user's profile, onboarding preferences,
     and learned preferences.
@@ -197,23 +247,30 @@ def get_profile(
     }
 
 
-
-def normalize_current_preference_scores(scores: dict) -> dict:
+def get_onboarding_weight(interaction_count: int) -> float:
     """
-    Normalizes combined preference scores to values between 0 and 1.
+    Reduces onboarding influence as more user behavior is collected.
+    """
 
-    Example:
-    {
-        "Black": 2.0,
-        "Blue": 1.0
-    }
+    if interaction_count < 5:
+        return 1.0
 
-    becomes:
+    if interaction_count < 10:
+        return 0.75
 
-    {
-        "Black": 1.0,
-        "Blue": 0.5
-    }
+    if interaction_count < 20:
+        return 0.50
+
+    return 0.25
+
+
+def normalize_current_preference_scores(
+    scores: dict,
+    top_n: int = 3,
+    minimum_score: float = 0.30,
+) -> dict:
+    """
+    Normalizes scores and keeps the strongest current preferences.
     """
 
     if not scores:
@@ -235,40 +292,28 @@ def normalize_current_preference_scores(scores: dict) -> dict:
         for key, value in positive_scores.items()
     }
 
-    return dict(
-        sorted(
-            normalized_scores.items(),
-            key=lambda item: item[1],
-            reverse=True
-        )
+    filtered_scores = {
+        key: value
+        for key, value in normalized_scores.items()
+        if value >= minimum_score
+    }
+
+    sorted_scores = sorted(
+        filtered_scores.items(),
+        key=lambda item: item[1],
+        reverse=True,
     )
+
+    return dict(sorted_scores[:top_n])
 
 
 def combine_current_preferences(
     onboarding_values,
-    learned_weights
+    learned_weights,
+    onboarding_weight: float,
 ) -> dict:
     """
-    Combines:
-    1. Explicit onboarding preferences
-    2. Dynamically learned interaction preferences
-
-    Each onboarding preference receives a base score of 1.0.
-
-    The learned normalized score is then added to that value.
-
-    Example:
-
-    Onboarding:
-        Black -> 1.0
-
-    Learned:
-        Black -> 0.8
-
-    Combined:
-        Black -> 1.8
-
-    Finally, all combined values are normalized to 0-1.
+    Combines onboarding preferences with learned behavior.
     """
 
     combined_scores = defaultdict(float)
@@ -276,7 +321,7 @@ def combine_current_preferences(
     if onboarding_values:
         for value in onboarding_values:
             if value:
-                combined_scores[value] += 1.0
+                combined_scores[value] += onboarding_weight
 
     if learned_weights:
         for key, value in learned_weights.items():
@@ -298,14 +343,7 @@ def get_current_preferences(
 ):
     """
     Returns the user's current overall fashion preferences.
-
-    Current preferences are calculated by combining:
-
-    - Explicit preferences selected during onboarding
-    - Dynamically learned preferences from user interactions
-
-    No new database table is required because the values are
-    calculated whenever this endpoint is requested.
+    Learned preferences are recalculated using interaction recency.
     """
 
     onboarding_preferences = (
@@ -317,13 +355,86 @@ def get_current_preferences(
         .first()
     )
 
-    learned_preferences = (
-        db.query(UserLearnedPreference)
-        .filter(
-            UserLearnedPreference.user_id
-            == current_user.user_id
+    interactions = db.query(UserInteraction).filter(
+        UserInteraction.user_id == current_user.user_id
+    ).all()
+
+    interaction_count = len(interactions)
+
+    learned_data = {
+        "category_weights": {},
+        "color_weights": {},
+        "style_weights": {},
+        "brand_weights": {},
+    }
+
+    if interactions:
+        item_ids = [
+            interaction.item_id
+            for interaction in interactions
+        ]
+
+        products = db.query(Product).filter(
+            Product.item_id.in_(item_ids)
+        ).all()
+
+        products_by_id = {
+            product.item_id: product
+            for product in products
+        }
+
+        # Recalculate using interaction strength + time decay
+        learned_data = calculate_learned_preferences(
+            interactions=interactions,
+            products_by_id=products_by_id
         )
-        .first()
+
+        learned_preferences = (
+            db.query(UserLearnedPreference)
+            .filter(
+                UserLearnedPreference.user_id
+                == current_user.user_id
+            )
+            .first()
+        )
+
+        if learned_preferences:
+            learned_preferences.category_weights = (
+                learned_data["category_weights"]
+            )
+            learned_preferences.color_weights = (
+                learned_data["color_weights"]
+            )
+            learned_preferences.style_weights = (
+                learned_data["style_weights"]
+            )
+            learned_preferences.brand_weights = (
+                learned_data["brand_weights"]
+            )
+
+        else:
+            learned_preferences = UserLearnedPreference(
+                user_id=current_user.user_id,
+                category_weights=learned_data[
+                    "category_weights"
+                ],
+                color_weights=learned_data[
+                    "color_weights"
+                ],
+                style_weights=learned_data[
+                    "style_weights"
+                ],
+                brand_weights=learned_data[
+                    "brand_weights"
+                ],
+            )
+
+            db.add(learned_preferences)
+
+        db.commit()
+
+    onboarding_weight = get_onboarding_weight(
+        interaction_count
     )
 
     onboarding_categories = (
@@ -350,54 +461,28 @@ def get_current_preferences(
         else []
     )
 
-    learned_categories = (
-        learned_preferences.category_weights
-        if learned_preferences
-        and learned_preferences.category_weights
-        else {}
-    )
-
-    learned_colors = (
-        learned_preferences.color_weights
-        if learned_preferences
-        and learned_preferences.color_weights
-        else {}
-    )
-
-    learned_styles = (
-        learned_preferences.style_weights
-        if learned_preferences
-        and learned_preferences.style_weights
-        else {}
-    )
-
-    learned_brands = (
-        learned_preferences.brand_weights
-        if learned_preferences
-        and learned_preferences.brand_weights
-        else {}
-    )
-
     return {
         "category_scores": combine_current_preferences(
             onboarding_categories,
-            learned_categories
+            learned_data["category_weights"],
+            onboarding_weight
         ),
         "color_scores": combine_current_preferences(
             onboarding_colors,
-            learned_colors
+            learned_data["color_weights"],
+            onboarding_weight
         ),
         "style_scores": combine_current_preferences(
             onboarding_styles,
-            learned_styles
+            learned_data["style_weights"],
+            onboarding_weight
         ),
         "brand_scores": combine_current_preferences(
             onboarding_brands,
-            learned_brands
+            learned_data["brand_weights"],
+            onboarding_weight
         ),
     }
-
-
 
 
 def get_interaction_value(interaction_type: str) -> float:
@@ -440,9 +525,6 @@ def save_user_interaction(
     db.refresh(new_interaction)
 
     return new_interaction
-
-
-
 
 
 @app.get("/interactions/history", response_model=InteractionHistoryResponse)
@@ -525,14 +607,6 @@ def get_user_interaction_history(
         },
         "interactions": history_items
     }
-
-
-
-
-
-
-
-
 
 
 @app.post("/products/sample")
@@ -627,13 +701,6 @@ def create_sample_products(db: Session = Depends(get_db)):
     }
 
 
-
-
-
-
-
-
-
 @app.post("/learning/update")
 def update_learning_preferences(
     current_user: User = Depends(get_current_user),
@@ -706,9 +773,6 @@ def update_learning_preferences(
     }
 
 
-
-
-
 @app.post("/ml/test-image-embedding")
 def test_image_embedding():
     """
@@ -727,9 +791,6 @@ def test_image_embedding():
         "embedding_dimension": len(embedding),
         "first_10_values": embedding[:10]
     }
-
-
-
 
 
 @app.post("/ml/test-user-vector")
@@ -766,8 +827,6 @@ def test_user_preference_vector():
         "first_10_values": user_vector[:10],
         "used_items": interaction_items
     }
-
-
 
 
 @app.post("/ml/update-current-user-vector")
@@ -879,7 +938,6 @@ def update_current_user_vector(
     }
 
 
-
 @app.get("/ml/current-user-vector-summary")
 def get_current_user_vector_summary(
     current_user: User = Depends(get_current_user),
@@ -910,5 +968,4 @@ def get_current_user_vector_summary(
         "first_10_values": ml_preferences.user_preference_vector[:10],
         "updated_at": ml_preferences.updated_at
     }
-
 
