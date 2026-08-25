@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import '../models/s_product_model.dart';
 import '../widgets/s_nav_bar.dart';
 import '../widgets/s_product_card.dart';
+import 's_evaluation_summary_screen.dart';
 import 's_notifications_screen.dart';
 import 's_product_detail_screen.dart';
 import 's_saved_outfits_screen.dart';
@@ -187,6 +188,27 @@ class _ProductListScreenState extends State<ProductListScreen> {
       return;
     }
 
+    if (index == BottomNavTab.profile) {
+      setState(() {
+        _selectedBottomIndex = index;
+      });
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => const EvaluationSummaryScreen(),
+        ),
+      ).then((_) {
+        if (mounted) {
+          setState(() {
+            _selectedBottomIndex = BottomNavTab.home;
+          });
+        }
+      });
+
+      return;
+    }
+
     setState(() {
       _selectedBottomIndex = index;
     });
@@ -229,7 +251,8 @@ class _ProductListScreenState extends State<ProductListScreen> {
       return;
     }
 
-    final searchResults = precomputedResults ??
+    final searchResults =
+        precomputedResults ??
         sampleProducts.where((product) {
           final searchableText = [
             product.itemId,

@@ -4,15 +4,13 @@ import '../models/s_outfit_model.dart';
 import '../models/s_product_model.dart';
 import '../services/s_outfit_api_service.dart';
 import '../widgets/s_outfit_card.dart';
+import 's_evaluation_summary_screen.dart';
 import 's_saved_outfits_screen.dart';
 
 class CompleteTheLookScreen extends StatefulWidget {
   final ProductModel selectedProduct;
 
-  const CompleteTheLookScreen({
-    super.key,
-    required this.selectedProduct,
-  });
+  const CompleteTheLookScreen({super.key, required this.selectedProduct});
 
   @override
   State<CompleteTheLookScreen> createState() => _CompleteTheLookScreenState();
@@ -21,10 +19,12 @@ class CompleteTheLookScreen extends StatefulWidget {
 class _CompleteTheLookScreenState extends State<CompleteTheLookScreen> {
   final OutfitApiService _outfitApiService = OutfitApiService();
 
-  final TextEditingController _minPriceController =
-      TextEditingController(text: '3000');
-  final TextEditingController _maxPriceController =
-      TextEditingController(text: '10000');
+  final TextEditingController _minPriceController = TextEditingController(
+    text: '3000',
+  );
+  final TextEditingController _maxPriceController = TextEditingController(
+    text: '10000',
+  );
 
   final List<String> _occasions = [
     'casual',
@@ -54,11 +54,7 @@ class _CompleteTheLookScreenState extends State<CompleteTheLookScreen> {
   int _maxOutfits = 5;
   int _maxItemsPerCategory = 5;
 
-  final List<String> _selectedPreferredColors = [
-    'white',
-    'blue',
-    'black',
-  ];
+  final List<String> _selectedPreferredColors = ['white', 'blue', 'black'];
 
   final List<String> _selectedExcludedCategories = [];
 
@@ -173,7 +169,11 @@ class _CompleteTheLookScreenState extends State<CompleteTheLookScreen> {
                       _buildEmptySection(),
                     if (!_isLoading && _errorMessage == null)
                       ...outfits.map(
-                        (outfit) => OutfitCard(outfit: outfit),
+                        (outfit) => OutfitCard(
+                          outfit: outfit,
+                          userId: _response?.userId ?? 'USR001',
+                          onGenerateAgain: _generateOutfits,
+                        ),
                       ),
                   ],
                 ),
@@ -210,6 +210,18 @@ class _CompleteTheLookScreenState extends State<CompleteTheLookScreen> {
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
+              IconButton(
+                tooltip: 'Evaluation Summary',
+                onPressed: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => const EvaluationSummaryScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.analytics_outlined),
+              ),
               IconButton(
                 tooltip: 'Saved Outfits',
                 onPressed: () {
@@ -355,9 +367,7 @@ class _CompleteTheLookScreenState extends State<CompleteTheLookScreen> {
             final bool isSelected = _selectedOccasion == occasion;
 
             return ChoiceChip(
-              label: Text(
-                occasion[0].toUpperCase() + occasion.substring(1),
-              ),
+              label: Text(occasion[0].toUpperCase() + occasion.substring(1)),
               selected: isSelected,
               onSelected: (selected) {
                 if (!selected) {
@@ -410,10 +420,7 @@ class _CompleteTheLookScreenState extends State<CompleteTheLookScreen> {
         children: [
           const Row(
             children: [
-              Icon(
-                Icons.tune,
-                color: Color(0xFF111827),
-              ),
+              Icon(Icons.tune, color: Color(0xFF111827)),
               SizedBox(width: 8),
               Text(
                 'Filters',
@@ -615,9 +622,7 @@ class _CompleteTheLookScreenState extends State<CompleteTheLookScreen> {
             final bool isSelected = selectedOptions.contains(option);
 
             return FilterChip(
-              label: Text(
-                option[0].toUpperCase() + option.substring(1),
-              ),
+              label: Text(option[0].toUpperCase() + option.substring(1)),
               selected: isSelected,
               onSelected: (_) {
                 onTap(option);
@@ -662,10 +667,7 @@ class _CompleteTheLookScreenState extends State<CompleteTheLookScreen> {
             : const Icon(Icons.auto_awesome),
         label: Text(
           _isLoading ? 'Generating Outfits...' : 'Generate Compatible Outfits',
-          style: const TextStyle(
-            fontSize: 15,
-            fontWeight: FontWeight.w900,
-          ),
+          style: const TextStyle(fontSize: 15, fontWeight: FontWeight.w900),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF111827),
@@ -736,9 +738,7 @@ class _CompleteTheLookScreenState extends State<CompleteTheLookScreen> {
       ),
       child: const Column(
         children: [
-          CircularProgressIndicator(
-            color: Color(0xFF111827),
-          ),
+          CircularProgressIndicator(color: Color(0xFF111827)),
           SizedBox(height: 14),
           Text(
             'Generating compatible outfits...',
@@ -766,10 +766,7 @@ class _CompleteTheLookScreenState extends State<CompleteTheLookScreen> {
         children: [
           const Row(
             children: [
-              Icon(
-                Icons.error_outline,
-                color: Color(0xFFB91C1C),
-              ),
+              Icon(Icons.error_outline, color: Color(0xFFB91C1C)),
               SizedBox(width: 8),
               Text(
                 'Backend Connection Error',
@@ -822,11 +819,7 @@ class _CompleteTheLookScreenState extends State<CompleteTheLookScreen> {
       ),
       child: const Column(
         children: [
-          Icon(
-            Icons.checkroom_outlined,
-            size: 44,
-            color: Color(0xFF9CA3AF),
-          ),
+          Icon(Icons.checkroom_outlined, size: 44, color: Color(0xFF9CA3AF)),
           SizedBox(height: 12),
           Text(
             'No outfits available yet',

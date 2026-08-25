@@ -23,4 +23,13 @@ class ApiConstants {
   static String removeSavedOutfitEndpoint(String outfitId) {
     return "$baseUrl/saved-outfits/$outfitId";
   }
+
+  // Outfit feedback API endpoints
+  static String submitOutfitFeedbackEndpoint(String outfitId) {
+    return "$baseUrl/outfits/$outfitId/feedback";
+  }
+
+  static String outfitFeedbackSummaryEndpoint(String userId) {
+    return "$baseUrl/outfits/feedback-summary/$userId";
+  }
 }

@@ -94,7 +94,8 @@ def get_available_products_by_category(
     if max_price is not None:
         query = query.filter(Product.price <= max_price)
 
-    products = query.limit(max_items_per_category).all()
+    candidate_pool_size = max_items_per_category * 3
+    products = query.limit(candidate_pool_size).all()
 
     filtered_products = [
         product for product in products
@@ -104,7 +105,51 @@ def get_available_products_by_category(
         )
     ]
 
-    return filtered_products
+    return filtered_products[:max_items_per_category]
+
+
+def rank_candidate_products(
+    selected_item: Dict,
+    products: List[Product],
+    occasion: str,
+    max_items: int
+) -> List[Product]:
+    """
+    Ranks products before outfit generation using a lightweight pair score.
+
+    This keeps the cartesian product step focused on items that already look
+    compatible with the selected clothing item.
+    """
+    scored_products = []
+
+    for product in products:
+        product_dict = product_to_dict(product)
+        pair_result = calculate_compatibility_score(
+            outfit_items=[selected_item, product_dict],
+            occasion=occasion
+        )
+        scored_products.append(
+            (
+                pair_result["compatibility_score"],
+                product.price or 0,
+                product.item_id,
+                product
+            )
+        )
+
+    scored_products.sort(
+        key=lambda scored_product: (
+            scored_product[0],
+            -scored_product[1],
+            scored_product[2]
+        ),
+        reverse=True
+    )
+
+    return [
+        scored_product[3]
+        for scored_product in scored_products[:max_items]
+    ]
 
 
 def get_required_categories(selected_category: str) -> Dict:
@@ -326,6 +371,13 @@ def generate_outfits_for_selected_item(
 
     category_rules = get_required_categories(selected_category)
 
+    if not category_rules["required"] and not category_rules["optional"]:
+        return {
+            "success": False,
+            "message": f"Unsupported selected item category: {selected_category}",
+            "outfits": []
+        }
+
     category_rules = apply_excluded_categories(
         category_rules=category_rules,
         excluded_categories=excluded_categories
@@ -351,6 +403,13 @@ def generate_outfits_for_selected_item(
                 "outfits": []
             }
 
+        products = rank_candidate_products(
+            selected_item=selected_item,
+            products=products,
+            occasion=occasion,
+            max_items=max_items_per_category
+        )
+
         required_product_groups.append(products)
 
     optional_products = []
@@ -364,6 +423,13 @@ def generate_outfits_for_selected_item(
             max_price=max_price,
             preferred_colors=preferred_colors,
             max_items_per_category=max_items_per_category
+        )
+
+        products = rank_candidate_products(
+            selected_item=selected_item,
+            products=products,
+            occasion=occasion,
+            max_items=max_items_per_category
         )
 
         optional_products.extend(products)
@@ -423,6 +489,9 @@ def generate_outfits_for_selected_item(
         key=lambda outfit: outfit["compatibility_score"],
         reverse=True
     )
+
+    for rank, outfit in enumerate(ranked_outfits, start=1):
+        outfit["outfit_id"] = f"OUT{rank:03d}"
 
     return {
         "success": True,

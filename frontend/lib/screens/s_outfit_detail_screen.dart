@@ -2,14 +2,130 @@ import 'package:flutter/material.dart';
 
 import '../models/s_outfit_model.dart';
 import '../models/s_product_model.dart';
+import '../services/s_outfit_feedback_api_service.dart';
+import '../services/s_saved_outfit_api_service.dart';
 
-class OutfitDetailScreen extends StatelessWidget {
+class OutfitDetailScreen extends StatefulWidget {
   final OutfitModel outfit;
+  final String userId;
+  final VoidCallback? onGenerateAgain;
 
   const OutfitDetailScreen({
     super.key,
     required this.outfit,
+    this.userId = 'USR001',
+    this.onGenerateAgain,
   });
+
+  @override
+  State<OutfitDetailScreen> createState() => _OutfitDetailScreenState();
+}
+
+class _OutfitDetailScreenState extends State<OutfitDetailScreen> {
+  final SavedOutfitApiService _savedOutfitApiService = SavedOutfitApiService();
+  final OutfitFeedbackApiService _feedbackApiService =
+      OutfitFeedbackApiService();
+
+  bool _isSaving = false;
+  bool _isSaved = false;
+  bool _isSubmittingFeedback = false;
+  int? _submittedRating;
+
+  Future<void> _saveOutfit() async {
+    if (_isSaving || _isSaved) {
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+    });
+
+    try {
+      final response = await _savedOutfitApiService.saveOutfit(
+        outfitId: widget.outfit.outfitId,
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _isSaved = true;
+      });
+
+      _showSnackBar(response.message);
+    } catch (error) {
+      _showSnackBar(error.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSaving = false;
+        });
+      }
+    }
+  }
+
+  Future<void> _submitFeedback({
+    required int rating,
+    required String label,
+  }) async {
+    if (_isSubmittingFeedback || _submittedRating != null) {
+      return;
+    }
+
+    setState(() {
+      _isSubmittingFeedback = true;
+    });
+
+    try {
+      final message = await _feedbackApiService.submitFeedback(
+        outfitId: widget.outfit.outfitId,
+        userId: widget.userId,
+        rating: rating,
+        comment: '$label outfit match',
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _submittedRating = rating;
+      });
+
+      _showSnackBar(message);
+    } catch (error) {
+      _showSnackBar(error.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmittingFeedback = false;
+        });
+      }
+    }
+  }
+
+  void _generateAgain() {
+    final onGenerateAgain = widget.onGenerateAgain;
+
+    if (onGenerateAgain == null) {
+      _showSnackBar('Go back and tap Generate to create another outfit.');
+      return;
+    }
+
+    Navigator.pop(context);
+    onGenerateAgain();
+  }
+
+  void _showSnackBar(String message) {
+    if (!mounted) {
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
+    );
+  }
 
   String _getFallbackImageUrl({
     required String itemId,
@@ -63,8 +179,9 @@ class OutfitDetailScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final int matchPercentage =
-        (outfit.compatibilityScore * 100).round().clamp(0, 100);
+    final int matchPercentage = (widget.outfit.compatibilityScore * 100)
+        .round()
+        .clamp(0, 100);
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F8F8),
@@ -83,7 +200,9 @@ class OutfitDetailScreen extends StatelessWidget {
                     subtitle: 'Items included in this compatible outfit.',
                   ),
                   const SizedBox(height: 14),
-                  ...outfit.items.map((item) => _buildProductItemCard(item)),
+                  ...widget.outfit.items.map(
+                    (item) => _buildProductItemCard(item),
+                  ),
                   const SizedBox(height: 20),
                   _buildSectionTitle(
                     title: 'Why this outfit matches',
@@ -92,6 +211,8 @@ class OutfitDetailScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
                   _buildReasonTags(),
+                  const SizedBox(height: 20),
+                  _buildFeedbackSection(),
                   const SizedBox(height: 20),
                   _buildSectionTitle(
                     title: 'Score Breakdown',
@@ -106,6 +227,8 @@ class OutfitDetailScreen extends StatelessWidget {
                   ),
                   const SizedBox(height: 14),
                   _buildAppliedFiltersCard(),
+                  const SizedBox(height: 20),
+                  _buildActionButtons(),
                 ],
               ),
             ),
@@ -207,10 +330,7 @@ class OutfitDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildSectionTitle({
-    required String title,
-    required String subtitle,
-  }) {
+  Widget _buildSectionTitle({required String title, required String subtitle}) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -360,7 +480,11 @@ class OutfitDetailScreen extends StatelessWidget {
   }
 
   Widget _buildReasonTags() {
-    if (outfit.reasonTags.isEmpty) {
+    final visibleReasonTags = widget.outfit.reasonTags
+        .where((reason) => !reason.toLowerCase().contains('ml compatibility'))
+        .toList();
+
+    if (visibleReasonTags.isEmpty) {
       return _buildEmptyCard('No reason tags available.');
     }
 
@@ -375,7 +499,7 @@ class OutfitDetailScreen extends StatelessWidget {
       child: Wrap(
         spacing: 8,
         runSpacing: 8,
-        children: outfit.reasonTags.map((reason) {
+        children: visibleReasonTags.map((reason) {
           return Container(
             padding: const EdgeInsets.symmetric(horizontal: 11, vertical: 8),
             decoration: BoxDecoration(
@@ -396,6 +520,115 @@ class OutfitDetailScreen extends StatelessWidget {
     );
   }
 
+  Widget _buildFeedbackSection() {
+    if (_submittedRating != null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: const Color(0xFFECFDF5),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: const Color(0xFFA7F3D0)),
+        ),
+        child: const Text(
+          'Feedback saved. This rating can be used in your evaluation results.',
+          style: TextStyle(
+            fontSize: 13,
+            color: Color(0xFF047857),
+            fontWeight: FontWeight.w800,
+            height: 1.4,
+          ),
+        ),
+      );
+    }
+
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(color: const Color(0xFFE5E7EB)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text(
+            'Rate this outfit',
+            style: TextStyle(
+              fontSize: 16,
+              color: Color(0xFF111827),
+              fontWeight: FontWeight.w900,
+            ),
+          ),
+          const SizedBox(height: 11),
+          Row(
+            children: [
+              Expanded(
+                child: _buildFeedbackButton(
+                  label: 'Good',
+                  rating: 5,
+                  icon: Icons.thumb_up_alt_outlined,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildFeedbackButton(
+                  label: 'Okay',
+                  rating: 3,
+                  icon: Icons.thumbs_up_down_outlined,
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _buildFeedbackButton(
+                  label: 'Bad',
+                  rating: 1,
+                  icon: Icons.thumb_down_alt_outlined,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildFeedbackButton({
+    required String label,
+    required int rating,
+    required IconData icon,
+  }) {
+    return SizedBox(
+      height: 42,
+      child: OutlinedButton.icon(
+        onPressed: _isSubmittingFeedback
+            ? null
+            : () {
+                _submitFeedback(rating: rating, label: label);
+              },
+        icon: _isSubmittingFeedback
+            ? const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(icon, size: 15),
+        label: Text(
+          label,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+        ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFF111827),
+          side: const BorderSide(color: Color(0xFFD1D5DB)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _buildScoreBreakdownCard() {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -408,29 +641,26 @@ class OutfitDetailScreen extends StatelessWidget {
         children: [
           _buildScoreRow(
             label: 'Style Match',
-            value: outfit.scoreBreakdown.styleMatchScore,
+            value: widget.outfit.scoreBreakdown.styleMatchScore,
           ),
           _buildScoreRow(
             label: 'Color Match',
-            value: outfit.scoreBreakdown.colorMatchScore,
+            value: widget.outfit.scoreBreakdown.colorMatchScore,
           ),
           _buildScoreRow(
             label: 'Category Match',
-            value: outfit.scoreBreakdown.categoryMatchScore,
+            value: widget.outfit.scoreBreakdown.categoryMatchScore,
           ),
           _buildScoreRow(
             label: 'Occasion Match',
-            value: outfit.scoreBreakdown.occasionMatchScore,
+            value: widget.outfit.scoreBreakdown.occasionMatchScore,
           ),
         ],
       ),
     );
   }
 
-  Widget _buildScoreRow({
-    required String label,
-    required double value,
-  }) {
+  Widget _buildScoreRow({required String label, required double value}) {
     final int percentage = (value * 100).round().clamp(0, 100);
 
     return Padding(
@@ -476,7 +706,7 @@ class OutfitDetailScreen extends StatelessWidget {
   }
 
   Widget _buildAppliedFiltersCard() {
-    final filters = outfit.appliedFilters;
+    final filters = widget.outfit.appliedFilters;
     final preferredColors = filters.preferredColors.isEmpty
         ? 'N/A'
         : filters.preferredColors.join(', ');
@@ -501,10 +731,7 @@ class OutfitDetailScreen extends StatelessWidget {
             label: 'Maximum Price',
             value: 'LKR ${filters.maxPrice.toStringAsFixed(0)}',
           ),
-          _buildFilterRow(
-            label: 'Preferred Colors',
-            value: preferredColors,
-          ),
+          _buildFilterRow(label: 'Preferred Colors', value: preferredColors),
           _buildFilterRow(
             label: 'Excluded Categories',
             value: excludedCategories,
@@ -518,10 +745,7 @@ class OutfitDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildFilterRow({
-    required String label,
-    required String value,
-  }) {
+  Widget _buildFilterRow({required String label, required String value}) {
     return Padding(
       padding: const EdgeInsets.only(bottom: 11),
       child: Row(
@@ -551,6 +775,75 @@ class OutfitDetailScreen extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildActionButtons() {
+    return Row(
+      children: [
+        Expanded(
+          child: SizedBox(
+            height: 50,
+            child: ElevatedButton.icon(
+              onPressed: _isSaving || _isSaved ? null : _saveOutfit,
+              icon: _isSaving
+                  ? const SizedBox(
+                      width: 17,
+                      height: 17,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.2,
+                        color: Colors.white,
+                      ),
+                    )
+                  : Icon(_isSaved ? Icons.favorite : Icons.favorite_border),
+              label: Text(
+                _isSaving
+                    ? 'Saving...'
+                    : _isSaved
+                    ? 'Saved'
+                    : 'Save Outfit',
+                style: const TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w900,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF111827),
+                disabledBackgroundColor: _isSaved
+                    ? const Color(0xFF16A34A)
+                    : const Color(0xFF6B7280),
+                foregroundColor: Colors.white,
+                disabledForegroundColor: Colors.white,
+                elevation: 0,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: SizedBox(
+            height: 50,
+            child: OutlinedButton.icon(
+              onPressed: _generateAgain,
+              icon: const Icon(Icons.refresh),
+              label: const Text(
+                'Generate Again',
+                style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
+              ),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: const Color(0xFF111827),
+                side: const BorderSide(color: Color(0xFF111827)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(16),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 

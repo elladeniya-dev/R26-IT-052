@@ -1,4 +1,5 @@
 from pathlib import Path
+import os
 import sys
 from types import ModuleType
 
@@ -10,6 +11,8 @@ from sqlalchemy.orm import sessionmaker
 SERVER_ROOT = Path(__file__).resolve().parents[1]
 if str(SERVER_ROOT) not in sys.path:
     sys.path.insert(0, str(SERVER_ROOT))
+
+os.environ.setdefault("DATABASE_URL", "sqlite:///:memory:")
 
 test_database = ModuleType("app.database")
 test_database.Base = declarative_base()

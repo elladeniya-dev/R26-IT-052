@@ -2,14 +2,19 @@ import 'package:flutter/material.dart';
 
 import '../models/s_outfit_model.dart';
 import '../screens/s_outfit_detail_screen.dart';
+import '../services/s_outfit_feedback_api_service.dart';
 import '../services/s_saved_outfit_api_service.dart';
 
 class OutfitCard extends StatefulWidget {
   final OutfitModel outfit;
+  final String userId;
+  final VoidCallback? onGenerateAgain;
 
   const OutfitCard({
     super.key,
     required this.outfit,
+    this.userId = 'USR001',
+    this.onGenerateAgain,
   });
 
   @override
@@ -18,9 +23,13 @@ class OutfitCard extends StatefulWidget {
 
 class _OutfitCardState extends State<OutfitCard> {
   final SavedOutfitApiService _savedOutfitApiService = SavedOutfitApiService();
+  final OutfitFeedbackApiService _feedbackApiService =
+      OutfitFeedbackApiService();
 
   bool _isSaving = false;
   bool _isSaved = false;
+  bool _isSubmittingFeedback = false;
+  int? _submittedRating;
 
   Future<void> _saveOutfit() async {
     if (_isSaving || _isSaved) {
@@ -52,12 +61,54 @@ class _OutfitCardState extends State<OutfitCard> {
     }
   }
 
+  Future<void> _submitFeedback({
+    required int rating,
+    required String label,
+  }) async {
+    if (_isSubmittingFeedback || _submittedRating != null) {
+      return;
+    }
+
+    setState(() {
+      _isSubmittingFeedback = true;
+    });
+
+    try {
+      final message = await _feedbackApiService.submitFeedback(
+        outfitId: widget.outfit.outfitId,
+        userId: widget.userId,
+        rating: rating,
+        comment: '$label outfit match',
+      );
+
+      if (!mounted) {
+        return;
+      }
+
+      setState(() {
+        _submittedRating = rating;
+      });
+
+      _showSnackBar(message);
+    } catch (error) {
+      _showSnackBar(error.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isSubmittingFeedback = false;
+        });
+      }
+    }
+  }
+
   void _openOutfitDetails() {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => OutfitDetailScreen(
           outfit: widget.outfit,
+          userId: widget.userId,
+          onGenerateAgain: widget.onGenerateAgain,
         ),
       ),
     );
@@ -69,10 +120,7 @@ class _OutfitCardState extends State<OutfitCard> {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-      ),
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
   }
 
@@ -128,8 +176,9 @@ class _OutfitCardState extends State<OutfitCard> {
 
   @override
   Widget build(BuildContext context) {
-    final int scorePercentage =
-        (widget.outfit.compatibilityScore * 100).round().clamp(0, 100);
+    final int scorePercentage = (widget.outfit.compatibilityScore * 100)
+        .round()
+        .clamp(0, 100);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
@@ -159,17 +208,15 @@ class _OutfitCardState extends State<OutfitCard> {
             const SizedBox(height: 14),
             _buildReasonTags(),
             const SizedBox(height: 14),
+            _buildFeedbackSection(),
+            const SizedBox(height: 14),
             _buildScoreBreakdown(),
             const SizedBox(height: 14),
             Row(
               children: [
-                Expanded(
-                  child: _buildSaveButton(),
-                ),
+                Expanded(child: _buildSaveButton()),
                 const SizedBox(width: 12),
-                Expanded(
-                  child: _buildViewDetailsButton(),
-                ),
+                Expanded(child: _buildViewDetailsButton()),
               ],
             ),
           ],
@@ -320,14 +367,18 @@ class _OutfitCardState extends State<OutfitCard> {
   }
 
   Widget _buildReasonTags() {
-    if (widget.outfit.reasonTags.isEmpty) {
+    final visibleReasonTags = widget.outfit.reasonTags
+        .where((reason) => !reason.toLowerCase().contains('ml compatibility'))
+        .toList();
+
+    if (visibleReasonTags.isEmpty) {
       return const SizedBox.shrink();
     }
 
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: widget.outfit.reasonTags.map((reason) {
+      children: visibleReasonTags.map((reason) {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
           decoration: BoxDecoration(
@@ -344,6 +395,105 @@ class _OutfitCardState extends State<OutfitCard> {
           ),
         );
       }).toList(),
+    );
+  }
+
+  Widget _buildFeedbackSection() {
+    if (_submittedRating != null) {
+      return Container(
+        width: double.infinity,
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 11),
+        decoration: BoxDecoration(
+          color: const Color(0xFFECFDF5),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: const Color(0xFFA7F3D0)),
+        ),
+        child: const Text(
+          'Feedback saved. Thank you for rating this outfit.',
+          style: TextStyle(
+            fontSize: 12,
+            color: Color(0xFF047857),
+            fontWeight: FontWeight.w800,
+          ),
+        ),
+      );
+    }
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Rate this outfit',
+          style: TextStyle(
+            fontSize: 14,
+            color: Color(0xFF111827),
+            fontWeight: FontWeight.w900,
+          ),
+        ),
+        const SizedBox(height: 9),
+        Row(
+          children: [
+            Expanded(
+              child: _buildFeedbackButton(
+                label: 'Good',
+                rating: 5,
+                icon: Icons.thumb_up_alt_outlined,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildFeedbackButton(
+                label: 'Okay',
+                rating: 3,
+                icon: Icons.thumbs_up_down_outlined,
+              ),
+            ),
+            const SizedBox(width: 8),
+            Expanded(
+              child: _buildFeedbackButton(
+                label: 'Bad',
+                rating: 1,
+                icon: Icons.thumb_down_alt_outlined,
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFeedbackButton({
+    required String label,
+    required int rating,
+    required IconData icon,
+  }) {
+    return SizedBox(
+      height: 40,
+      child: OutlinedButton.icon(
+        onPressed: _isSubmittingFeedback
+            ? null
+            : () {
+                _submitFeedback(rating: rating, label: label);
+              },
+        icon: _isSubmittingFeedback
+            ? const SizedBox(
+                width: 14,
+                height: 14,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : Icon(icon, size: 15),
+        label: Text(
+          label,
+          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.w900),
+        ),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFF111827),
+          side: const BorderSide(color: Color(0xFFD1D5DB)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
+      ),
     );
   }
 
@@ -367,14 +517,8 @@ class _OutfitCardState extends State<OutfitCard> {
             ),
           ),
           const SizedBox(height: 10),
-          _buildScoreRow(
-            'Style',
-            widget.outfit.scoreBreakdown.styleMatchScore,
-          ),
-          _buildScoreRow(
-            'Color',
-            widget.outfit.scoreBreakdown.colorMatchScore,
-          ),
+          _buildScoreRow('Style', widget.outfit.scoreBreakdown.styleMatchScore),
+          _buildScoreRow('Color', widget.outfit.scoreBreakdown.colorMatchScore),
           _buildScoreRow(
             'Category',
             widget.outfit.scoreBreakdown.categoryMatchScore,
@@ -447,24 +591,20 @@ class _OutfitCardState extends State<OutfitCard> {
                   color: Colors.white,
                 ),
               )
-            : Icon(
-                _isSaved ? Icons.favorite : Icons.favorite_border,
-              ),
+            : Icon(_isSaved ? Icons.favorite : Icons.favorite_border),
         label: Text(
           _isSaving
               ? 'Saving...'
               : _isSaved
-                  ? 'Saved'
-                  : 'Save',
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w900,
-          ),
+              ? 'Saved'
+              : 'Save',
+          style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF111827),
-          disabledBackgroundColor:
-              _isSaved ? const Color(0xFF16A34A) : const Color(0xFF6B7280),
+          disabledBackgroundColor: _isSaved
+              ? const Color(0xFF16A34A)
+              : const Color(0xFF6B7280),
           foregroundColor: Colors.white,
           disabledForegroundColor: Colors.white,
           elevation: 0,
@@ -484,10 +624,7 @@ class _OutfitCardState extends State<OutfitCard> {
         icon: const Icon(Icons.arrow_forward_ios, size: 14),
         label: const Text(
           'Details',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w900,
-          ),
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
         ),
         style: OutlinedButton.styleFrom(
           foregroundColor: const Color(0xFF111827),

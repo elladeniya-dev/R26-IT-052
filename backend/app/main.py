@@ -9,6 +9,7 @@ from app.routers import (
     health_router,
     product_router,
     outfit_router,
+    outfit_feedback_router,
     saved_outfit_router
 )
 
@@ -43,4 +44,5 @@ app.add_middleware(
 app.include_router(health_router.router)
 app.include_router(product_router.router)
 app.include_router(outfit_router.router)
+app.include_router(outfit_feedback_router.router)
 app.include_router(saved_outfit_router.router)

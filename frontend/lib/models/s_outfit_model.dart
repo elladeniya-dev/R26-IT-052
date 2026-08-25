@@ -5,6 +5,8 @@ class OutfitModel {
   final String generationBatchId;
   final List<ProductModel> items;
   final double compatibilityScore;
+  final double ruleBasedScore;
+  final double mlScore;
   final List<String> reasonTags;
   final ScoreBreakdown scoreBreakdown;
   final AppliedFilters appliedFilters;
@@ -14,6 +16,8 @@ class OutfitModel {
     required this.generationBatchId,
     required this.items,
     required this.compatibilityScore,
+    required this.ruleBasedScore,
+    required this.mlScore,
     required this.reasonTags,
     required this.scoreBreakdown,
     required this.appliedFilters,
@@ -25,6 +29,8 @@ class OutfitModel {
       generationBatchId: json['generation_batch_id']?.toString() ?? '',
       items: _toProductList(json['items']),
       compatibilityScore: _toDouble(json['compatibility_score']),
+      ruleBasedScore: _toDouble(json['rule_based_score']),
+      mlScore: _toDouble(json['ml_score']),
       reasonTags: _toStringList(json['reason_tags']),
       scoreBreakdown: ScoreBreakdown.fromJson(
         json['score_breakdown'] is Map<String, dynamic>

@@ -43,8 +43,8 @@ class CustomBottomNavBar extends StatelessWidget {
     ),
     _BottomNavDestination(
       index: BottomNavTab.profile,
-      icon: Icons.person,
-      label: 'Profile',
+      icon: Icons.analytics_outlined,
+      label: 'Evaluation',
     ),
   ];
 

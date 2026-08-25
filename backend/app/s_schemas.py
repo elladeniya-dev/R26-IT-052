@@ -151,3 +151,43 @@ class OutfitGenerateRequest(BaseModel):
                 raise ValueError("max_price cannot be less than min_price")
 
         return max_price
+
+
+class OutfitFeedbackRequest(BaseModel):
+    user_id: str = Field(
+        ...,
+        min_length=1,
+        example="USR001",
+        description="ID of the user giving feedback"
+    )
+
+    rating: int = Field(
+        ...,
+        ge=1,
+        le=5,
+        example=4,
+        description="Outfit rating from 1 bad match to 5 excellent match"
+    )
+
+    comment: Optional[str] = Field(
+        default=None,
+        max_length=300,
+        example="Good color and style match",
+        description="Optional feedback comment"
+    )
+
+    @field_validator("user_id")
+    @classmethod
+    def clean_feedback_user_id(cls, value: str):
+        if not value or not value.strip():
+            raise ValueError("user_id cannot be empty")
+        return value.strip()
+
+    @field_validator("comment")
+    @classmethod
+    def clean_feedback_comment(cls, value: Optional[str]):
+        if value is None:
+            return None
+
+        cleaned_value = value.strip()
+        return cleaned_value if cleaned_value else None
