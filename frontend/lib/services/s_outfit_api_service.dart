@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 
-import '../constants/api_constants.dart';
-import '../models/outfit_model.dart';
+import '../constants/s_api_constants.dart';
+import '../models/s_outfit_model.dart';
 
 class OutfitApiService {
   Future<OutfitGenerateResponse> generateOutfits({
@@ -53,6 +53,8 @@ class OutfitApiService {
           'Failed to generate outfits';
 
       throw Exception(errorMessage);
+    } on Exception {
+      rethrow; // keep already-formed Exception messages as-is
     } catch (error) {
       throw Exception('Backend connection failed: $error');
     }

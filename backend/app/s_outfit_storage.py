@@ -3,7 +3,7 @@ from typing import Dict, List
 
 from sqlalchemy.orm import Session
 
-from app.models import OutfitSuggestion, OutfitItem, Product
+from app.s_models import OutfitSuggestion, OutfitItem, Product
 
 
 def create_unique_batch_id(user_id: str, selected_item_id: str) -> str:
@@ -24,21 +24,22 @@ def create_unique_outfit_id(user_id: str, batch_id: str, index: int) -> str:
     return f"OUT_{user_id}_{batch_id}_{index:03d}"
 
 
-def delete_existing_outfits_for_selected_item(
+def delete_unsaved_outfits_for_selected_item(
     db: Session,
     user_id: str,
     selected_item_id: str
 ):
     """
-    Deletes old saved outfits for the same user and selected item.
+    Deletes old unsaved outfits for the same user and selected item.
 
-    This prevents duplicate saved outfits when the user generates outfits
-    multiple times for the same selected product.
+    Saved outfits are kept in the database so users can still see them after
+    generating again or restarting the app.
     """
 
     existing_outfits = db.query(OutfitSuggestion).filter(
         OutfitSuggestion.user_id == user_id,
-        OutfitSuggestion.selected_item_id == selected_item_id
+        OutfitSuggestion.selected_item_id == selected_item_id,
+        OutfitSuggestion.is_saved == False
     ).all()
 
     for outfit in existing_outfits:
@@ -67,7 +68,7 @@ def save_generated_outfits(
     saved_outfits = []
 
     try:
-        delete_existing_outfits_for_selected_item(
+        delete_unsaved_outfits_for_selected_item(
             db=db,
             user_id=user_id,
             selected_item_id=selected_item_id
@@ -174,6 +175,7 @@ def outfit_record_to_response(db: Session, outfit: OutfitSuggestion) -> Dict:
         "selected_item_id": outfit.selected_item_id,
         "compatibility_score": outfit.compatibility_score,
         "reason_tags": outfit.reason_tags,
+        "is_saved": outfit.is_saved,
         "generated_at": outfit.generated_at.isoformat() if outfit.generated_at else None,
         "items": full_items
     }
@@ -185,7 +187,8 @@ def get_saved_outfits_by_user(db: Session, user_id: str) -> List[Dict]:
     """
 
     outfit_records = db.query(OutfitSuggestion).filter(
-        OutfitSuggestion.user_id == user_id
+        OutfitSuggestion.user_id == user_id,
+        OutfitSuggestion.is_saved == True
     ).order_by(
         OutfitSuggestion.generated_at.desc()
     ).all()

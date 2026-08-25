@@ -1,6 +1,8 @@
 class ApiConstants {
-  // Physical Android phone testing URL
-  static const String baseUrl = "http://192.168.8.154:8000";
+  // Android emulator  → http://10.0.2.2:8001
+  // Physical device   → http://<your-wifi-ip>:8001  (e.g. http://192.168.1.3:8001)
+  // Flutter Web       → http://127.0.0.1:8001
+  static const String baseUrl = "http://192.168.1.3:8001";
 
   // Outfit Compatibility API endpoint
   static const String generateOutfitsEndpoint = "$baseUrl/outfits/generate";
@@ -20,5 +22,14 @@ class ApiConstants {
 
   static String removeSavedOutfitEndpoint(String outfitId) {
     return "$baseUrl/saved-outfits/$outfitId";
+  }
+
+  // Outfit feedback API endpoints
+  static String submitOutfitFeedbackEndpoint(String outfitId) {
+    return "$baseUrl/outfits/$outfitId/feedback";
+  }
+
+  static String outfitFeedbackSummaryEndpoint(String userId) {
+    return "$baseUrl/outfits/feedback-summary/$userId";
   }
 }

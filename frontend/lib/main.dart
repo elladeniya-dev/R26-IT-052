@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import 'screens/product_list_screen.dart';
+import 'screens/s_splash_screen.dart';
 
 void main() {
   runApp(const SenuOutfitApp());
@@ -18,9 +18,7 @@ class SenuOutfitApp extends StatelessWidget {
         useMaterial3: true,
         scaffoldBackgroundColor: const Color(0xFFF8F8F8),
         fontFamily: 'Roboto',
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF111827),
-        ),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF111827)),
         appBarTheme: const AppBarTheme(
           centerTitle: false,
           backgroundColor: Color(0xFFF8F8F8),
@@ -28,7 +26,7 @@ class SenuOutfitApp extends StatelessWidget {
           elevation: 0,
         ),
       ),
-      home: const ProductListScreen(),
+      home: const SplashScreen(),
     );
   }
 }

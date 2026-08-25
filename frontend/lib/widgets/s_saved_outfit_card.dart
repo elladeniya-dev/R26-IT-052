@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-import '../models/saved_outfit_model.dart';
+import '../models/s_saved_outfit_model.dart';
 
 class SavedOutfitCard extends StatelessWidget {
   final SavedOutfitModel savedOutfit;

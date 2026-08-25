@@ -1,5 +1,13 @@
-from app.database import SessionLocal, engine, Base
-from app.models import Product
+from pathlib import Path
+import sys
+
+
+SERVER_ROOT = Path(__file__).resolve().parents[1]
+if str(SERVER_ROOT) not in sys.path:
+    sys.path.insert(0, str(SERVER_ROOT))
+
+from app.s_database import SessionLocal, engine, Base
+from app.s_models import Product
 
 
 Base.metadata.create_all(bind=engine)

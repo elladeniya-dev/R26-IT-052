@@ -3,10 +3,10 @@ from datetime import datetime, timezone
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 
-from app.database import get_db
-from app.schemas import OutfitGenerateRequest
-from app.outfit_generator import generate_outfits_for_selected_item
-from app.outfit_storage import (
+from app.s_database import get_db
+from app.s_schemas import OutfitGenerateRequest
+from app.s_outfit_generator import generate_outfits_for_selected_item
+from app.s_outfit_storage import (
     save_generated_outfits,
     get_saved_outfits_by_user,
     get_latest_outfit_batch_by_user
@@ -64,7 +64,7 @@ def generate_outfits(
 
         return {
             "status": "success",
-            "message": "Outfits generated successfully. Previous saved outfits for the same selected item were replaced.",
+            "message": "Outfits generated successfully. Saved outfits were kept in the database.",
             "user_id": result["user_id"],
             "selected_item_id": result["selected_item_id"],
             "outfits": saved_outfits,

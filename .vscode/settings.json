@@ -4,5 +4,6 @@
     "python.terminal.activateEnvironment": true,
     "python.analysis.extraPaths": [
         "${workspaceFolder}/backend/server"
-    ]
+    ],
+    "python-envs.defaultEnvManager": "ms-python.python:system"
 }

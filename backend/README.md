@@ -1,63 +1,62 @@
 # Senu Outfit Compatibility Engine
 
-## Project Title
+FastAPI backend service for Module 04 of the Smart Fashion Assistant research project.
 
-Smart Fashion Assistant: Intelligent Personalized and Trend-Aware Fashion Recommendation System
+## Overview
 
-## Component Name
+The Outfit Compatibility Engine generates complete outfit suggestions around a clothing item selected by the user. It works after the recommendation engine: when a user selects one recommended product, this service finds compatible items from other categories and returns ranked outfit combinations.
 
-Outfit Compatibility Engine
+The service does not sell products directly. It stores product metadata from external fashion websites and returns product links that redirect users to the original stores.
 
-## Component Owner
-
-Senu
-
----
-
-## 1. Component Overview
-
-The Outfit Compatibility Engine is a backend service developed for the Smart Fashion Assistant system.
-
-This component generates complete outfit suggestions around a clothing item selected by the user. It works after the Recommendation Engine. When the user selects one recommended product, this service finds compatible clothing items from other categories and returns ranked outfit combinations.
-
-The system does not sell products directly. It only uses product data collected from external fashion websites and provides outfit suggestions with product links that redirect users to the original store websites.
-
----
-
-## 2. System Flow
-
-The correct flow of this component is:
+## System Flow
 
 ```text
 Koji Recommendation Engine
-        ↓
-User selects recommended item
-        ↓
-Senu Outfit Compatibility Engine
-        ↓
-Compatible outfit suggestions
-        ↓
-Flutter mobile app displays outfits
+    -> User selects recommended item
+    -> Senu Outfit Compatibility Engine
+    -> Compatible outfit suggestions
+    -> Flutter app displays outfits
 ```
 
----
-
-## 3. Key Behaviors
-
-- Duplicate saved outfits are prevented for the same user and selected item
-- Each outfit generation request is stored with a generation batch ID
-- Latest outfit batch can be retrieved using `GET /outfits/{user_id}/latest`
-
----
-
-## 4. Project Structure
+## Backend Layout
 
 ```text
-backend/server/
-├── app/              # FastAPI application code
-├── ml_models/        # Trained ML model files
-├── scripts/          # Utility scripts (e.g. seed_products.py)
-├── tests/            # Manual test scripts
-├── requirements.txt
-└── README.md
+server/
+|-- app/
+|   |-- main.py
+|   |-- routers/
+|   |-- compatibility.py
+|   |-- outfit_generator.py
+|   |-- outfit_storage.py
+|   |-- models.py
+|   |-- schemas.py
+|   |-- database.py
+|   `-- config.py
+|-- ml_models/
+|-- scripts/
+|   `-- seed_products.py
+|-- tests/
+|   |-- test_compatibility.py
+|   `-- test_outfit_generator.py
+`-- requirements.txt
 ```
+
+## Local Setup
+
+Create a `.env` file in this directory with `DATABASE_URL`, then run:
+
+```bash
+python -m venv venv
+venv\Scripts\activate
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+## Useful Commands
+
+```bash
+python scripts/seed_products.py
+python tests/test_outfit_generator.py
+```
+
+The service prevents duplicate saved outfits for the same user and selected item, stores each generation request with a batch ID, and exposes the latest outfit batch through `GET /outfits/{user_id}/latest`.

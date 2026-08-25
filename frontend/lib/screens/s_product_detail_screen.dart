@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import '../models/product_model.dart';
-import 'complete_the_look_screen.dart';
-import 'saved_outfits_screen.dart';
+import '../models/s_product_model.dart';
+import 's_complete_the_look_screen.dart';
+import 's_saved_outfits_screen.dart';
 
 class ProductDetailScreen extends StatelessWidget {
   final ProductModel product;
