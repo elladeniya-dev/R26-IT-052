@@ -28,3 +28,4 @@ uvicorn==0.46.0
 torch==2.5.1
 lightning==2.4.0
 pytorch-forecasting==1.0.0
+gliner>=0.2.0

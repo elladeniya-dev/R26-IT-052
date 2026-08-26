@@ -28,7 +28,10 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
-          cache-dependency-path: trend-data-collector/requirements.txt
+          # Cache covers BOTH requirements files so neither crawler nor ETL reinstalls every day
+          cache-dependency-path: |
+            trend-data-collector/requirements.txt
+            requirements.txt
 
       - name: Install Harvester & Playwright Browser Dependencies
         working-directory: ./trend-data-collector
@@ -36,6 +39,13 @@ jobs:
           python -m pip install --upgrade pip
           pip install -r requirements.txt
           python -m playwright install --with-deps chromium
+
+      # Install the root backend requirements separately so the ETL script can import
+      # from app.core.database and app.models without a ModuleNotFoundError
+      - name: Install Backend & ETL Dependencies
+        working-directory: ./
+        run: |
+          pip install -r requirements.txt
 
       - name: Execute Multi-Tier Harvester Pipeline
         working-directory: ./trend-data-collector
@@ -48,13 +58,15 @@ jobs:
       - name: ETL Standardization & Database Ingestion
         working-directory: ./
         env:
-            DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          # Suppress Hugging Face symlink warning on Linux runners
+          HF_HUB_DISABLE_SYMLINKS_WARNING: "1"
         run: |
-            if [ -z "$DATABASE_URL" ]; then
-            echo "[Notice] DATABASE_URL secret not provided in GitHub Actions. Skipping direct DB load."
-            else
+          if [ -z "$DATABASE_URL" ]; then
+            echo "[Notice] DATABASE_URL secret not provided. Skipping DB ingestion."
+          else
             python scripts/import_historical_garments.py --latest-only
-            fi
+          fi
 
       - name: Upload Downloadable Backup Artifact (ZIP Bundle)
         uses: actions/upload-artifact@v4
