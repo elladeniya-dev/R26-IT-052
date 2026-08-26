@@ -45,16 +45,16 @@ jobs:
         run: |
           python main.py
 
-      - name: Insert Derived Observations into Cloud PostgreSQL Database
-        working-directory: ./trend-data-collector
+      - name: ETL Standardization & Database Ingestion
+        working-directory: ./
         env:
-          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+            DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          if [ -z "$DATABASE_URL" ]; then
+            if [ -z "$DATABASE_URL" ]; then
             echo "[Notice] DATABASE_URL secret not provided in GitHub Actions. Skipping direct DB load."
-          else
-            python load_observations_to_db.py
-          fi
+            else
+            python scripts/import_historical_garments.py --latest-only
+            fi
 
       - name: Upload Downloadable Backup Artifact (ZIP Bundle)
         uses: actions/upload-artifact@v4

@@ -8,7 +8,7 @@ import os
 from sqlalchemy import create_engine, text
 from sqlalchemy.exc import SQLAlchemyError
 
-OUTPUT_FILE = Path("output") / "combined_srilanka_trend_observations.json"
+
 
 
 def parse_datetime(value: str):
@@ -138,9 +138,23 @@ def main():
     if not database_url:
         raise ValueError("DATABASE_URL not found in .env file")
 
-    print(f"Reading file: {OUTPUT_FILE}")
+    import glob
+    
+    # Find the most recently created run_YYYY-MM-DD folder
+    search_pattern = os.path.join("output", "run_*", "combined_srilanka_trend_observations.json")
+    files = glob.glob(search_pattern)
+    
+    if not files:
+        print("No trend observation JSON files found in output/run_*/")
+        return
+        
+    # Sort files by modification time descending and pick the latest
+    latest_file = max(files, key=os.path.getmtime)
+    output_path = Path(latest_file)
 
-    observations = load_json_file(OUTPUT_FILE)
+    print(f"Reading file: {output_path}")
+
+    observations = load_json_file(output_path)
 
     print(f"Observations found in JSON: {len(observations)}")
 

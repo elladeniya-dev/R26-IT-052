@@ -89,31 +89,47 @@ class TrendMLPredictionService:
         except Exception as e:
             logger.error(f"Error loading TFT model: {e}")
 
-    def _generate_dummy_transactions(self) -> pd.DataFrame:
+    def _fetch_live_transactions(self) -> pd.DataFrame:
         """
-        Creates a dummy H&M-style DataFrame since the live database or CSV isn't hooked up yet.
+        Fetches live inventory data from the Neon PostgreSQL database 
+        to calculate Lift co-occurrences against the actual market.
         """
-        now = pd.Timestamp.now()
-        dates = pd.date_range(end=now, periods=1000)
+        from app.core.database import SessionLocal
+        from app.models import Product
         
-        # Add some signal for Maxi Dress + Floral (Lift > 1)
-        data = []
-        for d in dates:
-            if np.random.rand() > 0.8:
-                data.append({"t_dat": d, "product_type_name": "Maxi Dress", "colour_group_name": "Pink", "graphical_appearance_name": "Floral"})
-            else:
-                data.append({"t_dat": d, "product_type_name": np.random.choice(["T-shirt", "Jeans", "Crop Top"]), 
-                             "colour_group_name": np.random.choice(["Black", "White"]), 
-                             "graphical_appearance_name": np.random.choice(["Solid", "Stripe"])})
-                
-        return pd.DataFrame(data)
+        db = SessionLocal()
+        try:
+            # Look back 12 weeks to capture enough data for Lift
+            cutoff = pd.Timestamp.now(tz='UTC') - pd.Timedelta(weeks=12)
+            # Use raw datetimes since Product.collected_at is naive or aware depending on DB driver
+            cutoff_dt = cutoff.replace(tzinfo=None) 
+            
+            products = db.query(Product).filter(Product.collected_at >= cutoff_dt).all()
+            
+            data = []
+            for p in products:
+                data.append({
+                    "t_dat": p.collected_at,
+                    "product_type_name": p.category,
+                    "colour_group_name": p.color[0] if p.color else "Unknown",
+                    "graphical_appearance_name": p.pattern or "Solid"
+                })
+            
+            if not data:
+                return pd.DataFrame()
+            
+            return pd.DataFrame(data)
+        finally:
+            db.close()
 
     def predict_trending_outfit(self, transactions: pd.DataFrame = None, articles: pd.DataFrame = None, top_k_categories=1) -> List[Dict[str, Any]]:
         """
         Executes the Lift-Filtered Grounding pipeline.
         """
         if transactions is None or transactions.empty:
-            transactions = self._generate_dummy_transactions()
+            transactions = self._fetch_live_transactions()
+            if transactions.empty:
+                logger.warning("Live database is empty. No transactions available for Lift calculation.")
 
         top_categories = get_top_predicted_categories(self.tft_model, top_k=top_k_categories)
         
@@ -126,7 +142,7 @@ class TrendMLPredictionService:
                 'category': category,
                 'colors': colors.index.tolist() if not colors.empty else ["Unknown"],
                 'patterns': patterns.index.tolist() if not patterns.empty else ["Unknown"],
-                'model_type': 'TFT + Lift-Filtered Grounding'
+                'model_type': 'TFT + Lift-Filtered Grounding (Live Neon Data)'
             })
             
         return results

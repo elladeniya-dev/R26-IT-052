@@ -101,10 +101,9 @@ def run_hybrid_harvester(
         if segment in segment_counts:
             segment_counts[segment] += len(garments)
 
-        # Save store-specific JSON into timestamped run directory and mirror to root output directory
+        # Save store-specific JSON into timestamped run directory
         safe_name = brand.lower().replace(" ", "_").replace("&", "and")
         save_json(run_dir / f"{safe_name}_garments.json", garments)
-        save_json(OUTPUT_DIR / f"{safe_name}_garments.json", garments)
 
         time.sleep(0.5)  # Polite spacing between requests
 
@@ -113,10 +112,6 @@ def run_hybrid_harvester(
     run_combined_observations = run_dir / "combined_srilanka_trend_observations.json"
     save_json(run_combined_garments, total_garments)
     save_json(run_combined_observations, total_observations)
-
-    # Also maintain top-level mirrors for backward compatibility with database loader scripts
-    save_json(COMBINED_GARMENTS_FILE, total_garments)
-    save_json(COMBINED_OBSERVATIONS_FILE, total_observations)
 
     # Save summary metadata of this execution run
     metadata = {
@@ -128,7 +123,6 @@ def run_hybrid_harvester(
         "run_directory": str(run_dir),
     }
     save_json(run_dir / "run_metadata.json", metadata)
-    save_json(OUTPUT_DIR / "latest_run_info.json", metadata)
 
     elapsed = round(time.time() - start_time, 2)
     logging.info(f"\n=== Harvester Completed in {elapsed}s | Saved to: {run_dir} ===")
