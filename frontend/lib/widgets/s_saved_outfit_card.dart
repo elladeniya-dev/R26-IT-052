@@ -66,8 +66,9 @@ class SavedOutfitCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final int scorePercentage =
-        (savedOutfit.compatibilityScore * 100).round().clamp(0, 100);
+    final int scorePercentage = (savedOutfit.compatibilityScore * 100)
+        .round()
+        .clamp(0, 100);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 18),
@@ -97,13 +98,9 @@ class SavedOutfitCard extends StatelessWidget {
           const SizedBox(height: 16),
           Row(
             children: [
-              Expanded(
-                child: _buildReuseButton(),
-              ),
+              Expanded(child: _buildReuseButton()),
               const SizedBox(width: 12),
-              Expanded(
-                child: _buildRemoveButton(),
-              ),
+              Expanded(child: _buildRemoveButton()),
             ],
           ),
         ],
@@ -253,14 +250,18 @@ class SavedOutfitCard extends StatelessWidget {
   }
 
   Widget _buildReasonTags() {
-    if (savedOutfit.reasonTags.isEmpty) {
+    final visibleReasonTags = savedOutfit.reasonTags
+        .where((reason) => !reason.toLowerCase().contains('ml compatibility'))
+        .toList();
+
+    if (visibleReasonTags.isEmpty) {
       return const SizedBox.shrink();
     }
 
     return Wrap(
       spacing: 8,
       runSpacing: 8,
-      children: savedOutfit.reasonTags.map((reason) {
+      children: visibleReasonTags.map((reason) {
         return Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
           decoration: BoxDecoration(
@@ -288,10 +289,7 @@ class SavedOutfitCard extends StatelessWidget {
         icon: const Icon(Icons.replay),
         label: const Text(
           'Reuse',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w900,
-          ),
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
         ),
         style: ElevatedButton.styleFrom(
           backgroundColor: const Color(0xFF111827),
@@ -313,10 +311,7 @@ class SavedOutfitCard extends StatelessWidget {
         icon: const Icon(Icons.delete_outline),
         label: const Text(
           'Remove',
-          style: TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w900,
-          ),
+          style: TextStyle(fontSize: 14, fontWeight: FontWeight.w900),
         ),
         style: OutlinedButton.styleFrom(
           foregroundColor: const Color(0xFFB91C1C),

@@ -224,7 +224,21 @@ Use the feedback report endpoint and fill this table after collecting user feedb
 | Bad matches |  |
 | Good match ratio |  |
 
-## 10. Limitations
+## 10. Demonstration Script
+
+The following short script can be used during the project demonstration:
+
+```text
+My component is the Outfit Matching and Clothing Style Compatibility Engine.
+
+The user selects a clothing item, and the backend identifies complementary categories for that item. The system retrieves candidate products, generates outfit combinations, calculates compatibility scores, and ranks the outfits.
+
+The Flutter application displays the recommended outfits with compatibility percentage and explanation tags. The user can open outfit details, save outfits, generate another set of recommendations, and rate outfits as Good, Okay, or Bad.
+
+The feedback ratings are stored in the backend and shown in the Evaluation Summary screen. This provides measurable research evidence for the quality of generated outfit recommendations.
+```
+
+## 11. Limitations
 
 The current implementation has the following limitations:
 
@@ -234,7 +248,7 @@ The current implementation has the following limitations:
 - The current feedback system uses simple Good / Okay / Bad inputs, which may not capture detailed user preferences.
 - Image-based visual feature extraction is limited compared with deep fashion vision models.
 
-## 11. Future Work
+## 12. Future Work
 
 Future improvements can include:
 
@@ -246,7 +260,7 @@ Future improvements can include:
 - Adding more detailed feedback options such as colour issue, style issue, price issue, or category mismatch.
 - Exporting evaluation results as CSV or PDF for research documentation.
 
-## 12. Conclusion
+## 13. Conclusion
 
 The Outfit Matching and Clothing Style Compatibility Engine successfully extends the Smart Fashion Assistant from individual product recommendation to complete outfit recommendation. The implemented system can generate dynamic outfit combinations, calculate compatibility scores, rank outfit suggestions, explain recommendation reasons, collect user feedback, and produce evaluation summaries.
 

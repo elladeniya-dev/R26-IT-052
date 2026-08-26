@@ -8,7 +8,7 @@ class SavedOutfitsScreen extends StatefulWidget {
   const SavedOutfitsScreen({super.key});
 
   @override
- State<SavedOutfitsScreen> createState() => _SavedOutfitsScreenState();
+  State<SavedOutfitsScreen> createState() => _SavedOutfitsScreenState();
 }
 
 class _SavedOutfitsScreenState extends State<SavedOutfitsScreen> {
@@ -131,9 +131,7 @@ class _SavedOutfitsScreenState extends State<SavedOutfitsScreen> {
         return AlertDialog(
           title: const Text(
             'Remove Saved Outfit?',
-            style: TextStyle(
-              fontWeight: FontWeight.w900,
-            ),
+            style: TextStyle(fontWeight: FontWeight.w900),
           ),
           content: const Text(
             'This outfit will be removed from your saved outfit list.',
@@ -177,17 +175,19 @@ class _SavedOutfitsScreenState extends State<SavedOutfitsScreen> {
   }
 
   void _showReuseBottomSheet(SavedOutfitModel savedOutfit) {
-    final int scorePercentage =
-        (savedOutfit.compatibilityScore * 100).round().clamp(0, 100);
+    final int scorePercentage = (savedOutfit.compatibilityScore * 100)
+        .round()
+        .clamp(0, 100);
+    final visibleReasonTags = savedOutfit.reasonTags
+        .where((reason) => !reason.toLowerCase().contains('ml compatibility'))
+        .toList();
 
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.white,
       shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(28),
-        ),
+        borderRadius: BorderRadius.vertical(top: Radius.circular(28)),
       ),
       builder: (context) {
         return DraggableScrollableSheet(
@@ -263,10 +263,12 @@ class _SavedOutfitsScreenState extends State<SavedOutfitsScreen> {
                 ),
                 const SizedBox(height: 14),
                 ...savedOutfit.items.map((item) {
-                  final colorText =
-                      item.color.isEmpty ? 'N/A' : item.color.join(', ');
-                  final styleText =
-                      item.style.isEmpty ? 'N/A' : item.style.join(', ');
+                  final colorText = item.color.isEmpty
+                      ? 'N/A'
+                      : item.color.join(', ');
+                  final styleText = item.style.isEmpty
+                      ? 'N/A'
+                      : item.style.join(', ');
 
                   final String fallbackImageUrl = _getFallbackImageUrl(
                     itemId: item.itemId,
@@ -392,7 +394,7 @@ class _SavedOutfitsScreenState extends State<SavedOutfitsScreen> {
                 Wrap(
                   spacing: 8,
                   runSpacing: 8,
-                  children: savedOutfit.reasonTags.map((reason) {
+                  children: visibleReasonTags.map((reason) {
                     return Container(
                       padding: const EdgeInsets.symmetric(
                         horizontal: 10,
@@ -453,10 +455,7 @@ class _SavedOutfitsScreenState extends State<SavedOutfitsScreen> {
     }
 
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(message),
-        behavior: SnackBarBehavior.floating,
-      ),
+      SnackBar(content: Text(message), behavior: SnackBarBehavior.floating),
     );
   }
 
@@ -553,11 +552,7 @@ class _SavedOutfitsScreenState extends State<SavedOutfitsScreen> {
       ),
       child: const Row(
         children: [
-          Icon(
-            Icons.favorite,
-            color: Colors.white,
-            size: 36,
-          ),
+          Icon(Icons.favorite, color: Colors.white, size: 36),
           SizedBox(width: 14),
           Expanded(
             child: Column(
@@ -634,9 +629,7 @@ class _SavedOutfitsScreenState extends State<SavedOutfitsScreen> {
       ),
       child: const Column(
         children: [
-          CircularProgressIndicator(
-            color: Color(0xFF111827),
-          ),
+          CircularProgressIndicator(color: Color(0xFF111827)),
           SizedBox(height: 14),
           Text(
             'Loading saved outfits...',
@@ -664,10 +657,7 @@ class _SavedOutfitsScreenState extends State<SavedOutfitsScreen> {
         children: [
           const Row(
             children: [
-              Icon(
-                Icons.error_outline,
-                color: Color(0xFFB91C1C),
-              ),
+              Icon(Icons.error_outline, color: Color(0xFFB91C1C)),
               SizedBox(width: 8),
               Text(
                 'Backend Connection Error',
@@ -720,11 +710,7 @@ class _SavedOutfitsScreenState extends State<SavedOutfitsScreen> {
       ),
       child: const Column(
         children: [
-          Icon(
-            Icons.favorite_border,
-            size: 44,
-            color: Color(0xFF9CA3AF),
-          ),
+          Icon(Icons.favorite_border, size: 44, color: Color(0xFF9CA3AF)),
           SizedBox(height: 12),
           Text(
             'No saved outfits yet',
