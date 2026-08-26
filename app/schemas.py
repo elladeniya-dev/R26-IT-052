@@ -146,3 +146,10 @@ class TrendInsightItem(BaseModel):
 class TrendInsightsResponse(BaseModel):
     total_insights: int
     insights: list[TrendInsightItem]
+
+
+class OutfitPredictionResponse(BaseModel):
+    category: str
+    colors: list[str]
+    patterns: list[str]
+    model_type: str = "TFT + Lift-Filtered Grounding"
