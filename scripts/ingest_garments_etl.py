@@ -48,6 +48,22 @@ def is_inappropriate(garment):
             return True
     return False
 
+
+def _call_gemini_mapping(mapping_key: str, garment: dict, raw_cat: str, raw_color: str, raw_pattern: str):
+    """Optional, quota-limited refinement on top of the free local mapper. Never required."""
+    import time
+    from scripts.gemini_mapper import map_attributes_with_gemini
+
+    print(f"Refining via Gemini: {mapping_key}...")
+    time.sleep(4)  # 15 RPM limit on free tier => 1 request every 4 seconds
+    return map_attributes_with_gemini(
+        garment.get("title", ""),
+        raw_cat or "Unknown",
+        raw_color or "Unknown",
+        raw_pattern or "Unknown",
+        garment.get("primary_image_url", ""),
+    )
+
 # Known real colors — anything the model extracts MUST contain one of these words to be accepted
 KNOWN_COLORS = {
     "black", "white", "red", "blue", "green", "yellow", "purple", "pink",
@@ -124,10 +140,24 @@ def is_valid_color(value: str) -> bool:
             return True
     return False
 
+def _scan_text_for_color(text: str):
+    """Scan free text for a known color word/phrase (2-word phrases like 'Dark Navy' first)."""
+    words = text.lower().split()
+    words_clean = [re.sub(r'[^a-z]', '', w) for w in words if re.sub(r'[^a-z]', '', w)]
+    for i in range(len(words_clean) - 1):
+        phrase = f"{words_clean[i]} {words_clean[i+1]}"
+        if is_valid_color(phrase.title()):
+            return phrase.title()
+    for w in words_clean:
+        if w in KNOWN_COLORS:
+            return w.title()
+    return None
+
+
 def fast_raw_extraction(garment):
     """
-    Fast-path extraction using structured shopify_tags and title scanning.
-    Runs BEFORE NLP to save compute on well-tagged products.
+    Fast-path extraction using structured shopify_tags, title, and image
+    filename scanning. Runs BEFORE NLP to save compute on well-tagged products.
     """
     tags = [str(t).lower().strip() for t in garment.get("shopify_tags", [])]
     ptype = garment.get("product_type", "").lower().strip()
@@ -136,13 +166,25 @@ def fast_raw_extraction(garment):
     color = None
     category = None
 
+    # 0. Store-declared variant color (Shopify product options) — structured,
+    # store-authored data, higher confidence than anything text-derived.
+    variant_color = str(garment.get("variant_color", "")).strip()
+    if variant_color:
+        if is_valid_color(variant_color.title()):
+            color = variant_color.title()
+        else:
+            scanned = _scan_text_for_color(variant_color)
+            if scanned:
+                color = scanned
+
     # 1. Explicit color- prefix tags (e.g. "color-burntorange")
-    for tag in tags:
-        if tag.startswith("color-"):
-            candidate = tag.replace("color-", "").strip().title()
-            if is_valid_color(candidate):
-                color = candidate
-                break
+    if not color:
+        for tag in tags:
+            if tag.startswith("color-"):
+                candidate = tag.replace("color-", "").strip().title()
+                if is_valid_color(candidate):
+                    color = candidate
+                    break
 
     # 2. Tag is exactly a known color (e.g. "blue", "dark blue")
     if not color:
@@ -154,22 +196,16 @@ def fast_raw_extraction(garment):
 
     # 3. Scan the cleaned title for known color words (e.g. "Sora Tee - White", "Acid Blue")
     if not color:
-        words = clean_title(title).lower().split()
-        words_clean = [re.sub(r'[^a-z]', '', w) for w in words]
-        # Try 2-word phrases first (e.g. "Acid Blue", "Dark Navy")
-        for i in range(len(words_clean) - 1):
-            phrase = f"{words_clean[i]} {words_clean[i+1]}"
-            if is_valid_color(phrase.title()):
-                color = phrase.title()
-                break
-        # Fallback to single words
-        if not color:
-            for w in words_clean:
-                if w in KNOWN_COLORS:
-                    color = w.title()
-                    break
+        color = _scan_text_for_color(clean_title(title))
 
-    # 4. Category from product_type if not generic
+    # 4. Scan the image filename directly — some stores encode color there
+    # and nowhere else (e.g. "...--1--[BURGUNDY]--1785236017.jpeg").
+    if not color:
+        img_name = extract_image_name(garment.get("primary_image_url", ""))
+        if img_name:
+            color = _scan_text_for_color(img_name)
+
+    # 5. Category from product_type if not generic
     generic = {"apparel", "clothing", "fashion", "modest wear"}
     if ptype and ptype not in generic:
         category = ptype.split("_")[-1].title() if "_" in ptype else ptype.title()
@@ -185,10 +221,15 @@ def extract_missing_entities(model, garment, existing_color, existing_pattern, e
     tags = garment.get("shopify_tags", [])
     ptype = garment.get("product_type", "")
     img_name = extract_image_name(garment.get("primary_image_url", ""))
+    description = str(garment.get("description", ""))[:300]
+    image_alt = str(garment.get("image_alt_text", ""))
 
     tags_str = ", ".join(str(t) for t in tags) if isinstance(tags, list) else str(tags)
-    # Include clean image filename as bonus context (e.g. "suzie striped shirt green uk8")
-    context_text = f"{title}. Tags: {tags_str}. Type: {ptype}. Image: {img_name}"
+    # Include clean image filename, alt text, and description as bonus context
+    context_text = (
+        f"{title}. Tags: {tags_str}. Type: {ptype}. Image: {img_name}. "
+        f"Image alt text: {image_alt}. Description: {description}"
+    )
 
     labels_to_extract = []
     if not existing_color:    labels_to_extract.append("color")
@@ -215,7 +256,7 @@ def extract_missing_entities(model, garment, existing_color, existing_pattern, e
 
     return existing_color, existing_pattern, existing_category
 
-def ingest_garments(latest_only: bool = False, wipe_db: bool = False):
+def ingest_garments(latest_only: bool = False, wipe_db: bool = False, use_gemini: bool = False):
     model = init_nlp_model()
     db: Session = SessionLocal()
     
@@ -226,11 +267,11 @@ def ingest_garments(latest_only: bool = False, wipe_db: bool = False):
         
     root_dir = Path(__file__).resolve().parent.parent
     
-    run_folders = glob.glob(os.path.join(root_dir, "trend-data-collector", "output", "run_*"))
+    run_folders = sorted(glob.glob(os.path.join(root_dir, "trend-data-collector", "output", "run_*")))
     if not run_folders:
         print("No run folders found.")
         return
-        
+
     if latest_only:
         latest_folder = max(run_folders, key=os.path.getmtime)
         run_folders = [latest_folder]
@@ -318,42 +359,29 @@ def ingest_garments(latest_only: bool = False, wipe_db: bool = False):
                             ml_cat, ml_col, ml_pat = existing.ml_standardized_value.split("||")
                             mapping_cache[mapping_key] = (ml_cat, ml_col, ml_pat)
                         else:
-                            # Fallback to Gemini with rate limit handling
-                            import time
-                            print(f"Unknown attribute combo: {mapping_key}. Asking Gemini...")
-                            time.sleep(4) # 15 RPM limit on free tier => 1 request every 4 seconds
-                            from scripts.gemini_mapper import map_attributes_with_gemini
-                            img_url = garment.get("primary_image_url", "")
-                            
-                            gemini_res = map_attributes_with_gemini(
-                                garment.get("title", ""),
-                                final_cat or "Unknown",
-                                final_color or "Unknown",
-                                final_pattern or "Unknown",
-                                img_url
-                            )
-                        
-                        if gemini_res:
-                            ml_cat = gemini_res.get("mapped_category")
-                            ml_col = gemini_res.get("mapped_color")
-                            ml_pat = gemini_res.get("mapped_pattern")
-                            
-                            # Save mapping to DB
+                            # Free, local, deterministic mapping first (no API cost, no rate limit).
+                            from scripts.local_taxonomy_mapper import map_attributes_locally
+                            local_res = map_attributes_locally(final_cat, final_color, final_pattern)
+                            ml_cat = final_cat if is_cat_valid else local_res["mapped_category"]
+                            ml_col = final_color if is_col_valid else local_res["mapped_color"]
+                            ml_pat = final_pattern if is_pat_valid else local_res["mapped_pattern"]
+
+                            local_fully_resolved = ml_cat != "Unknown" and ml_col != "Unknown" and ml_pat != "Solid"
+
+                            if use_gemini and not local_fully_resolved:
+                                gemini_res = _call_gemini_mapping(mapping_key, garment, final_cat, final_color, final_pattern)
+                                if gemini_res:
+                                    ml_cat = gemini_res.get("mapped_category") or ml_cat
+                                    ml_col = gemini_res.get("mapped_color") or ml_col
+                                    ml_pat = gemini_res.get("mapped_pattern") or ml_pat
+
                             new_map = AttributeMapping(
                                 attribute_type="composite",
                                 raw_value=mapping_key,
                                 ml_standardized_value=f"{ml_cat}||{ml_col}||{ml_pat}"
                             )
                             db.add(new_map)
-                            # Flush to ensure we don't get unique constraint violations later
                             db.flush()
-                            mapping_cache[mapping_key] = (ml_cat, ml_col, ml_pat)
-                        else:
-                            # If API failed (429 Rate Limit, etc), fallback safely without DB insert
-                            # and CACHE IT so we don't keep sleeping 4s for the exact same failing string
-                            ml_cat = final_cat if is_cat_valid else "Unknown"
-                            ml_col = final_color if is_col_valid else "Unknown"
-                            ml_pat = final_pattern if is_pat_valid else "Solid"
                             mapping_cache[mapping_key] = (ml_cat, ml_col, ml_pat)
                 
                 published_at = garment.get("published_at")
@@ -411,6 +439,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="NLP ETL script to load scraped garments into DB")
     parser.add_argument("--latest-only", action="store_true", help="Process only the most recent daily run folder")
     parser.add_argument("--wipe-db", action="store_true", help="Wipes the products table before importing")
+    parser.add_argument("--use-gemini", action="store_true", help="Also call Gemini as a paid refinement step for anything the free local mapper can't resolve (requires GEMINI_API_KEY + quota)")
     args = parser.parse_args()
-    
-    ingest_garments(latest_only=args.latest_only, wipe_db=args.wipe_db)
+
+    ingest_garments(latest_only=args.latest_only, wipe_db=args.wipe_db, use_gemini=args.use_gemini)

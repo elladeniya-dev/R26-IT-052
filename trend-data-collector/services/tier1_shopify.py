@@ -68,7 +68,10 @@ def execute_tier1_shopify_json(store_config: Dict[str, Any]) -> List[Dict[str, A
                 variants = item.get("variants", [])
                 raw_price = variants[0].get("price", 0.0) if variants else 0.0
                 images = [img.get("src", "") for img in item.get("images", []) if isinstance(img, dict)]
-                
+                image_alt_text = " ".join(
+                    img.get("alt", "") or "" for img in item.get("images", []) if isinstance(img, dict)
+                ).strip()
+
                 candidate = {
                     "rank_position": rank,
                     "title": item.get("title", ""),
@@ -82,6 +85,9 @@ def execute_tier1_shopify_json(store_config: Dict[str, Any]) -> List[Dict[str, A
                     "source_name": brand_name,
                     "source_type": "tier1_shopify_json",
                     "market_segment": segment,
+                    "variant_color": _extract_variant_color(item, variants),
+                    "description": _strip_html(item.get("body_html", "")),
+                    "image_alt_text": image_alt_text,
                 }
                 clean_item = GarmentValidator.validate_and_sanitize(candidate)
                 if clean_item:
@@ -166,6 +172,32 @@ def _harvest_via_suggest_ajax(
         except Exception as err:
             logger.debug(f"[Tier 1 Suggest] Error on keyword '{kw}': {err}")
             continue
+
+
+def _extract_variant_color(item: Dict[str, Any], variants: List[Dict[str, Any]]) -> str:
+    """
+    Shopify stores each product's option names in item['options'] (e.g. ['Color', 'Size'])
+    and each variant carries the matching values in option1/option2/option3. If one of the
+    product's declared options is a color option, read it straight from the first variant —
+    this is structured, store-declared data, far more reliable than guessing from text.
+    """
+    if not variants:
+        return ""
+    options = item.get("options", [])
+    for idx, opt in enumerate(options):
+        name = str(opt.get("name", "")).strip().lower() if isinstance(opt, dict) else str(opt).strip().lower()
+        if name in ("color", "colour"):
+            value = variants[0].get(f"option{idx + 1}", "")
+            return str(value).strip() if value else ""
+    return ""
+
+
+def _strip_html(html: str) -> str:
+    if not html:
+        return ""
+    import re
+    text = re.sub(r"<[^>]+>", " ", html)
+    return re.sub(r"\s+", " ", text).strip()[:500]
 
 
 def _parse_tags(raw_tags: any) -> List[str]:

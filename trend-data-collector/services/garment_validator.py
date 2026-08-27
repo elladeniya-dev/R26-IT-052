@@ -108,5 +108,8 @@ class GarmentValidator:
             "product_type": str(item.get("product_type", "apparel")).strip() or "apparel",
             "source_name": str(item.get("source_name", "Unknown")).strip(),
             "source_type": str(item.get("source_type", "unknown")).strip(),
-            "market_segment": str(item.get("market_segment", "General")).strip()
+            "market_segment": str(item.get("market_segment", "General")).strip(),
+            "variant_color": str(item.get("variant_color", "")).strip(),
+            "description": str(item.get("description", "")).strip(),
+            "image_alt_text": str(item.get("image_alt_text", "")).strip(),
         }
