@@ -23,9 +23,9 @@ def audit_all():
 
     rows.sort(key=lambda r: VERDICT_ORDER.get(r[2].get("verdict", r[2]["status"]), 9))
 
-    print("\n" + "=" * 100)
-    print(f"{'Brand':<20}{'Configured Tier':<16}{'Reality':<14}{'Material':<10}{'Color':<10}{'FitType':<10}{'Style':<10}{'Verdict'}")
-    print("=" * 100)
+    print("\n" + "=" * 120)
+    print(f"{'Brand':<20}{'Configured Tier':<32}{'Reality':<14}{'Material':<10}{'Color':<10}{'FitType':<10}{'Style':<10}{'Verdict'}")
+    print("=" * 120)
 
     upgrade_candidates = []
     for brand, configured_tier, r in rows:
@@ -35,15 +35,19 @@ def audit_all():
         if is_shopify:
             n = r["sample_size"]
             fh = r["field_hits"]
+            mat_col = f"{fh['material']}/{n}"
+            color_col = f"{fh['color']}/{n}"
+            fit_col = f"{fh['fit_type']}/{n}"
+            style_col = f"{fh['style']}/{n}"
             row = (
-                f"{brand:<20}{configured_tier:<16}{reality:<14}"
-                f"{fh['material']}/{n:<8}{fh['color']}/{n:<8}{fh['fit_type']}/{n:<8}{fh['style']}/{n:<8}"
+                f"{brand:<20}{configured_tier:<32}{reality:<14}"
+                f"{mat_col:<10}{color_col:<10}{fit_col:<10}{style_col:<10}"
                 f"{r['verdict']}"
             )
             if configured_tier != TIER_1_SHOPIFY:
                 upgrade_candidates.append(brand)
         else:
-            row = f"{brand:<20}{configured_tier:<16}{reality:<14}{'-':<10}{'-':<10}{'-':<10}{'-':<10}{r.get('detail', '')}"
+            row = f"{brand:<20}{configured_tier:<32}{reality:<14}{'-':<10}{'-':<10}{'-':<10}{'-':<10}{r.get('detail', '')}"
         print(row)
 
     print("=" * 100)

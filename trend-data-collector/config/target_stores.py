@@ -72,14 +72,15 @@ SRI_LANKA_TARGET_STORES = [
     },
     {
         "brand_name": "Nils Store",
-        # FIXED: was tagged Tier 1 Shopify, but the live site uses /dresses and
-        # /best-sellers/... paths with no /collections/ structure — not Shopify.
+        # RE-FIXED: verified live via audit_all_stores.py — /products.json
+        # actually works (8/20 material, 8/20 fit_type spec coverage). The
+        # earlier "not Shopify" note was wrong; confirmed Shopify JSON API.
         "domain": "nilsonline.lk",
         "base_url": "https://www.nilsonline.lk",
         "primary_style_focus": "Office casuals, everyday dresses, tunics",
         "segment": SEGMENT_HIGH_VELOCITY_BOUTIQUES,
-        "ingestion_tier": TIER_2_CRAWL4AI,
-        "target_endpoints": ["/dresses", "/best-sellers"],
+        "ingestion_tier": TIER_1_SHOPIFY,
+        "target_endpoints": ["/products.json?limit=250"],
     },
     {
         "brand_name": "Spring & Summer",
@@ -172,12 +173,13 @@ SRI_LANKA_TARGET_STORES = [
     },
     {
         "brand_name": "Nolimit",
+        # FIXED: /women 404'd — real category path is case-sensitive /categories/Women.
         "domain": "nolimit.lk",
         "base_url": "https://www.nolimit.lk",
         "primary_style_focus": "Affordable everyday wear, ethnic & western",
         "segment": SEGMENT_MASS_MARKET_DEPARTMENT,
         "ingestion_tier": TIER_2_CRAWL4AI,
-        "target_endpoints": ["/women", "/new-arrivals"],
+        "target_endpoints": ["/categories/Women"],
     },
     {
         "brand_name": "Glitz",
@@ -193,12 +195,15 @@ SRI_LANKA_TARGET_STORES = [
     },
     {
         "brand_name": "Fashion Bug",
+        # FIXED: verified live via audit_all_stores.py — /products.json responds
+        # with valid Shopify JSON (spec-sheet coverage is low for this store,
+        # but the API path itself is faster/more reliable than DOM scraping).
         "domain": "fashionbug.lk",
         "base_url": "https://fashionbug.lk",
         "primary_style_focus": "Casuals, office wear, traditional wear",
         "segment": SEGMENT_MASS_MARKET_DEPARTMENT,
-        "ingestion_tier": TIER_2_CRAWL4AI,
-        "target_endpoints": ["/product-category/women/"],
+        "ingestion_tier": TIER_1_SHOPIFY,
+        "target_endpoints": ["/products.json?limit=250"],
     },
     {
         "brand_name": "House of Fashions",
@@ -243,12 +248,15 @@ SRI_LANKA_TARGET_STORES = [
     # },
     {
         "brand_name": "Avirate",
+        # FIXED: verified live via audit_all_stores.py — /products.json responds
+        # with valid Shopify JSON (spec-sheet coverage is low for this store,
+        # but the API path itself is faster/more reliable than DOM scraping).
         "domain": "aviratefashion.com",
         "base_url": "https://aviratefashion.com",
         "primary_style_focus": "Premium evening gowns, cocktail dresses",
         "segment": SEGMENT_SPECIALTY_WORKWEAR,
-        "ingestion_tier": TIER_2_CRAWL4AI,
-        "target_endpoints": ["/collections/dresses", "/collections/evening-wear"],
+        "ingestion_tier": TIER_1_SHOPIFY,
+        "target_endpoints": ["/products.json?limit=250"],
     },
     # [Not a dead domain — brand was acquired, not shuttered]
     # Cotton Collection was acquired by ODEL/Softlogic; the standalone domain

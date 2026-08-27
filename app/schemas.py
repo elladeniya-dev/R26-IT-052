@@ -28,11 +28,55 @@ class ProductCreate(BaseModel):
 
     availability: Optional[bool] = True
     collected_at: Optional[datetime] = None
+    original_price: Optional[float] = None
 
 
 class ProductResponse(ProductCreate):
     class Config:
         from_attributes = True
+
+
+class NewArrivalItem(BaseModel):
+    item_id: str
+    title: str
+    brand: Optional[str] = None
+    category: Optional[str] = None
+    color: Optional[List[str]] = []
+    material: Optional[str] = None
+    fit_type: Optional[str] = None
+    price: Optional[float] = None
+    image_url: Optional[str] = None
+    product_url: Optional[str] = None
+    collected_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class NewArrivalsResponse(BaseModel):
+    total: int
+    items: list[NewArrivalItem]
+
+
+class DiscountedItem(BaseModel):
+    item_id: str
+    title: str
+    brand: Optional[str] = None
+    category: Optional[str] = None
+    price: float
+    original_price: float
+    discount_pct: float
+    availability: bool
+    image_url: Optional[str] = None
+    product_url: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+class DiscountedItemsResponse(BaseModel):
+    total: int
+    items: list[DiscountedItem]
 
 
 class ProductTrendMetricCreate(BaseModel):

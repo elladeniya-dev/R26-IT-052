@@ -67,6 +67,10 @@ def execute_tier2_json_ld(store_config: Dict[str, Any], sitemap_urls: Optional[L
                         items_list = [x for x in data["@graph"] if isinstance(x, dict)]
                     elif data.get("@type") in ("Product", "ItemPage") or "itemListElement" in data:
                         items_list = [data]
+                    elif isinstance(data.get("mainEntity"), dict) and "itemListElement" in data["mainEntity"]:
+                        # Common category-page shape: CollectionPage.mainEntity is
+                        # the ItemList (e.g. Kandy Selection, many WooCommerce/SEO themes).
+                        items_list = [data["mainEntity"]]
 
                 for entry in items_list:
                     if len(validated_items) >= MAX_ITEMS_PER_STORE:
@@ -122,13 +126,16 @@ def _extract_and_add(
         if availability:
             in_stock = "outofstock" not in availability
 
-    # Extract primary high-resolution imagery
+    # Extract primary high-resolution imagery — resolve relative paths
+    # (e.g. "/uploads/x.webp") against base_url, otherwise the validator
+    # rejects the whole item for not having an absolute image URL.
     images = node.get("image", "")
-    image_array: List[str] = []
+    raw_image_list: List[str] = []
     if isinstance(images, str) and images:
-        image_array = [images]
+        raw_image_list = [images]
     elif isinstance(images, list):
-        image_array = [str(i) for i in images if isinstance(i, str)]
+        raw_image_list = [str(i) for i in images if isinstance(i, str)]
+    image_array = [urljoin(base_url, img) if not img.startswith("http") else img for img in raw_image_list]
     primary_img = image_array[0] if image_array else ""
 
     candidate = {
