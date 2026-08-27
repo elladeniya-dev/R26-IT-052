@@ -37,7 +37,7 @@ jobs:
         working-directory: ./trend-data-collector
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
           python -m playwright install --with-deps chromium
 
       # Install the root backend requirements separately so the ETL script can import
@@ -45,7 +45,7 @@ jobs:
       - name: Install Backend & ETL Dependencies
         working-directory: ./
         run: |
-          pip install -r requirements.txt
+          pip install -r requirements.txt --extra-index-url https://download.pytorch.org/whl/cpu
 
       - name: Execute Multi-Tier Harvester Pipeline
         working-directory: ./trend-data-collector
