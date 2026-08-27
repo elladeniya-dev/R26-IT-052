@@ -51,11 +51,13 @@ def create_product(product: schemas.ProductCreate, db: Session = Depends(get_db)
 
 
 @router.get("/products/")
-def get_all_products(db: Session = Depends(get_db)):
-    products = db.query(models.Product).all()
+def get_all_products(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    products = db.query(models.Product).offset(skip).limit(limit).all()
+    total_products = db.query(models.Product).count()
 
     return {
-        "total_products": len(products),
+        "total_products": total_products,
+        "returned_count": len(products),
         "products": products,
     }
 

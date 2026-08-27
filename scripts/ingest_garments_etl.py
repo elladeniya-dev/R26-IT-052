@@ -215,7 +215,7 @@ def extract_missing_entities(model, garment, existing_color, existing_pattern, e
 
     return existing_color, existing_pattern, existing_category
 
-def import_historical_garments(data_dir: str, latest_only: bool = False, wipe_db: bool = False):
+def ingest_garments(latest_only: bool = False, wipe_db: bool = False):
     model = init_nlp_model()
     db: Session = SessionLocal()
     
@@ -413,4 +413,4 @@ if __name__ == "__main__":
     parser.add_argument("--wipe-db", action="store_true", help="Wipes the products table before importing")
     args = parser.parse_args()
     
-    import_historical_garments("historical_data", latest_only=args.latest_only, wipe_db=args.wipe_db)
+    ingest_garments(latest_only=args.latest_only, wipe_db=args.wipe_db)

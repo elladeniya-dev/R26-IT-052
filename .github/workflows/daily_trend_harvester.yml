@@ -78,7 +78,7 @@ jobs:
           if [ -z "$DATABASE_URL" ]; then
             echo "[Notice] DATABASE_URL secret not provided. Skipping DB ingestion."
           else
-            python scripts/import_historical_garments.py --latest-only
+            python scripts/ingest_garments_etl.py --latest-only
           fi
 
       - name: Upload Downloadable Backup Artifact (ZIP Bundle)
