@@ -19,7 +19,7 @@ except ImportError:
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.core.database import SessionLocal
-from app.models import Product
+from app.models import Product, AttributeMapping
 
 INAPPROPRIATE_KEYWORDS = [
     "underwear", "nighty", "lingerie", "swimwear", "bikini", "bra", 
@@ -242,6 +242,7 @@ def import_historical_garments(data_dir: str, latest_only: bool = False, wipe_db
     total_skipped_dupes = 0
     total_skipped_inappropriate = 0
     seen_in_session = set()
+    mapping_cache = {}
 
     for run_dir in run_folders:
         files = glob.glob(os.path.join(run_dir, "*_garments.json"))
@@ -285,6 +286,76 @@ def import_historical_garments(data_dir: str, latest_only: bool = False, wipe_db
                     model, garment, raw_color, raw_pattern, raw_cat
                 )
                 
+                # 4. Standardize to ML Taxonomy using Gemini (if needed)
+                ml_cat, ml_col, ml_pat = None, None, None
+                
+                # Check if they are already exactly in the H&M taxonomy
+                from scripts.ml_taxonomy import HM_CATEGORIES, HM_COLORS, HM_PATTERNS
+                
+                is_cat_valid = final_cat in HM_CATEGORIES if final_cat else False
+                is_col_valid = final_color in HM_COLORS if final_color else False
+                is_pat_valid = final_pattern in HM_PATTERNS if final_pattern else False
+                
+                # If they are all valid (or missing which defaults to 'Unknown'/'Solid' anyway)
+                # We don't need Gemini.
+                if (is_cat_valid or not final_cat) and (is_col_valid or not final_color) and (is_pat_valid or not final_pattern):
+                    ml_cat = final_cat if is_cat_valid else "Unknown"
+                    ml_col = final_color if is_col_valid else "Unknown"
+                    ml_pat = final_pattern if is_pat_valid else "Solid"
+                else:
+                    # We will check if the specific string combination is already mapped
+                    mapping_key = f"{final_cat}_{final_color}_{final_pattern}"
+                    
+                    if mapping_key in mapping_cache:
+                        ml_cat, ml_col, ml_pat = mapping_cache[mapping_key]
+                    else:
+                        # Look up in DB
+                        existing = db.query(AttributeMapping).filter(
+                            AttributeMapping.raw_value == mapping_key
+                        ).first()
+                        
+                        if existing:
+                            ml_cat, ml_col, ml_pat = existing.ml_standardized_value.split("||")
+                            mapping_cache[mapping_key] = (ml_cat, ml_col, ml_pat)
+                        else:
+                            # Fallback to Gemini with rate limit handling
+                            import time
+                            print(f"Unknown attribute combo: {mapping_key}. Asking Gemini...")
+                            time.sleep(4) # 15 RPM limit on free tier => 1 request every 4 seconds
+                            from scripts.gemini_mapper import map_attributes_with_gemini
+                            img_url = garment.get("primary_image_url", "")
+                            
+                            gemini_res = map_attributes_with_gemini(
+                                garment.get("title", ""),
+                                final_cat or "Unknown",
+                                final_color or "Unknown",
+                                final_pattern or "Unknown",
+                                img_url
+                            )
+                        
+                        if gemini_res:
+                            ml_cat = gemini_res.get("mapped_category")
+                            ml_col = gemini_res.get("mapped_color")
+                            ml_pat = gemini_res.get("mapped_pattern")
+                            
+                            # Save mapping to DB
+                            new_map = AttributeMapping(
+                                attribute_type="composite",
+                                raw_value=mapping_key,
+                                ml_standardized_value=f"{ml_cat}||{ml_col}||{ml_pat}"
+                            )
+                            db.add(new_map)
+                            # Flush to ensure we don't get unique constraint violations later
+                            db.flush()
+                            mapping_cache[mapping_key] = (ml_cat, ml_col, ml_pat)
+                        else:
+                            # If API failed (429 Rate Limit, etc), fallback safely without DB insert
+                            # and CACHE IT so we don't keep sleeping 4s for the exact same failing string
+                            ml_cat = final_cat if is_cat_valid else "Unknown"
+                            ml_col = final_color if is_col_valid else "Unknown"
+                            ml_pat = final_pattern if is_pat_valid else "Solid"
+                            mapping_cache[mapping_key] = (ml_cat, ml_col, ml_pat)
+                
                 published_at = garment.get("published_at")
                 if published_at:
                     try:
@@ -306,7 +377,10 @@ def import_historical_garments(data_dir: str, latest_only: bool = False, wipe_db
                     source=garment.get("source_type"),
                     product_url=url,
                     image_url=garment.get("primary_image_url"),
-                    collected_at=collected_at
+                    collected_at=collected_at,
+                    ml_category=ml_cat,
+                    ml_color=ml_col,
+                    ml_pattern=ml_pat
                 )
                 
                 db.add(product)

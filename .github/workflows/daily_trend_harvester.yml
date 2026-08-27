@@ -59,6 +59,7 @@ jobs:
         working-directory: ./
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           # Suppress Hugging Face symlink warning on Linux runners
           HF_HUB_DISABLE_SYMLINKS_WARNING: "1"
         run: |

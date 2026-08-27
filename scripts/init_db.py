@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.core.database import Base, engine
-from app.models import Product, ProductTrendMetric, TrendObservation, TrendSignal
+from app.models import Product, ProductTrendMetric, TrendObservation, TrendSignal, AttributeMapping
 
 def init_db():
     print(f"Connecting to database: {engine.url}")

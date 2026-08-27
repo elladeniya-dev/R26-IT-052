@@ -34,6 +34,22 @@ class Product(Base):
     availability = Column(Boolean, default=True)
     collected_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
+    # ML Standardized Taxonomy Fields (Matches H&M Dataset)
+    ml_category = Column(String, nullable=True)
+    ml_color = Column(String, nullable=True)
+    ml_pattern = Column(String, nullable=True)
+
+
+class AttributeMapping(Base):
+    """Maps raw extracted strings (e.g., 'Acid Blue') to strict ML taxonomy (e.g., 'Light Blue')"""
+    __tablename__ = "attribute_mappings"
+    
+    mapping_id = Column(Integer, primary_key=True, index=True, autoincrement=True)
+    attribute_type = Column(String, nullable=False, index=True) # "category", "color", "pattern"
+    raw_value = Column(String, nullable=False, unique=True, index=True) 
+    ml_standardized_value = Column(String, nullable=False)
+    confidence_score = Column(Float, nullable=True)
+    created_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
 class ProductTrendMetric(Base):
     __tablename__ = "product_trend_metrics"
