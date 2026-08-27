@@ -166,12 +166,18 @@ SRI_LANKA_TARGET_STORES = [
     # --- 2. Department Stores & Mass-Market Retailers ---
     {
         "brand_name": "Odel",
+        # FIXED: /women and /women/new-arrivals 404. Odel is a JS-rendered SPA
+        # (Tier 2 static fetch can't see its content at all) — these are the
+        # actual category URLs the sitemap-discovery + Tier 3 cascade found
+        # and successfully harvested from live (67 + 63 garments verified in
+        # a real run), saved here so future runs don't depend on rediscovering
+        # them from scratch every time.
         "domain": "odel.lk",
         "base_url": "https://odel.lk",
         "primary_style_focus": "Multi-brand luxury & street casuals",
         "segment": SEGMENT_MASS_MARKET_DEPARTMENT,
         "ingestion_tier": TIER_2_CRAWL4AI,
-        "target_endpoints": ["/women", "/women/new-arrivals"],
+        "target_endpoints": ["/women/casualwear/c/777", "/women/casualwear/dresses/sc/3545"],
     },
     {
         "brand_name": "Cool Planet",

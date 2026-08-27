@@ -142,6 +142,14 @@ def map_color(raw_color: str) -> str:
     if value in COLOR_SYNONYMS:
         return COLOR_SYNONYMS[value]
 
+    # RGB color-space distance — more principled than string-edit-distance
+    # fuzzy matching for genuine color synonyms (e.g. "crimson" -> "Red" isn't
+    # a spelling variant, it's a color relationship difflib can't see).
+    from scripts.color_matcher import match_color_by_distance
+    rgb_match = match_color_by_distance(value)
+    if rgb_match:
+        return rgb_match
+
     fuzzy = _fuzzy_match(value, HM_COLORS, cutoff=0.7)
     return fuzzy or "Unknown"
 

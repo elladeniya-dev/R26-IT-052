@@ -81,6 +81,21 @@ jobs:
             python scripts/ingest_garments_etl.py --latest-only
           fi
 
+      # Without this step, Products accumulates daily but TrendObservation/
+      # TrendSignal never refresh — the API would keep serving stale trends
+      # forever even though new data is being collected every day.
+      - name: Rebuild Trend Observations & Signals
+        working-directory: ./
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "[Notice] DATABASE_URL secret not provided. Skipping trend recomputation."
+          else
+            python scripts/generate_trend_observations.py
+            python scripts/compute_trend_signals.py
+          fi
+
       - name: Upload Downloadable Backup Artifact (ZIP Bundle)
         uses: actions/upload-artifact@v4
         with:

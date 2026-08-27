@@ -58,6 +58,26 @@ KNOWN_MATERIALS = {
     "ribbed", "ponte", "scuba", "neoprene", "elastane",
 }
 
+# Real fit descriptors are short, categorical phrases — never full sentences.
+# Ordered longest-first so "slim fit" matches before a bare "fit" substring would.
+KNOWN_FIT_TYPES = sorted([
+    "true to size", "regular fit", "relaxed fit", "loose fit", "slim fit",
+    "skinny fit", "straight fit", "tailored fit", "flared fit", "bodycon",
+    "oversized", "loose", "relaxed", "regular", "fitted", "slim", "skinny",
+], key=len, reverse=True)
+
+
+def normalize_fit_type(text: str):
+    """Only accept short, known fit descriptors — reject full-sentence style
+    descriptions that got mislabeled as 'Fit:' by some stores' spec sheets."""
+    if not text:
+        return None
+    value = text.lower().strip()
+    for fit in KNOWN_FIT_TYPES:
+        if fit in value:
+            return fit.title()
+    return None
+
 
 def extract_material(text: str):
     """Free, deterministic material extraction from tags/title/description."""
@@ -171,10 +191,24 @@ def is_valid_color(value: str) -> bool:
     words = value.lower().split()
     if len(words) > 4:
         return False
+    # Reject if any single word is implausibly long for a color name/phrase
+    # (e.g. a glued-together slug like "nolimitcottonrangewomensshirt...").
+    # No real color word exceeds ~12 characters ("turquoise", "off-white").
+    if any(len(w) > 14 for w in words):
+        return False
     # MUST contain at least one known color word — no exceptions
     for word in words:
         clean_word = re.sub(r'[^a-z]', '', word)
         if clean_word in KNOWN_COLORS:
+            return True
+
+    # Also accept standard CSS3 color names we haven't hand-curated (e.g.
+    # "crimson", "burlywood") — recognized via actual color-space matching,
+    # not a guess. Widens what counts as "a real color" beyond our ~50-word list.
+    from scripts.color_matcher import match_color_by_distance
+    for word in words:
+        clean_word = re.sub(r'[^a-z]', '', word)
+        if len(clean_word) >= 3 and match_color_by_distance(clean_word):
             return True
     return False
 
@@ -188,6 +222,9 @@ def _scan_text_for_color(text: str):
             return phrase.title()
     for w in words_clean:
         if w in KNOWN_COLORS:
+            return w.title()
+    for w in words_clean:
+        if len(w) >= 3 and is_valid_color(w.title()):
             return w.title()
     return None
 
@@ -381,8 +418,16 @@ def ingest_garments(latest_only: bool = False, wipe_db: bool = False, use_gemini
                 # into distinct trend attributes.
                 desc_material_raw = str(garment.get("desc_material", "")).strip()
                 material = extract_material(desc_material_raw) or extract_material(material_text)
-                fit_type = str(garment.get("desc_fit_type", "")).strip() or None
-                style = str(garment.get("desc_style", "")).strip() or None
+                # fit_type must be a short categorical descriptor, not a full
+                # sentence — some stores' spec sheets mislabel a style summary
+                # as "Fit:", so only accept it if it matches known fit vocabulary.
+                fit_type = normalize_fit_type(str(garment.get("desc_fit_type", "")).strip())
+
+                # style stays free text (it's inherently descriptive), but cap
+                # length so a full product description doesn't become a
+                # "trend attribute" that will never repeat across products.
+                style_raw = str(garment.get("desc_style", "")).strip()
+                style = style_raw if style_raw and len(style_raw) <= 60 else None
 
                 # 3. NLP Fallback for Missing Data
                 final_color, final_pattern, final_cat = extract_missing_entities(

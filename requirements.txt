@@ -30,3 +30,4 @@ lightning==2.4.0
 pytorch-forecasting>=1.1.0
 gliner>=0.2.0
 google-genai>=2.16.0
+webcolors==25.10.0
