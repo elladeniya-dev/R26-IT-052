@@ -49,6 +49,27 @@ def is_inappropriate(garment):
     return False
 
 
+KNOWN_MATERIALS = {
+    "cotton", "linen", "denim", "silk", "satin", "chiffon", "velvet", "leather",
+    "lace", "knit", "jersey", "viscose", "rayon", "nylon", "spandex", "crepe",
+    "polyester", "wool", "cashmere", "corduroy", "suede", "organza", "tulle",
+    "georgette", "modal", "fleece", "twill", "canvas", "chambray", "lycra",
+    "cotton blend", "faux leather", "vegan leather",
+}
+
+
+def extract_material(text: str):
+    """Free, deterministic material extraction from tags/title/description."""
+    if not text:
+        return None
+    value = text.lower()
+    # Check 2-word materials first (e.g. "cotton blend") before single words.
+    for material in sorted(KNOWN_MATERIALS, key=len, reverse=True):
+        if material in value:
+            return material.title()
+    return None
+
+
 def _call_gemini_mapping(mapping_key: str, garment: dict, raw_cat: str, raw_color: str, raw_pattern: str):
     """Optional, quota-limited refinement on top of the free local mapper. Never required."""
     import time
@@ -166,16 +187,26 @@ def fast_raw_extraction(garment):
     color = None
     category = None
 
+    # -1. Store-written spec sheet in the product description (e.g. "Color: Black,
+    # White, Sage Green") — the store telling us directly, highest confidence of all.
+    desc_color = str(garment.get("desc_color", "")).strip()
+    if desc_color:
+        if is_valid_color(desc_color.title()):
+            color = desc_color.title()
+        else:
+            color = _scan_text_for_color(desc_color)
+
     # 0. Store-declared variant color (Shopify product options) — structured,
     # store-authored data, higher confidence than anything text-derived.
-    variant_color = str(garment.get("variant_color", "")).strip()
-    if variant_color:
-        if is_valid_color(variant_color.title()):
-            color = variant_color.title()
-        else:
-            scanned = _scan_text_for_color(variant_color)
-            if scanned:
-                color = scanned
+    if not color:
+        variant_color = str(garment.get("variant_color", "")).strip()
+        if variant_color:
+            if is_valid_color(variant_color.title()):
+                color = variant_color.title()
+            else:
+                scanned = _scan_text_for_color(variant_color)
+                if scanned:
+                    color = scanned
 
     # 1. Explicit color- prefix tags (e.g. "color-burntorange")
     if not color:
@@ -321,7 +352,17 @@ def ingest_garments(latest_only: bool = False, wipe_db: bool = False, use_gemini
                 
                 # 2. Fast Extraction from Raw Metadata
                 raw_color, raw_pattern, raw_cat = fast_raw_extraction(garment)
-                
+                material_text = " ".join([
+                    garment.get("title", ""),
+                    " ".join(str(t) for t in garment.get("shopify_tags", [])),
+                    garment.get("description", ""),
+                ])
+                # Store-written spec sheet wins if present — it's the store telling
+                # us the answer directly, not a keyword guess.
+                material = str(garment.get("desc_material", "")).strip() or extract_material(material_text)
+                fit_type = str(garment.get("desc_fit_type", "")).strip() or None
+                style = str(garment.get("desc_style", "")).strip() or None
+
                 # 3. NLP Fallback for Missing Data
                 final_color, final_pattern, final_cat = extract_missing_entities(
                     model, garment, raw_color, raw_pattern, raw_cat
@@ -399,12 +440,18 @@ def ingest_garments(latest_only: bool = False, wipe_db: bool = False, use_gemini
                     category=final_cat or "Unknown",
                     color=[final_color] if final_color else [],
                     pattern=final_pattern or "Solid",
+                    material=material,
+                    fit_type=fit_type,
+                    style=[style] if style else [],
                     price=garment.get("price_lkr"),
+                    original_price=garment.get("original_price_lkr") or None,
                     currency="LKR",
                     brand=garment.get("source_name"),
                     source=garment.get("source_type"),
                     product_url=url,
                     image_url=garment.get("primary_image_url"),
+                    description=garment.get("description") or None,
+                    availability=garment.get("in_stock", True),
                     collected_at=collected_at,
                     ml_category=ml_cat,
                     ml_color=ml_col,

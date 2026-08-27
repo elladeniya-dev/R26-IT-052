@@ -110,13 +110,17 @@ def _extract_and_add(
         return
     seen_urls.add(prod_url)
 
-    # Extract pricing from offers structure
+    # Extract pricing and availability from offers structure
     offers = node.get("offers", {})
     price = 0.0
+    in_stock = True
     if isinstance(offers, list) and offers:
         offers = offers[0]
     if isinstance(offers, dict):
         price = offers.get("price") or offers.get("lowPrice") or 0.0
+        availability = str(offers.get("availability", "")).lower()
+        if availability:
+            in_stock = "outofstock" not in availability
 
     # Extract primary high-resolution imagery
     images = node.get("image", "")
@@ -140,6 +144,8 @@ def _extract_and_add(
         "source_name": brand_name,
         "source_type": "tier2_json_ld",
         "market_segment": segment,
+        "in_stock": in_stock,
+        "description": str(node.get("description", ""))[:500],
     }
     clean = GarmentValidator.validate_and_sanitize(candidate)
     if clean:

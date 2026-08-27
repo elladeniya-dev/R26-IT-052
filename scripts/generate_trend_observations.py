@@ -31,11 +31,11 @@ def parse_run_date(run_dir: str) -> datetime:
 
 
 def load_product_attributes(db) -> dict:
-    """product_url -> (ml_category, ml_color, ml_pattern)"""
+    """product_url -> (ml_category, ml_color, ml_pattern, material)"""
     rows = db.query(
-        Product.product_url, Product.ml_category, Product.ml_color, Product.ml_pattern
+        Product.product_url, Product.ml_category, Product.ml_color, Product.ml_pattern, Product.material
     ).all()
-    return {url: (cat, col, pat) for url, cat, col, pat in rows if url}
+    return {url: (cat, col, pat, mat) for url, cat, col, pat, mat in rows if url}
 
 
 def generate_observations():
@@ -85,13 +85,13 @@ def generate_observations():
                     skipped_unknown_product += 1
                     continue
 
-                ml_cat, ml_col, ml_pat = attrs
+                ml_cat, ml_col, ml_pat, material = attrs
                 is_new_arrival = url not in seen_items
                 if is_new_arrival:
                     seen_items.add(url)
 
                 any_known_attr = False
-                for attr_type, attr_val in (("category", ml_cat), ("color", ml_col), ("pattern", ml_pat)):
+                for attr_type, attr_val in (("category", ml_cat), ("color", ml_col), ("pattern", ml_pat), ("material", material)):
                     if not attr_val or attr_val == "Unknown":
                         continue
                     any_known_attr = True

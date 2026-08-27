@@ -32,6 +32,7 @@ class Product(Base):
     description = Column(String, nullable=True)
 
     availability = Column(Boolean, default=True)
+    original_price = Column(Float, nullable=True)
     collected_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # ML Standardized Taxonomy Fields (Matches H&M Dataset)

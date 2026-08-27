@@ -40,8 +40,10 @@ SRI_LANKA_TARGET_STORES = [
     },
     {
         "brand_name": "Chenara Dodge",
-        "domain": "chenaradodge.com",
-        "base_url": "https://chenaradodge.com",
+        # FIXED: base_url was chenaradodge.com — that domain only routes email.
+        # Live storefront (new-arrivals, products, vouchers) is on the .lk domain.
+        "domain": "chenaradodge.lk",
+        "base_url": "https://chenaradodge.lk",
         "primary_style_focus": "Printed maxi/midi dresses, partywear",
         "segment": SEGMENT_HIGH_VELOCITY_BOUTIQUES,
         "ingestion_tier": TIER_2_CRAWL4AI,
@@ -70,21 +72,25 @@ SRI_LANKA_TARGET_STORES = [
     },
     {
         "brand_name": "Nils Store",
+        # FIXED: was tagged Tier 1 Shopify, but the live site uses /dresses and
+        # /best-sellers/... paths with no /collections/ structure — not Shopify.
         "domain": "nilsonline.lk",
         "base_url": "https://www.nilsonline.lk",
         "primary_style_focus": "Office casuals, everyday dresses, tunics",
         "segment": SEGMENT_HIGH_VELOCITY_BOUTIQUES,
-        "ingestion_tier": TIER_1_SHOPIFY,
-        "target_endpoints": ["/products.json?limit=250"],
+        "ingestion_tier": TIER_2_CRAWL4AI,
+        "target_endpoints": ["/dresses", "/best-sellers"],
     },
     {
         "brand_name": "Spring & Summer",
+        # FIXED: was tagged Tier 2, but the live site is Shopify (/collections/,
+        # /pages/about-us) — /products.json will work directly.
         "domain": "springandsummer.lk",
         "base_url": "https://www.springandsummer.lk",
         "primary_style_focus": "Feminine dresses, seasonal collections",
         "segment": SEGMENT_HIGH_VELOCITY_BOUTIQUES,
-        "ingestion_tier": TIER_2_CRAWL4AI,
-        "target_endpoints": ["/collections/women", "/new-arrivals"],
+        "ingestion_tier": TIER_1_SHOPIFY,
+        "target_endpoints": ["/products.json?limit=250"],
     },
     {
         "brand_name": "ZigZag",
@@ -136,6 +142,8 @@ SRI_LANKA_TARGET_STORES = [
     },
     {
         "brand_name": "Jezza Fashion",
+        # Note: also seen as jezzafashion.com (no "s") on their Facebook page —
+        # jezzafashions.com is the confirmed working storefront.
         "domain": "jezzafashions.com",
         "base_url": "https://jezzafashions.com",
         "primary_style_focus": "A-line dresses, crepe satin, office tops",
@@ -173,12 +181,15 @@ SRI_LANKA_TARGET_STORES = [
     },
     {
         "brand_name": "Glitz",
+        # FLAG (not fixed): a 2023 company post says "Glitz Evolves into NOLIMIT."
+        # If that merger is complete, this may now duplicate Nolimit's catalog —
+        # spot-check both before spending scraper budget on Glitz.
         "domain": "glitz.lk",
         "base_url": "https://glitz.lk",
         "primary_style_focus": "Affordable everyday wear, lifestyle apparel",
         "segment": SEGMENT_MASS_MARKET_DEPARTMENT,
         "ingestion_tier": TIER_2_CRAWL4AI,
-        "target_endpoints": ["/women"],
+        "target_endpoints": ["/product-category/women"],
     },
     {
         "brand_name": "Fashion Bug",
@@ -191,12 +202,14 @@ SRI_LANKA_TARGET_STORES = [
     },
     {
         "brand_name": "House of Fashions",
+        # FIXED: was tagged Tier 2, but the live site is Shopify
+        # (/collections/, /products/) — /products.json will work directly.
         "domain": "houseoffashions.lk",
-        "base_url": "https://www.houseoffashions.lk",
+        "base_url": "https://houseoffashions.lk",
         "primary_style_focus": "Broad multi-category apparel",
         "segment": SEGMENT_MASS_MARKET_DEPARTMENT,
-        "ingestion_tier": TIER_2_CRAWL4AI,
-        "target_endpoints": ["/category/women"],
+        "ingestion_tier": TIER_1_SHOPIFY,
+        "target_endpoints": ["/products.json?limit=250"],
     },
     {
         "brand_name": "Kandy Selection",
@@ -205,9 +218,9 @@ SRI_LANKA_TARGET_STORES = [
         "primary_style_focus": "Everyday casuals, dresses, workwear",
         "segment": SEGMENT_MASS_MARKET_DEPARTMENT,
         "ingestion_tier": TIER_2_CRAWL4AI,
-        "target_endpoints": ["/product-category/women/"],
+        "target_endpoints": ["/shop/category/women"],
     },
-    # [Offline/DNS Unresolved in 2026]
+    # [Offline/DNS Unresolved in 2026 — reconfirmed]
     # {
     #     "brand_name": "TFC (The Factory Outlet)",
     #     "domain": "tfcostore.com",
@@ -237,20 +250,20 @@ SRI_LANKA_TARGET_STORES = [
         "ingestion_tier": TIER_2_CRAWL4AI,
         "target_endpoints": ["/collections/dresses", "/collections/evening-wear"],
     },
-    # [Offline/DNS Unresolved in 2026]
-    # {
-    #     "brand_name": "Cotton Collection",
-    #     "domain": "cottoncollection.lk",
-    #     "base_url": "https://cottoncollection.lk",
-    #     "primary_style_focus": "Pure cotton, boho-chic, relaxed lounge",
-    #     "segment": SEGMENT_SPECIALTY_WORKWEAR,
-    #     "ingestion_tier": TIER_2_CRAWL4AI,
-    #     "target_endpoints": ["/women"],
-    # },
+    # [Not a dead domain — brand was acquired, not shuttered]
+    # Cotton Collection was acquired by ODEL/Softlogic; the standalone domain
+    # is gone but the brand's current inventory is browsable inside ODEL:
+    # https://odel.lk/cotton-collection/br/1610 — pull it via the Odel
+    # ingestion path with a brand filter instead of a standalone scraper.
     {
         "brand_name": "Lovi Ceylon",
-        "domain": "loviceylon.com",
-        "base_url": "https://loviceylon.com",
+        # FIXED: loviceylon.com does not resolve to the working storefront —
+        # the live site is lovisarongs.com. Also note: this brand is sarongs /
+        # national dress / luxury formalwear ($100-450 price range), not
+        # everyday trend fashion — keep as a low-weight/optional source unless
+        # you specifically want a premium-formalwear signal.
+        "domain": "lovisarongs.com",
+        "base_url": "https://lovisarongs.com",
         "primary_style_focus": "Modern Sri Lankan heritage & luxury sarongs",
         "segment": SEGMENT_SPECIALTY_WORKWEAR,
         "ingestion_tier": TIER_1_SHOPIFY,
@@ -266,29 +279,4 @@ SRI_LANKA_TARGET_STORES = [
     #     "ingestion_tier": TIER_1_SHOPIFY,
     #     "target_endpoints": ["/products.json?limit=250"],
     # },
-    {
-        "brand_name": "Amante",
-        "domain": "amante.lk",
-        "base_url": "https://amante.lk",
-        "primary_style_focus": "Loungewear, activewear, intimates",
-        "segment": SEGMENT_SPECIALTY_WORKWEAR,
-        "ingestion_tier": TIER_1_SHOPIFY,
-        "target_endpoints": ["/products.json?limit=250"],
-    },
 ]
-
-
-def get_stores_by_tier(tier: str) -> list[dict]:
-    """Return all configured target stores matching a specific ingestion tier."""
-    return [
-        store
-        for store in SRI_LANKA_TARGET_STORES
-        if store.get("ingestion_tier") == tier
-    ]
-
-
-def get_stores_by_segment(segment: str) -> list[dict]:
-    """Return all target stores in a specific market segment."""
-    return [
-        store for store in SRI_LANKA_TARGET_STORES if store.get("segment") == segment
-    ]
