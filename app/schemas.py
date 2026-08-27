@@ -7,7 +7,6 @@ class ProductCreate(BaseModel):
     item_id: str
     title: str
     category: str
-    subcategory: Optional[str] = None
 
     color: Optional[List[str]] = []
     style: Optional[List[str]] = []
@@ -19,7 +18,6 @@ class ProductCreate(BaseModel):
     material: Optional[str] = None
     pattern: Optional[str] = None
     fit_type: Optional[str] = None
-    target_gender: Optional[str] = None
 
     image_url: Optional[str] = None
     product_url: Optional[str] = None

@@ -54,7 +54,8 @@ KNOWN_MATERIALS = {
     "lace", "knit", "jersey", "viscose", "rayon", "nylon", "spandex", "crepe",
     "polyester", "wool", "cashmere", "corduroy", "suede", "organza", "tulle",
     "georgette", "modal", "fleece", "twill", "canvas", "chambray", "lycra",
-    "cotton blend", "faux leather", "vegan leather",
+    "cotton blend", "faux leather", "vegan leather", "tencel", "rib fabric",
+    "ribbed", "ponte", "scuba", "neoprene", "elastane",
 }
 
 
@@ -63,11 +64,27 @@ def extract_material(text: str):
     if not text:
         return None
     value = text.lower()
-    # Check 2-word materials first (e.g. "cotton blend") before single words.
-    for material in sorted(KNOWN_MATERIALS, key=len, reverse=True):
-        if material in value:
-            return material.title()
-    return None
+
+    # Composition strings (e.g. "70% Cotton, 27% Nylon, 3% Spandex") state the
+    # dominant fabric via its percentage — use that, not "longest keyword
+    # anywhere in the string" (which would wrongly pick "Spandex" at 3% over
+    # "Cotton" at 70%, since it's the longer word).
+    pct_matches = re.findall(r"(\d{1,3})\s*%\s*([A-Za-z][A-Za-z\s]{2,20})", value)
+    if pct_matches:
+        pct_matches.sort(key=lambda m: int(m[0]), reverse=True)
+        for _, candidate_text in pct_matches:
+            for material in sorted(KNOWN_MATERIALS, key=len, reverse=True):
+                if material in candidate_text:
+                    return material.title()
+
+    # No percentages found — fall back to the first known material word as it
+    # actually appears in the text (leftmost), not sorted by keyword length.
+    best_pos, best_material = None, None
+    for material in KNOWN_MATERIALS:
+        pos = value.find(material)
+        if pos != -1 and (best_pos is None or pos < best_pos):
+            best_pos, best_material = pos, material
+    return best_material.title() if best_material else None
 
 
 def _call_gemini_mapping(mapping_key: str, garment: dict, raw_cat: str, raw_color: str, raw_pattern: str):
@@ -358,8 +375,12 @@ def ingest_garments(latest_only: bool = False, wipe_db: bool = False, use_gemini
                     garment.get("description", ""),
                 ])
                 # Store-written spec sheet wins if present — it's the store telling
-                # us the answer directly, not a keyword guess.
-                material = str(garment.get("desc_material", "")).strip() or extract_material(material_text)
+                # us the answer directly — but still normalize it to our known
+                # material vocabulary so "70% Cotton, 27% Nylon, 3% Spandex" and
+                # "100% Cotton" both collapse to "Cotton" instead of fragmenting
+                # into distinct trend attributes.
+                desc_material_raw = str(garment.get("desc_material", "")).strip()
+                material = extract_material(desc_material_raw) or extract_material(material_text)
                 fit_type = str(garment.get("desc_fit_type", "")).strip() or None
                 style = str(garment.get("desc_style", "")).strip() or None
 

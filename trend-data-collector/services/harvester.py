@@ -11,7 +11,7 @@ from typing import List, Dict, Any
 from services.garment_validator import GarmentValidator
 from services.sitemap_discovery import discover_catalog_urls
 from services.tier1_shopify import execute_tier1_shopify_json
-from services.tier2_jsonld import execute_tier2_json_ld
+from services.tier2_jsonld import execute_tier2_json_ld, execute_tier2_static_detail_scrape
 from services.tier3_smart_dom import execute_tier3_smart_dom_async
 
 # Ensure public re-exports are available for backwards compatibility with existing pipelines
@@ -89,6 +89,21 @@ def harvest_store_catalog(store_config: Dict[str, Any]) -> List[Dict[str, Any]]:
                 return garments
         except Exception as err:
             logger.debug(f"   [Tier 2] Error encountered on {brand}: {err}")
+
+    # -------------------------------------------------------------------------
+    # STEP 3b: Tier 2 Static Detail-Page Scrape (no JSON-LD, but still plain
+    # server-rendered HTML — cheaper and more reliable than a full browser
+    # render whenever it applies, e.g. GreenCloudPOS-based storefronts).
+    # -------------------------------------------------------------------------
+    if not garments:
+        try:
+            logger.info(f"   [Tier 2b] Trying static listing->detail page scrape on {brand}...")
+            garments = execute_tier2_static_detail_scrape(store_config, sitemap_urls=sitemap_urls)
+            if len(garments) >= 3:
+                logger.info(f"   ---> [Success] Tier 2b acquired {len(garments)} validated garments.")
+                return garments
+        except Exception as err:
+            logger.debug(f"   [Tier 2b] Error encountered on {brand}: {err}")
 
     # -------------------------------------------------------------------------
     # STEP 4: Tier 3 Autonomous AI Scraper (Gemini Flash) & Smart DOM Parsing

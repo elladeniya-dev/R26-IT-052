@@ -50,6 +50,17 @@ SRI_LANKA_TARGET_STORES = [
         "target_endpoints": ["/new-arrivals", "/dresses", "/shop"],
     },
     {
+        "brand_name": "Carnage",
+        # ADDED: vetted via check_store_candidate.py — Shopify confirmed,
+        # 85% material spec-sheet coverage, 95% structured variant color.
+        "domain": "incarnage.com",
+        "base_url": "https://incarnage.com",
+        "primary_style_focus": "Athleisure, activewear, seamless gym sets",
+        "segment": SEGMENT_HIGH_VELOCITY_BOUTIQUES,
+        "ingestion_tier": TIER_1_SHOPIFY,
+        "target_endpoints": ["/products.json?limit=250"],
+    },
+    {
         "brand_name": "Arienti",
         "domain": "arienti.lk",
         "base_url": "https://arienti.lk",
