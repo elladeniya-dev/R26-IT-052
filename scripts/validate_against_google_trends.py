@@ -126,7 +126,7 @@ def run(top_n: int = 8):
         print(f"  {keyword:<20} [{r['attribute_type']}] our_score={r['trend_score']}  "
               f"google_trends({geo_used})={trend_direction} ({result['change_pct']:+.1f}% recent vs prior)  -> {agreement}")
 
-    print(f"\n=== Summary ===")
+    print("\n=== Summary ===")
     print(f"Real search interest AGREES our system's 'rising' flag: {agree}")
     print(f"Real search interest DISAGREES: {disagree}")
     print(f"No usable external signal (too low search volume): {no_signal}")

@@ -223,6 +223,7 @@ class TrendMLPredictionService:
         category/colors/patterns "outfit" shape this endpoint returns.
         """
         from app.pipeline.trend_shape_template import get_rising_sl_attributes, load_template, forecast_with_template
+        from app.pipeline.ml_taxonomy import HM_CATEGORIES
 
         template = load_template()
         if template is None:
@@ -235,12 +236,21 @@ class TrendMLPredictionService:
         if not rising_categories:
             return []
 
+        # calculate_trend_signals() lowercases attribute_value before it's
+        # persisted to TrendSignal (app/services/trend_analysis_service.py),
+        # but Product.ml_category — what get_grounded_attributes() below
+        # matches against — is always an exact HM_CATEGORIES string (e.g.
+        # "Vest top"). Restore that exact casing here or the lift grounding
+        # silently matches nothing and every result gets colors=["Unknown"].
+        canonical_casing = {c.lower(): c for c in HM_CATEGORIES}
+
         results = []
         for r in rising_categories[:top_k]:
             projection = forecast_with_template(r["current_count"], template)
             predicted_change = round(float(projection[-1] - r["current_count"]), 1)
+            category = canonical_casing.get(str(r["attribute_value"]).lower(), r["attribute_value"])
             results.append({
-                "category": r["attribute_value"],
+                "category": category,
                 "predicted_change": predicted_change,
                 "model_type": "Shape-Template Projection (real H&M rise curve, applied to live SL trend_score) + Lift-Filtered Grounding",
             })

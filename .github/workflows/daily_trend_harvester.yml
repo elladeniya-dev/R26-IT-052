@@ -100,22 +100,20 @@ jobs:
             python app/pipeline/joint_trend_forecast.py
           fi
 
+      # NOTE: an "Auto-Commit Updated JSON Datasets to Repository" step used
+      # to live here (git add output/ + commit + push). It never actually
+      # committed anything — .gitignore's blanket `*.json` rule silently
+      # dropped everything under output/ from every `git add`, so the step
+      # always hit the "No changes in extracted data to commit" branch. Since
+      # that data is real and needed elsewhere, it's kept two other ways:
+      # this 90-day artifact upload, and Postgres itself (the actual system
+      # of record via app/pipeline/ingest_garments_etl.py below). Making the
+      # commit step actually work would mean committing several MB of raw
+      # scrape JSON to git every single day — not something worth doing just
+      # because the step existed; removed instead of "fixed" for that reason.
       - name: Upload Downloadable Backup Artifact (ZIP Bundle)
         uses: actions/upload-artifact@v4
         with:
           name: outfitiq-trend-data-${{ github.run_id }}
           path: trend-data-collector/output/
           retention-days: 90
-
-      - name: Auto-Commit Updated JSON Datasets to Repository
-        working-directory: ./trend-data-collector
-        run: |
-          git config --local user.email "actions@github.com"
-          git config --local user.name "GitHub Actions Bot"
-          git add output/ || true
-          if git diff --staged --quiet; then
-            echo "No changes in extracted data to commit."
-          else
-            git commit -m "chore(data): automated daily trend collection snapshot [skip ci]"
-            git push origin HEAD:${{ github.ref }}
-          fi

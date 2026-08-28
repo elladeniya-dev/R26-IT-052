@@ -38,10 +38,12 @@ def analyze_trends(db: Session = Depends(get_db)):
             detail="No observations found in current or previous analysis windows.",
         )
 
+    # Wipe ALL prior "weekly" rows, not just an exact start/end match — every
+    # consumer only ever reads the single latest window, so an older window
+    # left behind by a previous run is pure staleness (see the identical fix
+    # and rationale in app/pipeline/compute_trend_signals.py).
     db.query(models.TrendSignal).filter(
         models.TrendSignal.time_window == "weekly",
-        models.TrendSignal.start_date == current_start,
-        models.TrendSignal.end_date == current_end,
     ).delete(synchronize_session=False)
 
     for item in analyzed_results:
@@ -77,8 +79,16 @@ def analyze_trends(db: Session = Depends(get_db)):
 
 @router.get("/trends")
 def get_all_trends(db: Session = Depends(get_db)):
+    # Excludes attribute_type="joint_forecast" rows (written by
+    # app/pipeline/joint_trend_forecast.py with time_window="weekly_forecast"
+    # and end_date=now() at persist time). Those rows use a completely
+    # different schema — trend_score there is a raw predicted count-delta,
+    # not the normalized 0-1 score this endpoint's consumers expect — and
+    # since they're persisted later in the same pipeline run, their end_date
+    # would otherwise always outrank the real "weekly" window here.
     latest_trend = (
         db.query(models.TrendSignal)
+        .filter(models.TrendSignal.time_window == "weekly")
         .order_by(models.TrendSignal.end_date.desc())
         .first()
     )
@@ -117,8 +127,10 @@ def get_all_trends(db: Session = Depends(get_db)):
 
 @router.get("/trends/history")
 def get_trend_history(db: Session = Depends(get_db)):
+    # Excludes joint_forecast rows — see the comment in get_all_trends() above.
     all_trends = (
         db.query(models.TrendSignal)
+        .filter(models.TrendSignal.time_window == "weekly")
         .order_by(
             models.TrendSignal.end_date.desc(),
             models.TrendSignal.trend_score.desc(),
@@ -143,8 +155,10 @@ def get_trends_by_attribute_type(
     attribute_type: str,
     db: Session = Depends(get_db),
 ):
+    # Excludes joint_forecast rows — see the comment in get_all_trends() above.
     latest_trend = (
         db.query(models.TrendSignal)
+        .filter(models.TrendSignal.time_window == "weekly")
         .order_by(models.TrendSignal.end_date.desc())
         .first()
     )

@@ -18,8 +18,15 @@ router = APIRouter(tags=["Trend Insights"])
 
 @router.get("/trend-insights", response_model=schemas.TrendInsightsResponse)
 def get_trend_insights(db: Session = Depends(get_db)):
+    # Excludes attribute_type="joint_forecast" rows (time_window=
+    # "weekly_forecast", end_date=now() at persist time — see the identical
+    # comment in app/routers/trends.py's get_all_trends()). Those rows use a
+    # different schema (trend_score is a raw predicted-count-delta, not a
+    # normalized 0-1 score) and would otherwise always outrank the real
+    # "weekly" window here since they're persisted later in the pipeline run.
     latest_trend = (
         db.query(models.TrendSignal)
+        .filter(models.TrendSignal.time_window == "weekly")
         .order_by(models.TrendSignal.end_date.desc())
         .first()
     )

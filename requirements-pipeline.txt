@@ -7,6 +7,7 @@
 # runtime benefit. Used by the GitHub Actions daily harvest workflow, not
 # by `render.yaml`.
 -r requirements.txt
+pytest>=8.0.0
 joblib==1.5.3
 scikit-learn==1.6.1
 scipy==1.17.1
