@@ -98,40 +98,46 @@ def _score_user_match(
     return round(score, 4), tags
 
 
+def _load_trend_signal_lookup(db: Session, attribute_type: str) -> Dict[str, float]:
+    """One query per attribute_type, not one per candidate product — avoided an
+    N+1 query bug that made this endpoint take ~20s against ~200 candidates
+    (well past the Flutter client's 15s request timeout, verified while
+    testing the real app end-to-end)."""
+    rows = (
+        db.query(TrendSignal.attribute_value, func.max(TrendSignal.trend_score))
+        .filter(
+            TrendSignal.time_window == "weekly",
+            TrendSignal.attribute_type == attribute_type,
+        )
+        .group_by(TrendSignal.attribute_value)
+        .all()
+    )
+    return {value: score for value, score in rows}
+
+
 def _score_trend_alignment(
-    db: Session, mapped_category: str, mapped_colors: List[str]
+    category_signals: Dict[str, float],
+    color_signals: Dict[str, float],
+    mapped_category: str,
+    mapped_colors: List[str],
 ) -> tuple[float, List[str]]:
     tags: List[str] = []
     scores: List[float] = []
 
-    category_signal = (
-        db.query(func.max(TrendSignal.trend_score))
-        .filter(
-            TrendSignal.time_window == "weekly",
-            TrendSignal.attribute_type == "category",
-            TrendSignal.attribute_value == mapped_category.lower(),
-        )
-        .scalar()
-    )
+    category_signal = category_signals.get(mapped_category.lower())
     if category_signal is not None:
         scores.append(category_signal)
         if category_signal >= 0.55:
             tags.append(f"Currently a trending category (score {category_signal:.2f})")
 
-    if mapped_colors:
-        color_signal = (
-            db.query(func.max(TrendSignal.trend_score))
-            .filter(
-                TrendSignal.time_window == "weekly",
-                TrendSignal.attribute_type == "color",
-                TrendSignal.attribute_value.in_([c.lower() for c in mapped_colors]),
-            )
-            .scalar()
-        )
-        if color_signal is not None:
-            scores.append(color_signal)
-            if color_signal >= 0.55:
-                tags.append(f"Trending color right now (score {color_signal:.2f})")
+    matched_color_signals = [
+        color_signals[c.lower()] for c in mapped_colors if c.lower() in color_signals
+    ]
+    if matched_color_signals:
+        color_signal = max(matched_color_signals)
+        scores.append(color_signal)
+        if color_signal >= 0.55:
+            tags.append(f"Trending color right now (score {color_signal:.2f})")
 
     score = round(sum(scores) / len(scores), 4) if scores else 0.0
     return score, tags
@@ -166,6 +172,8 @@ def get_recommendations(
     max_results: int,
 ) -> List[Dict[str, Any]]:
     candidates = _fetch_candidates(koji_db, price_min, price_max)
+    category_signals = _load_trend_signal_lookup(db, "category")
+    color_signals = _load_trend_signal_lookup(db, "color")
 
     results = []
     for product in candidates:
@@ -177,7 +185,9 @@ def get_recommendations(
             product, mapped_category, mapped_colors,
             preferred_categories, preferred_colors, preferred_styles, preferred_brands,
         )
-        ml_similarity_score, trend_tags = _score_trend_alignment(db, mapped_category, mapped_colors)
+        ml_similarity_score, trend_tags = _score_trend_alignment(
+            category_signals, color_signals, mapped_category, mapped_colors
+        )
         quality_score = _score_quality(product)
 
         final_score = round(
