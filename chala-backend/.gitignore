@@ -17,3 +17,5 @@ __pycache__/
 
 # Temporary Google login test page
 google-test.html
+
+venv_old/

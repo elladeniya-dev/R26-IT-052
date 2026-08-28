@@ -96,15 +96,11 @@ class _OnboardingScreenState extends State<OnboardingScreen> {
   ];
 
   final List<String> _brands = [
-    'Gflock',
-    'Carnage',
-    'Nolimit',
-    'Kelly Felder',
-    'H&M',
-    'Zara',
-    'Lacoste',
-    'Ralph Lauren',
-    'No specific brand',
+  'Gflock',
+  'Carnage',
+  'Nolimit',
+  'Kelly Felder',
+  'No specific brand',
   ];
 
   bool get _canGoNext {

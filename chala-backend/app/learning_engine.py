@@ -100,14 +100,19 @@ def calculate_learned_preferences(
     products_by_id: dict,
 ) -> dict:
     """
-    Learns category, color, style and brand preferences
-    from interaction strength and interaction recency.
+    Learns category, color, style, brand and occasion
+    preferences from interaction strength
+    and interaction recency.
     """
 
     category_scores = defaultdict(float)
     color_scores = defaultdict(float)
     style_scores = defaultdict(float)
     brand_scores = defaultdict(float)
+
+    # NEW:
+    # Stores dynamically learned occasion scores.
+    occasion_scores = defaultdict(float)
 
     for interaction in interactions:
         product = products_by_id.get(
@@ -134,11 +139,19 @@ def calculate_learned_preferences(
             * recency_factor
         )
 
+        # ----------------------------------------------------
+        # CATEGORY
+        # ----------------------------------------------------
+
         add_weight(
             category_scores,
             product.category,
             effective_value,
         )
+
+        # ----------------------------------------------------
+        # COLOR
+        # ----------------------------------------------------
 
         add_weight(
             color_scores,
@@ -146,11 +159,19 @@ def calculate_learned_preferences(
             effective_value,
         )
 
+        # ----------------------------------------------------
+        # STYLE
+        # ----------------------------------------------------
+
         add_weight(
             style_scores,
             product.style,
             effective_value,
         )
+
+        # ----------------------------------------------------
+        # BRAND
+        # ----------------------------------------------------
 
         add_weight(
             brand_scores,
@@ -158,18 +179,36 @@ def calculate_learned_preferences(
             effective_value,
         )
 
+        # ----------------------------------------------------
+        # OCCASION
+        # ----------------------------------------------------
+
+        add_weight(
+            occasion_scores,
+            product.occasions,
+            effective_value,
+        )
+
     return {
         "category_weights": normalize_weights(
             category_scores
         ),
+
         "color_weights": normalize_weights(
             color_scores
         ),
+
         "style_weights": normalize_weights(
             style_scores
         ),
+
         "brand_weights": normalize_weights(
             brand_scores
+        ),
+
+        # NEW
+        "occasion_weights": normalize_weights(
+            occasion_scores
         ),
     }
 

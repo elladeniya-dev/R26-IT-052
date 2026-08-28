@@ -1,0 +1,38 @@
+{
+    "model_name": "OutfitIQ User Preference Expansion Model",
+    "model_type": "Multi-label Logistic Regression",
+    "classification_strategy": "One-vs-Rest",
+    "regularization": "L2",
+    "C": 1.0,
+    "input_feature_count": 45,
+    "output_label_count": 64,
+    "original_training_users": 2439,
+    "augmented_training_rows": 7317,
+    "excluded_labels": [
+        "category_Hoodies",
+        "style_Modest"
+    ],
+    "final_policy": {
+        "color": {
+            "method": "probability",
+            "top_k": 1
+        },
+        "category": {
+            "method": "uplift",
+            "top_k": 2
+        },
+        "style": {
+            "method": "uplift",
+            "top_k": 1
+        },
+        "occasion": {
+            "method": "none",
+            "top_k": 0
+        }
+    },
+    "final_test_users": 431,
+    "final_test_precision": 0.5483,
+    "final_test_recall": 0.1192,
+    "final_test_hit_rate": 0.9196,
+    "important_note": "Final test metrics were measured using the frozen model/policy before the production refit on train + validation."
+}

@@ -18,10 +18,33 @@ class _MyCurrentPreferencesScreenState
   bool _isLoading = true;
   String? _errorMessage;
 
+  // =========================================================
+  // CURRENT DYNAMIC PREFERENCE SCORES
+  // =========================================================
+
   Map<String, dynamic> _categoryScores = {};
   Map<String, dynamic> _colorScores = {};
   Map<String, dynamic> _styleScores = {};
   Map<String, dynamic> _brandScores = {};
+
+  // =========================================================
+  // ML EXPANSIONS
+  // =========================================================
+
+  List<Map<String, dynamic>> _mlColors = [];
+  List<Map<String, dynamic>> _mlCategories = [];
+  List<Map<String, dynamic>> _mlStyles = [];
+
+  // =========================================================
+  // FINAL ENRICHED PREFERENCES
+  // =========================================================
+
+  List<String> _enrichedColors = [];
+  List<String> _enrichedCategories = [];
+  List<String> _enrichedStyles = [];
+  List<String> _occasions = [];
+  List<String> _choicePriorities = [];
+  List<String> _preferredBrands = [];
 
   @override
   void initState() {
@@ -29,27 +52,100 @@ class _MyCurrentPreferencesScreenState
     _loadCurrentPreferences();
   }
 
+  // =========================================================
+  // LOAD CURRENT + ML-ENRICHED PROFILE
+  // =========================================================
+
   Future<void> _loadCurrentPreferences() async {
     try {
       final Map<String, dynamic> data =
-          await _profileService.getCurrentPreferences();
+          await _profileService
+              .getEnrichedCurrentPreferences();
+
+      final Map<String, dynamic> currentPreferences =
+          _toMap(
+        data['current_preferences'],
+      );
+
+      final Map<String, dynamic> mlExpansions =
+          _toMap(
+        data['ml_expansions'],
+      );
+
+      final Map<String, dynamic> enrichedPreferences =
+          _toMap(
+        data['enriched_preferences'],
+      );
 
       if (!mounted) {
         return;
       }
 
       setState(() {
-        _categoryScores =
-            _toMap(data['category_scores']);
+        // -------------------------------------------------
+        // Dynamic preferences
+        // -------------------------------------------------
 
-        _colorScores =
-            _toMap(data['color_scores']);
+        _categoryScores = _toMap(
+          currentPreferences['category_scores'],
+        );
 
-        _styleScores =
-            _toMap(data['style_scores']);
+        _colorScores = _toMap(
+          currentPreferences['color_scores'],
+        );
 
-        _brandScores =
-            _toMap(data['brand_scores']);
+        _styleScores = _toMap(
+          currentPreferences['style_scores'],
+        );
+
+        _brandScores = _toMap(
+          currentPreferences['brand_scores'],
+        );
+
+        // -------------------------------------------------
+        // ML additions
+        // -------------------------------------------------
+
+        _mlColors = _toListOfMaps(
+          mlExpansions['colors'],
+        );
+
+        _mlCategories = _toListOfMaps(
+          mlExpansions['categories'],
+        );
+
+        _mlStyles = _toListOfMaps(
+          mlExpansions['styles'],
+        );
+
+        // -------------------------------------------------
+        // Final enriched profile
+        // -------------------------------------------------
+
+        _enrichedColors = _toStringList(
+          enrichedPreferences['preferred_colors'],
+        );
+
+        _enrichedCategories = _toStringList(
+          enrichedPreferences[
+              'preferred_categories'],
+        );
+
+        _enrichedStyles = _toStringList(
+          enrichedPreferences['preferred_styles'],
+        );
+
+        _occasions = _toStringList(
+          enrichedPreferences['occasions'],
+        );
+
+       // _choicePriorities = _toStringList(
+       //   enrichedPreferences['choice_priorities'],
+       // );
+
+        _preferredBrands = _toStringList(
+          enrichedPreferences['preferred_brands'],
+        );
 
         _isLoading = false;
         _errorMessage = null;
@@ -75,6 +171,10 @@ class _MyCurrentPreferencesScreenState
     await _loadCurrentPreferences();
   }
 
+  // =========================================================
+  // BUILD SCREEN
+  // =========================================================
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -91,8 +191,7 @@ class _MyCurrentPreferencesScreenState
                 child: SingleChildScrollView(
                   physics:
                       const AlwaysScrollableScrollPhysics(),
-                  padding:
-                      const EdgeInsets.fromLTRB(
+                  padding: const EdgeInsets.fromLTRB(
                     20,
                     16,
                     20,
@@ -117,6 +216,10 @@ class _MyCurrentPreferencesScreenState
       ),
     );
   }
+
+  // =========================================================
+  // HEADER
+  // =========================================================
 
   Widget _buildHeader(BuildContext context) {
     return Padding(
@@ -152,6 +255,10 @@ class _MyCurrentPreferencesScreenState
     );
   }
 
+  // =========================================================
+  // TOP INFORMATION CARD
+  // =========================================================
+
   Widget _buildInfoCard() {
     return Container(
       width: double.infinity,
@@ -176,7 +283,7 @@ class _MyCurrentPreferencesScreenState
                   CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Your Current Fashion Likes',
+                  'Your Dynamic Fashion Profile',
                   style: TextStyle(
                     fontSize: 17,
                     fontWeight: FontWeight.bold,
@@ -187,7 +294,7 @@ class _MyCurrentPreferencesScreenState
                 SizedBox(height: 5),
 
                 Text(
-                  'These preferences combine your onboarding choices with what OutfitIQ has learned from your activity.',
+                  'Your onboarding choices and activity are continuously combined, then enriched using the OutfitIQ preference model.',
                   style: TextStyle(
                     fontSize: 13,
                     height: 1.4,
@@ -202,12 +309,19 @@ class _MyCurrentPreferencesScreenState
     );
   }
 
+  // =========================================================
+  // MAIN CONTENT
+  // =========================================================
+
   Widget _buildContent() {
     if (_isLoading) {
       return _buildContainer(
         child: const Center(
-          child: CircularProgressIndicator(
-            color: AppTheme.primaryColor,
+          child: Padding(
+            padding: EdgeInsets.all(20),
+            child: CircularProgressIndicator(
+              color: AppTheme.primaryColor,
+            ),
           ),
         ),
       );
@@ -215,12 +329,25 @@ class _MyCurrentPreferencesScreenState
 
     if (_errorMessage != null) {
       return _buildContainer(
-        child: Text(
-          _errorMessage!,
-          style: const TextStyle(
-            fontSize: 13,
-            color: Color(0xFFEF4444),
-          ),
+        child: Column(
+          children: [
+            const Icon(
+              Icons.error_outline_rounded,
+              color: Color(0xFFEF4444),
+              size: 30,
+            ),
+
+            const SizedBox(height: 10),
+
+            Text(
+              _errorMessage!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 13,
+                color: Color(0xFFEF4444),
+              ),
+            ),
+          ],
         ),
       );
     }
@@ -262,7 +389,20 @@ class _MyCurrentPreferencesScreenState
     }
 
     return Column(
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
       children: [
+        // -------------------------------------------------
+        // CURRENT DYNAMIC PROFILE
+        // -------------------------------------------------
+
+        _buildSectionTitle(
+          'Current Learned Profile',
+          'Built from onboarding and your interactions.',
+        ),
+
+        const SizedBox(height: 12),
+
         _buildSummaryCard(),
 
         const SizedBox(height: 14),
@@ -296,9 +436,78 @@ class _MyCurrentPreferencesScreenState
           icon: Icons.local_offer_outlined,
           scores: _brandScores,
         ),
+
+        const SizedBox(height: 24),
+
+        // -------------------------------------------------
+        // ML EXPANSION
+        // -------------------------------------------------
+
+        _buildSectionTitle(
+          'ML Preference Expansion',
+          'New preferences predicted from your current profile.',
+        ),
+
+        const SizedBox(height: 12),
+
+        _buildMLExpansionCard(),
+
+        const SizedBox(height: 24),
+
+        // -------------------------------------------------
+        // FINAL ENRICHED PROFILE
+        // -------------------------------------------------
+
+        _buildSectionTitle(
+          'Final Enriched Profile',
+          'The final preference profile that can be used by the recommendation system.',
+        ),
+
+        const SizedBox(height: 12),
+
+        _buildEnrichedProfileCard(),
       ],
     );
   }
+
+  // =========================================================
+  // SECTION HEADING
+  // =========================================================
+
+  Widget _buildSectionTitle(
+    String title,
+    String subtitle,
+  ) {
+    return Column(
+      crossAxisAlignment:
+          CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 17,
+            fontWeight: FontWeight.bold,
+            color: AppTheme.darkTextColor,
+          ),
+        ),
+
+        const SizedBox(height: 4),
+
+        Text(
+          subtitle,
+          style: const TextStyle(
+            fontSize: 12,
+            height: 1.4,
+            color: AppTheme.lightTextColor,
+          ),
+        ),
+      ],
+    );
+  }
+
+  // =========================================================
+  // CURRENT PREFERENCE SUMMARY
+  // =========================================================
 
   Widget _buildSummaryCard() {
     return _buildContainer(
@@ -353,6 +562,318 @@ class _MyCurrentPreferencesScreenState
     );
   }
 
+  // =========================================================
+  // ML EXPANSION CARD
+  // =========================================================
+
+  Widget _buildMLExpansionCard() {
+    final bool hasMLData =
+        _mlColors.isNotEmpty ||
+        _mlCategories.isNotEmpty ||
+        _mlStyles.isNotEmpty;
+
+    return _buildContainer(
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              const Icon(
+                Icons.psychology_alt_outlined,
+                color: AppTheme.primaryColor,
+                size: 24,
+              ),
+
+              const SizedBox(width: 10),
+
+              const Expanded(
+                child: Text(
+                  'Model-Added Preferences',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.darkTextColor,
+                  ),
+                ),
+              ),
+
+              Container(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 9,
+                  vertical: 5,
+                ),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F5F2),
+                  borderRadius:
+                      BorderRadius.circular(20),
+                ),
+                child: const Text(
+                  'ML',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 15),
+
+          if (!hasMLData)
+            const Text(
+              'No additional ML preferences were added.',
+              style: TextStyle(
+                fontSize: 13,
+                color: AppTheme.lightTextColor,
+              ),
+            ),
+
+          if (_mlCategories.isNotEmpty)
+            _buildMLGroup(
+              title: 'Categories',
+              items: _mlCategories,
+            ),
+
+          if (_mlColors.isNotEmpty)
+            _buildMLGroup(
+              title: 'Colors',
+              items: _mlColors,
+            ),
+
+          if (_mlStyles.isNotEmpty)
+            _buildMLGroup(
+              title: 'Styles',
+              items: _mlStyles,
+            ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildMLGroup({
+    required String title,
+    required List<Map<String, dynamic>> items,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(
+        bottom: 14,
+      ),
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.lightTextColor,
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: items.map(
+              (item) {
+                final String preference =
+                    item['preference']
+                            ?.toString() ??
+                        '';
+
+                return Container(
+                  padding:
+                      const EdgeInsets.symmetric(
+                    horizontal: 11,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color:
+                        const Color(0xFFE8F5F2),
+                    borderRadius:
+                        BorderRadius.circular(20),
+                    border: Border.all(
+                      color:
+                          const Color(0xFFB2DFDB),
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize:
+                        MainAxisSize.min,
+                    children: [
+                      const Icon(
+                        Icons.auto_awesome_rounded,
+                        size: 14,
+                        color:
+                            AppTheme.primaryColor,
+                      ),
+
+                      const SizedBox(width: 5),
+
+                      Text(
+                        preference,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          fontWeight:
+                              FontWeight.w600,
+                          color:
+                              AppTheme.primaryColor,
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =========================================================
+  // FINAL ENRICHED PROFILE
+  // =========================================================
+
+  Widget _buildEnrichedProfileCard() {
+    return _buildContainer(
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+        children: [
+          const Row(
+            children: [
+              Icon(
+                Icons.auto_awesome_rounded,
+                color: AppTheme.primaryColor,
+                size: 23,
+              ),
+
+              SizedBox(width: 9),
+
+              Expanded(
+                child: Text(
+                  'Final Preference Profile',
+                  style: TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.darkTextColor,
+                  ),
+                ),
+              ),
+            ],
+          ),
+
+          const SizedBox(height: 16),
+
+          _buildPreferenceChipGroup(
+            title: 'Categories',
+            values: _enrichedCategories,
+          ),
+
+          _buildPreferenceChipGroup(
+            title: 'Colors',
+            values: _enrichedColors,
+          ),
+
+          _buildPreferenceChipGroup(
+            title: 'Styles',
+            values: _enrichedStyles,
+          ),
+
+          _buildPreferenceChipGroup(
+            title: 'Occasions',
+            values: _occasions,
+          ),
+
+          _buildPreferenceChipGroup(
+            title: 'Choice Priorities',
+            values: _choicePriorities,
+          ),
+
+          _buildPreferenceChipGroup(
+            title: 'Preferred Brands',
+            values: _preferredBrands,
+            showBottomSpacing: false,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildPreferenceChipGroup({
+    required String title,
+    required List<String> values,
+    bool showBottomSpacing = true,
+  }) {
+    if (values.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return Padding(
+      padding: EdgeInsets.only(
+        bottom: showBottomSpacing ? 16 : 0,
+      ),
+      child: Column(
+        crossAxisAlignment:
+            CrossAxisAlignment.start,
+        children: [
+          Text(
+            title,
+            style: const TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: AppTheme.lightTextColor,
+            ),
+          ),
+
+          const SizedBox(height: 8),
+
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: values.map(
+              (value) {
+                return Container(
+                  padding:
+                      const EdgeInsets.symmetric(
+                    horizontal: 11,
+                    vertical: 7,
+                  ),
+                  decoration: BoxDecoration(
+                    color:
+                        const Color(0xFFF3F4F6),
+                    borderRadius:
+                        BorderRadius.circular(20),
+                  ),
+                  child: Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight:
+                          FontWeight.w600,
+                      color:
+                          AppTheme.darkTextColor,
+                    ),
+                  ),
+                );
+              },
+            ).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // =========================================================
+  // COMMON CONTAINER
+  // =========================================================
+
   Widget _buildContainer({
     required Widget child,
   }) {
@@ -361,13 +882,20 @@ class _MyCurrentPreferencesScreenState
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius:
+            BorderRadius.circular(18),
       ),
       child: child,
     );
   }
 
-  Map<String, dynamic> _toMap(dynamic value) {
+  // =========================================================
+  // CONVERSION HELPERS
+  // =========================================================
+
+  Map<String, dynamic> _toMap(
+    dynamic value,
+  ) {
     if (value == null) {
       return {};
     }
@@ -377,10 +905,45 @@ class _MyCurrentPreferencesScreenState
     }
 
     if (value is Map) {
-      return Map<String, dynamic>.from(value);
+      return Map<String, dynamic>.from(
+        value,
+      );
     }
 
     return {};
+  }
+
+  List<Map<String, dynamic>>
+      _toListOfMaps(
+    dynamic value,
+  ) {
+    if (value is! List) {
+      return [];
+    }
+
+    return value
+        .whereType<Map>()
+        .map(
+          (item) =>
+              Map<String, dynamic>.from(
+            item,
+          ),
+        )
+        .toList();
+  }
+
+  List<String> _toStringList(
+    dynamic value,
+  ) {
+    if (value is! List) {
+      return [];
+    }
+
+    return value
+        .map(
+          (item) => item.toString(),
+        )
+        .toList();
   }
 
   String _getTopValue(
@@ -390,18 +953,26 @@ class _MyCurrentPreferencesScreenState
       return 'Not available';
     }
 
-    final entries = scores.entries.toList();
+    final entries =
+        scores.entries.toList();
 
     entries.sort(
-      (a, b) => _toDouble(b.value)
-          .compareTo(
-        _toDouble(a.value),
+      (a, b) => _toDouble(
+        b.value,
+      ).compareTo(
+        _toDouble(
+          a.value,
+        ),
       ),
     );
 
     return entries.first.key;
   }
 }
+
+// ===========================================================
+// CURRENT PREFERENCE SCORE SECTION
+// ===========================================================
 
 class _CurrentPreferenceSection
     extends StatelessWidget {
@@ -444,12 +1015,16 @@ class _CurrentPreferenceSection
       );
     }
 
-    final entries = scores.entries.toList();
+    final entries =
+        scores.entries.toList();
 
     entries.sort(
-      (a, b) => _toDouble(b.value)
-          .compareTo(
-        _toDouble(a.value),
+      (a, b) => _toDouble(
+        b.value,
+      ).compareTo(
+        _toDouble(
+          a.value,
+        ),
       ),
     );
 
@@ -514,6 +1089,10 @@ class _CurrentPreferenceSection
   }
 }
 
+// ===========================================================
+// SUMMARY ROW
+// ===========================================================
+
 class _SummaryRow extends StatelessWidget {
   final IconData icon;
   final String label;
@@ -564,6 +1143,10 @@ class _SummaryRow extends StatelessWidget {
     );
   }
 }
+
+// ===========================================================
+// SCORE ROW
+// ===========================================================
 
 class _PreferenceRow extends StatelessWidget {
   final String label;
@@ -622,7 +1205,8 @@ class _PreferenceRow extends StatelessWidget {
               backgroundColor:
                   const Color(0xFFE5E7EB),
               valueColor:
-                  const AlwaysStoppedAnimation<Color>(
+                  const AlwaysStoppedAnimation<
+                      Color>(
                 AppTheme.primaryColor,
               ),
             ),
@@ -632,6 +1216,10 @@ class _PreferenceRow extends StatelessWidget {
     );
   }
 }
+
+// ===========================================================
+// NUMBER HELPER
+// ===========================================================
 
 double _toDouble(dynamic value) {
   if (value == null) {
@@ -644,6 +1232,10 @@ double _toDouble(dynamic value) {
 
   if (value is double) {
     return value;
+  }
+
+  if (value is num) {
+    return value.toDouble();
   }
 
   if (value is String) {

@@ -53,10 +53,19 @@ class OnboardingResponse(BaseModel):
 class LearnedPreferenceResponse(BaseModel):
     learned_id: int
     user_id: int
+
     category_weights: Dict[str, float]
     color_weights: Dict[str, float]
     style_weights: Dict[str, float]
-    brand_weights: Optional[Dict[str, float]] = None
+
+    brand_weights: Optional[
+        Dict[str, float]
+    ] = None
+
+    # NEW
+    occasion_weights: Optional[
+        Dict[str, float]
+    ] = None
 
     class Config:
         from_attributes = True
@@ -64,8 +73,12 @@ class LearnedPreferenceResponse(BaseModel):
 
 class ProfileResponse(BaseModel):
     user: UserResponse
-    onboarding_preferences: Optional[OnboardingResponse] = None
-    learned_preferences: Optional[LearnedPreferenceResponse] = None
+    onboarding_preferences: Optional[
+        OnboardingResponse
+    ] = None
+    learned_preferences: Optional[
+        LearnedPreferenceResponse
+    ] = None
 
 
 class InteractionRequest(BaseModel):
@@ -85,7 +98,6 @@ class InteractionResponse(BaseModel):
         from_attributes = True
 
 
-
 class InteractionHistoryItem(BaseModel):
     interaction_id: int
     item_id: str
@@ -98,6 +110,10 @@ class InteractionHistoryItem(BaseModel):
     color: Optional[List[str]] = None
     style: Optional[List[str]] = None
     brand: Optional[str] = None
+
+    # NEW
+    occasions: Optional[List[str]] = None
+
     image_url: Optional[str] = None
     product_url: Optional[str] = None
 
@@ -120,5 +136,45 @@ class CurrentPreferencesResponse(BaseModel):
     category_scores: Dict[str, float]
     color_scores: Dict[str, float]
     style_scores: Dict[str, float]
+
+    # Keep dynamic Brand
     brand_scores: Dict[str, float]
 
+    # NEW dynamic Occasion
+    occasion_scores: Dict[str, float]
+
+
+class MLExpansionItem(BaseModel):
+    model_feature: str
+    preference: str
+    probability: float
+    uplift: float
+    ranking_method: str
+
+
+class PreferenceValuesResponse(BaseModel):
+    preferred_colors: List[str]
+    preferred_categories: List[str]
+    preferred_styles: List[str]
+    occasions: List[str]
+    choice_priorities: List[str]
+    preferred_brands: List[str]
+
+
+class MLExpansionGroupsResponse(BaseModel):
+    colors: List[MLExpansionItem]
+    categories: List[MLExpansionItem]
+    styles: List[MLExpansionItem]
+    occasions: List[MLExpansionItem]
+
+
+class PreferenceExpansionResponse(BaseModel):
+    original_preferences: PreferenceValuesResponse
+    ml_expansions: MLExpansionGroupsResponse
+    enriched_preferences: PreferenceValuesResponse
+
+
+class EnrichedCurrentPreferencesResponse(BaseModel):
+    current_preferences: CurrentPreferencesResponse
+    ml_expansions: MLExpansionGroupsResponse
+    enriched_preferences: PreferenceValuesResponse

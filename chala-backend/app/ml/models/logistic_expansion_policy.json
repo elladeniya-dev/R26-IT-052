@@ -1,0 +1,18 @@
+{
+    "color": {
+        "method": "probability",
+        "top_k": 1
+    },
+    "category": {
+        "method": "uplift",
+        "top_k": 2
+    },
+    "style": {
+        "method": "uplift",
+        "top_k": 1
+    },
+    "occasion": {
+        "method": "none",
+        "top_k": 0
+    }
+}
