@@ -108,5 +108,14 @@ class GarmentValidator:
             "product_type": str(item.get("product_type", "apparel")).strip() or "apparel",
             "source_name": str(item.get("source_name", "Unknown")).strip(),
             "source_type": str(item.get("source_type", "unknown")).strip(),
-            "market_segment": str(item.get("market_segment", "General")).strip()
+            "market_segment": str(item.get("market_segment", "General")).strip(),
+            "variant_color": str(item.get("variant_color", "")).strip(),
+            "description": str(item.get("description", "")).strip(),
+            "image_alt_text": str(item.get("image_alt_text", "")).strip(),
+            "original_price_lkr": round(float(item.get("original_price_lkr") or 0.0), 2),
+            "in_stock": bool(item.get("in_stock", True)),
+            "desc_material": str(item.get("desc_material", "")).strip(),
+            "desc_color": str(item.get("desc_color", "")).strip(),
+            "desc_fit_type": str(item.get("desc_fit_type", "")).strip(),
+            "desc_style": str(item.get("desc_style", "")).strip(),
         }

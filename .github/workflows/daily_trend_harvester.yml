@@ -41,7 +41,7 @@ jobs:
           # Cache covers BOTH requirements files so neither crawler nor ETL reinstalls every day
           cache-dependency-path: |
             trend-data-collector/requirements.txt
-            requirements.txt
+            requirements-pipeline.txt
 
       - name: Install Harvester & Playwright Browser Dependencies
         working-directory: ./trend-data-collector
@@ -51,13 +51,16 @@ jobs:
           pip install -r requirements.txt
           python -m playwright install --with-deps chromium
 
-      # Install the root backend requirements separately so the ETL script can import
-      # from app.core.database and app.models without a ModuleNotFoundError
+      # Install the root backend + pipeline requirements separately so the ETL
+      # script can import from app.core.database and app.models without a
+      # ModuleNotFoundError. Uses requirements-pipeline.txt (GLiNER, LightGBM,
+      # etc.) — the deployed API itself never needs these; see that file's
+      # header comment.
       - name: Install Backend & ETL Dependencies
         working-directory: ./
         run: |
           pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-          pip install -r requirements.txt
+          pip install -r requirements-pipeline.txt
 
       - name: Execute Multi-Tier Harvester Pipeline
         working-directory: ./trend-data-collector
@@ -78,7 +81,23 @@ jobs:
           if [ -z "$DATABASE_URL" ]; then
             echo "[Notice] DATABASE_URL secret not provided. Skipping DB ingestion."
           else
-            python scripts/ingest_garments_etl.py --latest-only
+            python app/pipeline/ingest_garments_etl.py --latest-only
+          fi
+
+      # Without this step, Products accumulates daily but TrendObservation/
+      # TrendSignal never refresh — the API would keep serving stale trends
+      # forever even though new data is being collected every day.
+      - name: Rebuild Trend Observations & Signals
+        working-directory: ./
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "[Notice] DATABASE_URL secret not provided. Skipping trend recomputation."
+          else
+            python app/pipeline/generate_trend_observations.py
+            python app/pipeline/compute_trend_signals.py
+            python app/pipeline/joint_trend_forecast.py
           fi
 
       - name: Upload Downloadable Backup Artifact (ZIP Bundle)

@@ -8,7 +8,6 @@ import argparse
 from pathlib import Path
 from datetime import datetime
 from sqlalchemy.orm import Session
-from sqlalchemy import text
 
 # Only import GLiNER when the script runs to prevent module loading errors if missing
 try:
@@ -16,7 +15,7 @@ try:
 except ImportError:
     GLiNER = None
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from app.core.database import SessionLocal
 from app.models import Product, AttributeMapping
@@ -47,6 +46,124 @@ def is_inappropriate(garment):
         if keyword in combined_text:
             return True
     return False
+
+
+KNOWN_MATERIALS = {
+    "cotton", "linen", "denim", "silk", "satin", "chiffon", "velvet", "leather",
+    "lace", "knit", "jersey", "viscose", "rayon", "nylon", "spandex", "crepe",
+    "polyester", "wool", "cashmere", "corduroy", "suede", "organza", "tulle",
+    "georgette", "modal", "fleece", "twill", "canvas", "chambray", "lycra",
+    "cotton blend", "faux leather", "vegan leather", "tencel", "rib fabric",
+    "ribbed", "ponte", "scuba", "neoprene", "elastane",
+}
+
+# Real fit descriptors are short, categorical phrases — never full sentences.
+# Ordered longest-first so "slim fit" matches before a bare "fit" substring would.
+KNOWN_FIT_TYPES = sorted([
+    "true to size", "regular fit", "relaxed fit", "loose fit", "slim fit",
+    "skinny fit", "straight fit", "tailored fit", "flared fit", "bodycon",
+    "oversized", "loose", "relaxed", "regular", "fitted", "slim", "skinny",
+], key=len, reverse=True)
+
+
+def normalize_fit_type(text: str):
+    """Only accept short, known fit descriptors — reject full-sentence style
+    descriptions that got mislabeled as 'Fit:' by some stores' spec sheets."""
+    if not text:
+        return None
+    value = text.lower().strip()
+    for fit in KNOWN_FIT_TYPES:
+        if fit in value:
+            return fit.title()
+    return None
+
+
+# Real style descriptions are free text ("Short sleeve, Square neck line
+# cropped top") and mostly don't repeat verbatim — but sleeve length and
+# neckline type DO repeat across products (verified: "3/4 Sleeves" x24,
+# "Short Sleeves" x14, "Classic crew neck" x11 in real scraped data). Extract
+# those as controlled tags instead of storing the whole free-text sentence.
+KNOWN_SLEEVE_TYPES = sorted([
+    "sleeveless", "cap sleeve", "short sleeve", "3/4 sleeve", "elbow sleeve",
+    "long sleeve", "puff sleeve", "bell sleeve", "bishop sleeve",
+], key=len, reverse=True)
+
+KNOWN_NECKLINES = sorted([
+    "crew neck", "round neck", "v neck", "v-neck", "square neck",
+    "off shoulder", "off-shoulder", "halter neck", "halter", "sweetheart neckline",
+    "boat neck", "collar", "turtleneck", "cowl neck",
+], key=len, reverse=True)
+
+KNOWN_SILHOUETTES = sorted([
+    "a-line", "a line", "bodycon", "wrap", "shift dress", "empire waist",
+    "fit and flare", "asymmetric",
+], key=len, reverse=True)
+
+_STYLE_TAG_ALIASES = {"A Line": "A-Line"}
+
+
+def normalize_style(text: str) -> list:
+    """Extracts controlled style tags (sleeve length, neckline, silhouette)
+    from a free-text style description. Returns whatever matches — never
+    invents a tag, and a description can legitimately match more than one
+    (a top can have both a sleeve type and a neckline)."""
+    if not text:
+        return []
+    value = text.lower()
+    found = []
+    for vocab in (KNOWN_SLEEVE_TYPES, KNOWN_NECKLINES, KNOWN_SILHOUETTES):
+        for term in vocab:
+            if term in value:
+                tag = term.title().replace("V-Neck", "V Neck").replace("Off-Shoulder", "Off Shoulder")
+                tag = _STYLE_TAG_ALIASES.get(tag, tag)
+                if tag not in found:
+                    found.append(tag)
+                break  # only the first/longest match per vocab category
+    return found
+
+
+def extract_material(text: str):
+    """Free, deterministic material extraction from tags/title/description."""
+    if not text:
+        return None
+    value = text.lower()
+
+    # Composition strings (e.g. "70% Cotton, 27% Nylon, 3% Spandex") state the
+    # dominant fabric via its percentage — use that, not "longest keyword
+    # anywhere in the string" (which would wrongly pick "Spandex" at 3% over
+    # "Cotton" at 70%, since it's the longer word).
+    pct_matches = re.findall(r"(\d{1,3})\s*%\s*([A-Za-z][A-Za-z\s]{2,20})", value)
+    if pct_matches:
+        pct_matches.sort(key=lambda m: int(m[0]), reverse=True)
+        for _, candidate_text in pct_matches:
+            for material in sorted(KNOWN_MATERIALS, key=len, reverse=True):
+                if material in candidate_text:
+                    return material.title()
+
+    # No percentages found — fall back to the first known material word as it
+    # actually appears in the text (leftmost), not sorted by keyword length.
+    best_pos, best_material = None, None
+    for material in KNOWN_MATERIALS:
+        pos = value.find(material)
+        if pos != -1 and (best_pos is None or pos < best_pos):
+            best_pos, best_material = pos, material
+    return best_material.title() if best_material else None
+
+
+def _call_gemini_mapping(mapping_key: str, garment: dict, raw_cat: str, raw_color: str, raw_pattern: str):
+    """Optional, quota-limited refinement on top of the free local mapper. Never required."""
+    import time
+    from app.pipeline.gemini_mapper import map_attributes_with_gemini
+
+    print(f"Refining via Gemini: {mapping_key}...")
+    time.sleep(4)  # 15 RPM limit on free tier => 1 request every 4 seconds
+    return map_attributes_with_gemini(
+        garment.get("title", ""),
+        raw_cat or "Unknown",
+        raw_color or "Unknown",
+        raw_pattern or "Unknown",
+        garment.get("primary_image_url", ""),
+    )
 
 # Known real colors — anything the model extracts MUST contain one of these words to be accepted
 KNOWN_COLORS = {
@@ -117,17 +234,48 @@ def is_valid_color(value: str) -> bool:
     words = value.lower().split()
     if len(words) > 4:
         return False
+    # Reject if any single word is implausibly long for a color name/phrase
+    # (e.g. a glued-together slug like "nolimitcottonrangewomensshirt...").
+    # No real color word exceeds ~12 characters ("turquoise", "off-white").
+    if any(len(w) > 14 for w in words):
+        return False
     # MUST contain at least one known color word — no exceptions
     for word in words:
         clean_word = re.sub(r'[^a-z]', '', word)
         if clean_word in KNOWN_COLORS:
             return True
+
+    # Also accept standard CSS3 color names we haven't hand-curated (e.g.
+    # "crimson", "burlywood") — recognized via actual color-space matching,
+    # not a guess. Widens what counts as "a real color" beyond our ~50-word list.
+    from app.pipeline.color_matcher import match_color_by_distance
+    for word in words:
+        clean_word = re.sub(r'[^a-z]', '', word)
+        if len(clean_word) >= 3 and match_color_by_distance(clean_word):
+            return True
     return False
+
+def _scan_text_for_color(text: str):
+    """Scan free text for a known color word/phrase (2-word phrases like 'Dark Navy' first)."""
+    words = text.lower().split()
+    words_clean = [re.sub(r'[^a-z]', '', w) for w in words if re.sub(r'[^a-z]', '', w)]
+    for i in range(len(words_clean) - 1):
+        phrase = f"{words_clean[i]} {words_clean[i+1]}"
+        if is_valid_color(phrase.title()):
+            return phrase.title()
+    for w in words_clean:
+        if w in KNOWN_COLORS:
+            return w.title()
+    for w in words_clean:
+        if len(w) >= 3 and is_valid_color(w.title()):
+            return w.title()
+    return None
+
 
 def fast_raw_extraction(garment):
     """
-    Fast-path extraction using structured shopify_tags and title scanning.
-    Runs BEFORE NLP to save compute on well-tagged products.
+    Fast-path extraction using structured shopify_tags, title, and image
+    filename scanning. Runs BEFORE NLP to save compute on well-tagged products.
     """
     tags = [str(t).lower().strip() for t in garment.get("shopify_tags", [])]
     ptype = garment.get("product_type", "").lower().strip()
@@ -136,13 +284,35 @@ def fast_raw_extraction(garment):
     color = None
     category = None
 
+    # -1. Store-written spec sheet in the product description (e.g. "Color: Black,
+    # White, Sage Green") — the store telling us directly, highest confidence of all.
+    desc_color = str(garment.get("desc_color", "")).strip()
+    if desc_color:
+        if is_valid_color(desc_color.title()):
+            color = desc_color.title()
+        else:
+            color = _scan_text_for_color(desc_color)
+
+    # 0. Store-declared variant color (Shopify product options) — structured,
+    # store-authored data, higher confidence than anything text-derived.
+    if not color:
+        variant_color = str(garment.get("variant_color", "")).strip()
+        if variant_color:
+            if is_valid_color(variant_color.title()):
+                color = variant_color.title()
+            else:
+                scanned = _scan_text_for_color(variant_color)
+                if scanned:
+                    color = scanned
+
     # 1. Explicit color- prefix tags (e.g. "color-burntorange")
-    for tag in tags:
-        if tag.startswith("color-"):
-            candidate = tag.replace("color-", "").strip().title()
-            if is_valid_color(candidate):
-                color = candidate
-                break
+    if not color:
+        for tag in tags:
+            if tag.startswith("color-"):
+                candidate = tag.replace("color-", "").strip().title()
+                if is_valid_color(candidate):
+                    color = candidate
+                    break
 
     # 2. Tag is exactly a known color (e.g. "blue", "dark blue")
     if not color:
@@ -154,22 +324,16 @@ def fast_raw_extraction(garment):
 
     # 3. Scan the cleaned title for known color words (e.g. "Sora Tee - White", "Acid Blue")
     if not color:
-        words = clean_title(title).lower().split()
-        words_clean = [re.sub(r'[^a-z]', '', w) for w in words]
-        # Try 2-word phrases first (e.g. "Acid Blue", "Dark Navy")
-        for i in range(len(words_clean) - 1):
-            phrase = f"{words_clean[i]} {words_clean[i+1]}"
-            if is_valid_color(phrase.title()):
-                color = phrase.title()
-                break
-        # Fallback to single words
-        if not color:
-            for w in words_clean:
-                if w in KNOWN_COLORS:
-                    color = w.title()
-                    break
+        color = _scan_text_for_color(clean_title(title))
 
-    # 4. Category from product_type if not generic
+    # 4. Scan the image filename directly — some stores encode color there
+    # and nowhere else (e.g. "...--1--[BURGUNDY]--1785236017.jpeg").
+    if not color:
+        img_name = extract_image_name(garment.get("primary_image_url", ""))
+        if img_name:
+            color = _scan_text_for_color(img_name)
+
+    # 5. Category from product_type if not generic
     generic = {"apparel", "clothing", "fashion", "modest wear"}
     if ptype and ptype not in generic:
         category = ptype.split("_")[-1].title() if "_" in ptype else ptype.title()
@@ -185,10 +349,15 @@ def extract_missing_entities(model, garment, existing_color, existing_pattern, e
     tags = garment.get("shopify_tags", [])
     ptype = garment.get("product_type", "")
     img_name = extract_image_name(garment.get("primary_image_url", ""))
+    description = str(garment.get("description", ""))[:300]
+    image_alt = str(garment.get("image_alt_text", ""))
 
     tags_str = ", ".join(str(t) for t in tags) if isinstance(tags, list) else str(tags)
-    # Include clean image filename as bonus context (e.g. "suzie striped shirt green uk8")
-    context_text = f"{title}. Tags: {tags_str}. Type: {ptype}. Image: {img_name}"
+    # Include clean image filename, alt text, and description as bonus context
+    context_text = (
+        f"{title}. Tags: {tags_str}. Type: {ptype}. Image: {img_name}. "
+        f"Image alt text: {image_alt}. Description: {description}"
+    )
 
     labels_to_extract = []
     if not existing_color:    labels_to_extract.append("color")
@@ -215,7 +384,7 @@ def extract_missing_entities(model, garment, existing_color, existing_pattern, e
 
     return existing_color, existing_pattern, existing_category
 
-def ingest_garments(latest_only: bool = False, wipe_db: bool = False):
+def ingest_garments(latest_only: bool = False, wipe_db: bool = False, use_gemini: bool = False):
     model = init_nlp_model()
     db: Session = SessionLocal()
     
@@ -224,13 +393,13 @@ def ingest_garments(latest_only: bool = False, wipe_db: bool = False):
         db.query(Product).delete()
         db.commit()
         
-    root_dir = Path(__file__).resolve().parent.parent
+    root_dir = Path(__file__).resolve().parent.parent.parent
     
-    run_folders = glob.glob(os.path.join(root_dir, "trend-data-collector", "output", "run_*"))
+    run_folders = sorted(glob.glob(os.path.join(root_dir, "trend-data-collector", "output", "run_*")))
     if not run_folders:
         print("No run folders found.")
         return
-        
+
     if latest_only:
         latest_folder = max(run_folders, key=os.path.getmtime)
         run_folders = [latest_folder]
@@ -280,7 +449,28 @@ def ingest_garments(latest_only: bool = False, wipe_db: bool = False):
                 
                 # 2. Fast Extraction from Raw Metadata
                 raw_color, raw_pattern, raw_cat = fast_raw_extraction(garment)
-                
+                material_text = " ".join([
+                    garment.get("title", ""),
+                    " ".join(str(t) for t in garment.get("shopify_tags", [])),
+                    garment.get("description", ""),
+                ])
+                # Store-written spec sheet wins if present — it's the store telling
+                # us the answer directly — but still normalize it to our known
+                # material vocabulary so "70% Cotton, 27% Nylon, 3% Spandex" and
+                # "100% Cotton" both collapse to "Cotton" instead of fragmenting
+                # into distinct trend attributes.
+                desc_material_raw = str(garment.get("desc_material", "")).strip()
+                material = extract_material(desc_material_raw) or extract_material(material_text)
+                # fit_type must be a short categorical descriptor, not a full
+                # sentence — some stores' spec sheets mislabel a style summary
+                # as "Fit:", so only accept it if it matches known fit vocabulary.
+                fit_type = normalize_fit_type(str(garment.get("desc_fit_type", "")).strip())
+
+                # Controlled tags (sleeve/neckline/silhouette), not raw free
+                # text — the raw sentence rarely repeats across products, so
+                # it can never function as a trend attribute.
+                style = normalize_style(str(garment.get("desc_style", "")).strip())
+
                 # 3. NLP Fallback for Missing Data
                 final_color, final_pattern, final_cat = extract_missing_entities(
                     model, garment, raw_color, raw_pattern, raw_cat
@@ -290,7 +480,7 @@ def ingest_garments(latest_only: bool = False, wipe_db: bool = False):
                 ml_cat, ml_col, ml_pat = None, None, None
                 
                 # Check if they are already exactly in the H&M taxonomy
-                from scripts.ml_taxonomy import HM_CATEGORIES, HM_COLORS, HM_PATTERNS
+                from app.pipeline.ml_taxonomy import HM_CATEGORIES, HM_COLORS, HM_PATTERNS
                 
                 is_cat_valid = final_cat in HM_CATEGORIES if final_cat else False
                 is_col_valid = final_color in HM_COLORS if final_color else False
@@ -318,42 +508,29 @@ def ingest_garments(latest_only: bool = False, wipe_db: bool = False):
                             ml_cat, ml_col, ml_pat = existing.ml_standardized_value.split("||")
                             mapping_cache[mapping_key] = (ml_cat, ml_col, ml_pat)
                         else:
-                            # Fallback to Gemini with rate limit handling
-                            import time
-                            print(f"Unknown attribute combo: {mapping_key}. Asking Gemini...")
-                            time.sleep(4) # 15 RPM limit on free tier => 1 request every 4 seconds
-                            from scripts.gemini_mapper import map_attributes_with_gemini
-                            img_url = garment.get("primary_image_url", "")
-                            
-                            gemini_res = map_attributes_with_gemini(
-                                garment.get("title", ""),
-                                final_cat or "Unknown",
-                                final_color or "Unknown",
-                                final_pattern or "Unknown",
-                                img_url
-                            )
-                        
-                        if gemini_res:
-                            ml_cat = gemini_res.get("mapped_category")
-                            ml_col = gemini_res.get("mapped_color")
-                            ml_pat = gemini_res.get("mapped_pattern")
-                            
-                            # Save mapping to DB
+                            # Free, local, deterministic mapping first (no API cost, no rate limit).
+                            from app.pipeline.local_taxonomy_mapper import map_attributes_locally
+                            local_res = map_attributes_locally(final_cat, final_color, final_pattern)
+                            ml_cat = final_cat if is_cat_valid else local_res["mapped_category"]
+                            ml_col = final_color if is_col_valid else local_res["mapped_color"]
+                            ml_pat = final_pattern if is_pat_valid else local_res["mapped_pattern"]
+
+                            local_fully_resolved = ml_cat != "Unknown" and ml_col != "Unknown" and ml_pat != "Solid"
+
+                            if use_gemini and not local_fully_resolved:
+                                gemini_res = _call_gemini_mapping(mapping_key, garment, final_cat, final_color, final_pattern)
+                                if gemini_res:
+                                    ml_cat = gemini_res.get("mapped_category") or ml_cat
+                                    ml_col = gemini_res.get("mapped_color") or ml_col
+                                    ml_pat = gemini_res.get("mapped_pattern") or ml_pat
+
                             new_map = AttributeMapping(
                                 attribute_type="composite",
                                 raw_value=mapping_key,
                                 ml_standardized_value=f"{ml_cat}||{ml_col}||{ml_pat}"
                             )
                             db.add(new_map)
-                            # Flush to ensure we don't get unique constraint violations later
                             db.flush()
-                            mapping_cache[mapping_key] = (ml_cat, ml_col, ml_pat)
-                        else:
-                            # If API failed (429 Rate Limit, etc), fallback safely without DB insert
-                            # and CACHE IT so we don't keep sleeping 4s for the exact same failing string
-                            ml_cat = final_cat if is_cat_valid else "Unknown"
-                            ml_col = final_color if is_col_valid else "Unknown"
-                            ml_pat = final_pattern if is_pat_valid else "Solid"
                             mapping_cache[mapping_key] = (ml_cat, ml_col, ml_pat)
                 
                 published_at = garment.get("published_at")
@@ -371,12 +548,18 @@ def ingest_garments(latest_only: bool = False, wipe_db: bool = False):
                     category=final_cat or "Unknown",
                     color=[final_color] if final_color else [],
                     pattern=final_pattern or "Solid",
+                    material=material,
+                    fit_type=fit_type,
+                    style=style,
                     price=garment.get("price_lkr"),
+                    original_price=garment.get("original_price_lkr") or None,
                     currency="LKR",
                     brand=garment.get("source_name"),
                     source=garment.get("source_type"),
                     product_url=url,
                     image_url=garment.get("primary_image_url"),
+                    description=garment.get("description") or None,
+                    availability=garment.get("in_stock", True),
                     collected_at=collected_at,
                     ml_category=ml_cat,
                     ml_color=ml_col,
@@ -397,11 +580,14 @@ def ingest_garments(latest_only: bool = False, wipe_db: bool = False):
     try:
         db.commit()
     except Exception as e:
+        # Don't swallow this silently — a swallowed exception is exactly what
+        # hid the Gemini mapping failures for weeks earlier in this project.
+        print(f"Final commit failed, rolling back: {e}")
         db.rollback()
-    
+
     db.close()
-    
-    print(f"\n=== Database Ingestion Complete ===")
+
+    print("\n=== Database Ingestion Complete ===")
     print(f"Total Inserted: {total_inserted}")
     print(f"Skipped (Duplicates): {total_skipped_dupes}")
     print(f"Skipped (Inappropriate/Underwear): {total_skipped_inappropriate}")
@@ -411,6 +597,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="NLP ETL script to load scraped garments into DB")
     parser.add_argument("--latest-only", action="store_true", help="Process only the most recent daily run folder")
     parser.add_argument("--wipe-db", action="store_true", help="Wipes the products table before importing")
+    parser.add_argument("--use-gemini", action="store_true", help="Also call Gemini as a paid refinement step for anything the free local mapper can't resolve (requires GEMINI_API_KEY + quota)")
     args = parser.parse_args()
-    
-    ingest_garments(latest_only=args.latest_only, wipe_db=args.wipe_db)
+
+    ingest_garments(latest_only=args.latest_only, wipe_db=args.wipe_db, use_gemini=args.use_gemini)

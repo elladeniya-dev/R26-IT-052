@@ -7,21 +7,16 @@ from pathlib import Path
 from config.target_stores import (
     SRI_LANKA_TARGET_STORES,
     TIER_1_SHOPIFY,
-    TIER_2_CRAWL4AI,
     SEGMENT_HIGH_VELOCITY_BOUTIQUES,
     SEGMENT_MASS_MARKET_DEPARTMENT,
     SEGMENT_SPECIALTY_WORKWEAR,
 )
 from services.harvester import harvest_store_catalog
-from services.trend_mapping_service import map_products_to_trend_observations
 
 logging.basicConfig(level=logging.INFO, format="[%(levelname)s] %(message)s")
 
 OUTPUT_DIR = Path("output")
 COMBINED_GARMENTS_FILE = OUTPUT_DIR / "combined_srilanka_raw_garments.json"
-COMBINED_OBSERVATIONS_FILE = (
-    OUTPUT_DIR / "combined_srilanka_trend_observations.json"
-)
 
 
 def save_json(file_path: Path, data: any) -> None:
@@ -54,7 +49,6 @@ def run_hybrid_harvester(
     start_time = time.time()
 
     total_garments = []
-    total_observations = []
     store_summaries = []
     segment_counts = {
         SEGMENT_HIGH_VELOCITY_BOUTIQUES: 0,
@@ -74,16 +68,6 @@ def run_hybrid_harvester(
         except Exception as e:
             logging.error(f"Error harvesting store {brand}: {e}")
 
-        # Determine authoritative source_type from extracted items or fallback to hint
-        actual_tier = garments[0].get("source_type", tier) if garments else tier
-
-        # Map collected garments to trend observations
-        observations = map_products_to_trend_observations(
-            products=garments,
-            source_name=brand,
-            source_type=actual_tier,
-        )
-
         # Store statistics
         store_summaries.append(
             {
@@ -92,12 +76,10 @@ def run_hybrid_harvester(
                 "segment": segment,
                 "ingestion_tier": tier,
                 "garments_count": len(garments),
-                "observations_count": len(observations),
             }
         )
 
         total_garments.extend(garments)
-        total_observations.extend(observations)
         if segment in segment_counts:
             segment_counts[segment] += len(garments)
 
@@ -107,11 +89,9 @@ def run_hybrid_harvester(
 
         time.sleep(0.5)  # Polite spacing between requests
 
-    # Save immutable timestamped snapshots inside run_dir
+    # Save immutable timestamped snapshot inside run_dir
     run_combined_garments = run_dir / "combined_srilanka_raw_garments.json"
-    run_combined_observations = run_dir / "combined_srilanka_trend_observations.json"
     save_json(run_combined_garments, total_garments)
-    save_json(run_combined_observations, total_observations)
 
     # Save summary metadata of this execution run
     metadata = {
@@ -119,7 +99,6 @@ def run_hybrid_harvester(
         "timestamp": datetime.now().isoformat(),
         "total_stores": len(stores_to_harvest),
         "total_garments": len(total_garments),
-        "total_observations": len(total_observations),
         "run_directory": str(run_dir),
     }
     save_json(run_dir / "run_metadata.json", metadata)
@@ -127,19 +106,15 @@ def run_hybrid_harvester(
     elapsed = round(time.time() - start_time, 2)
     logging.info(f"\n=== Harvester Completed in {elapsed}s | Saved to: {run_dir} ===")
     logging.info(f"Total Raw Garments Collected: {len(total_garments)}")
-    logging.info(f"Total Trend Observations Derived: {len(total_observations)}")
 
     return {
         "elapsed_seconds": elapsed,
         "total_stores": len(stores_to_harvest),
         "total_garments": len(total_garments),
-        "total_observations": len(total_observations),
         "run_directory": str(run_dir.resolve()),
         "segment_garments_count": segment_counts,
         "store_summaries": store_summaries,
         "combined_garments_file": str(run_combined_garments),
-        "combined_observations_file": str(run_combined_observations),
-        "top_observations": total_observations[:20],
     }
 
 
@@ -153,7 +128,6 @@ def main():
     print(f"Time Elapsed:         {result['elapsed_seconds']}s")
     print(f"Target Stores:        {result['total_stores']}")
     print(f"Total Garments:       {result['total_garments']}")
-    print(f"Derived Observations: {result['total_observations']}")
     print(f"Run Output Directory: {result['run_directory']}")
     print(f"Latest Mirror Path:   {OUTPUT_DIR.resolve()}")
 
@@ -163,18 +137,10 @@ def main():
 
     print("\nStore Breakdown (Top 10):")
     for summary in result["store_summaries"][:10]:
-        print(
-            f"  * {summary['brand_name']} ({summary['ingestion_tier']}) -> "
-            f"{summary['garments_count']} garments | {summary['observations_count']} trend hits"
-        )
-
-    print("\nTop Derived Trend Signals:")
-    for obs in result["top_observations"][:10]:
-        print(
-            f"  # [{obs['source_name']}] {obs['attribute_type']}: '{obs['attribute_value']}' "
-            f"(Mentions: {obs['mention_count']} | Segment: {obs.get('market_segment', 'N/A')})"
-        )
+        print(f"  * {summary['brand_name']} ({summary['ingestion_tier']}) -> {summary['garments_count']} garments")
     print("=" * 60)
+    print("Run `python app/pipeline/generate_trend_observations.py` + `python app/pipeline/compute_trend_signals.py`")
+    print("from the project root to turn this raw snapshot into real trend signals.")
 
 
 if __name__ == "__main__":

@@ -24,6 +24,15 @@ def pluralize_fashion_term(value: str) -> str:
 def build_trend_title(attribute_type: str, attribute_value: str, trend_status: str) -> str:
     value = attribute_value.title()
 
+    if attribute_type.startswith("new_arrival_"):
+        base_type = attribute_type.removeprefix("new_arrival_")
+        label = pluralize_fashion_term(attribute_value) if base_type == "category" else f"{value} {base_type}s"
+        if trend_status == "rising":
+            return f"New arrivals in {label} are surging"
+        if trend_status == "stable":
+            return f"New arrivals in {label} are steady"
+        return f"New arrivals in {label} have slowed down"
+
     if trend_status == "rising":
         if attribute_type == "category":
             return f"{pluralize_fashion_term(attribute_value)} are trending now"

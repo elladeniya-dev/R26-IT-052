@@ -35,16 +35,22 @@ def calculate_trend_signals(
     max_current_count = max(current_counts.values()) if current_counts else 1
     analyzed_results = []
 
+    # Laplace (additive) smoothing constant. Without this, an attribute that
+    # went from 1->2 mentions gets growth_rate=1.0 — identical to 100->200.
+    # Adding a pseudo-count to both sides pulls tiny-sample ratios toward
+    # neutral while barely touching large, statistically meaningful jumps
+    # (1->2 becomes ~0.17 with SMOOTHING_K=5; 100->200 stays ~0.95).
+    SMOOTHING_K = 5
+
     for key in all_keys:
         attribute_type, attribute_value = key
 
         current_count = current_counts.get(key, 0)
         previous_count = previous_counts.get(key, 0)
 
-        if previous_count == 0:
-            growth_rate = 1.0 if current_count > 0 else 0.0
-        else:
-            growth_rate = (current_count - previous_count) / previous_count
+        growth_rate = (
+            (current_count + SMOOTHING_K) / (previous_count + SMOOTHING_K)
+        ) - 1.0
 
         growth_score = max(min(growth_rate, 1.0), 0.0)
 

@@ -10,6 +10,7 @@ from urllib.parse import urljoin
 import requests
 
 from services.garment_validator import GarmentValidator
+from services.spec_parser import parse_spec_fields
 
 logger = logging.getLogger("OutfitIQ.Tier1Shopify")
 
@@ -67,14 +68,24 @@ def execute_tier1_shopify_json(store_config: Dict[str, Any]) -> List[Dict[str, A
 
                 variants = item.get("variants", [])
                 raw_price = variants[0].get("price", 0.0) if variants else 0.0
+                compare_at = variants[0].get("compare_at_price") if variants else None
+                in_stock = any(v.get("available") for v in variants) if variants else True
                 images = [img.get("src", "") for img in item.get("images", []) if isinstance(img, dict)]
-                
+                image_alt_text = " ".join(
+                    img.get("alt", "") or "" for img in item.get("images", []) if isinstance(img, dict)
+                ).strip()
+                body_html = item.get("body_html", "")
+                spec_fields = parse_spec_fields(body_html)
+                spec_color = spec_fields.get("color", "").split(",")[0].strip() if spec_fields.get("color") else ""
+
                 candidate = {
                     "rank_position": rank,
                     "title": item.get("title", ""),
                     "product_url": prod_url,
                     "published_at": item.get("published_at") or item.get("created_at", ""),
                     "price_lkr": raw_price,
+                    "original_price_lkr": _parse_compare_at_price(compare_at, raw_price),
+                    "in_stock": in_stock,
                     "primary_image_url": images[0] if images else "",
                     "image_array": images,
                     "shopify_tags": _parse_tags(item.get("tags")),
@@ -82,6 +93,13 @@ def execute_tier1_shopify_json(store_config: Dict[str, Any]) -> List[Dict[str, A
                     "source_name": brand_name,
                     "source_type": "tier1_shopify_json",
                     "market_segment": segment,
+                    "variant_color": _extract_variant_color(item, variants),
+                    "description": _strip_html(body_html),
+                    "image_alt_text": image_alt_text,
+                    "desc_material": spec_fields.get("material", ""),
+                    "desc_color": spec_color,
+                    "desc_fit_type": spec_fields.get("fit_type", ""),
+                    "desc_style": spec_fields.get("style", ""),
                 }
                 clean_item = GarmentValidator.validate_and_sanitize(candidate)
                 if clean_item:
@@ -166,6 +184,42 @@ def _harvest_via_suggest_ajax(
         except Exception as err:
             logger.debug(f"[Tier 1 Suggest] Error on keyword '{kw}': {err}")
             continue
+
+
+def _parse_compare_at_price(compare_at, current_price) -> float:
+    """compare_at_price is Shopify's 'original price' field — only meaningful
+    (i.e. actually a discount) when it's set and higher than the current price."""
+    try:
+        compare_at = float(compare_at) if compare_at else 0.0
+    except (TypeError, ValueError):
+        return 0.0
+    return compare_at if compare_at > float(current_price or 0) else 0.0
+
+
+def _extract_variant_color(item: Dict[str, Any], variants: List[Dict[str, Any]]) -> str:
+    """
+    Shopify stores each product's option names in item['options'] (e.g. ['Color', 'Size'])
+    and each variant carries the matching values in option1/option2/option3. If one of the
+    product's declared options is a color option, read it straight from the first variant —
+    this is structured, store-declared data, far more reliable than guessing from text.
+    """
+    if not variants:
+        return ""
+    options = item.get("options", [])
+    for idx, opt in enumerate(options):
+        name = str(opt.get("name", "")).strip().lower() if isinstance(opt, dict) else str(opt).strip().lower()
+        if name in ("color", "colour"):
+            value = variants[0].get(f"option{idx + 1}", "")
+            return str(value).strip() if value else ""
+    return ""
+
+
+def _strip_html(html: str) -> str:
+    if not html:
+        return ""
+    import re
+    text = re.sub(r"<[^>]+>", " ", html)
+    return re.sub(r"\s+", " ", text).strip()[:500]
 
 
 def _parse_tags(raw_tags: any) -> List[str]:

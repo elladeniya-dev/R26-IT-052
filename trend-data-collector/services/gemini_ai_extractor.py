@@ -7,7 +7,7 @@ import os
 import time
 import json
 import logging
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any
 from urllib.parse import urljoin
 from dotenv import load_dotenv
 

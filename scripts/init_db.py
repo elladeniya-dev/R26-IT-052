@@ -1,4 +1,3 @@
-import os
 import sys
 from pathlib import Path
 
@@ -6,7 +5,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.core.database import Base, engine
-from app.models import Product, ProductTrendMetric, TrendObservation, TrendSignal, AttributeMapping
+# Imported for their side effect of registering with Base.metadata, not used
+# directly — create_all() below only creates tables it knows about.
+from app.models import Product, ProductTrendMetric, TrendObservation, TrendSignal, AttributeMapping  # noqa: F401
 
 def init_db():
     print(f"Connecting to database: {engine.url}")

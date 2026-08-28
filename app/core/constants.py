@@ -4,6 +4,11 @@ ALLOWED_INSIGHT_ATTRIBUTE_TYPES = [
     "pattern",
     "style",
     "material",
+    "new_arrival_category",
+    "new_arrival_color",
+    "new_arrival_pattern",
+    "new_arrival_material",
+    "new_arrival_style",
 ]
 
 EXCLUDED_INSIGHT_KEYWORDS = [

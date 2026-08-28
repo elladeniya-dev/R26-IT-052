@@ -2,11 +2,12 @@ import os
 import json
 from google import genai
 from google.genai import types
-from scripts.ml_taxonomy import HM_CATEGORIES, HM_PATTERNS, HM_COLORS
+from app.pipeline.ml_taxonomy import HM_CATEGORIES, HM_PATTERNS, HM_COLORS
 from pydantic import BaseModel, Field
 
-# The API key provided by the user
-GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY", "***REMOVED-SECRET***")
+GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
+if not GEMINI_API_KEY:
+    raise ValueError("GEMINI_API_KEY is missing. Please set it in your .env file.")
 
 client = genai.Client(api_key=GEMINI_API_KEY)
 
@@ -84,5 +85,6 @@ def map_attributes_with_gemini(raw_title: str, raw_category: str, raw_color: str
         )
         return json.loads(response.text)
     except Exception as e:
-        print(f"Gemini Mapping Error: {e}")
+        import logging
+        logging.getLogger("OutfitIQ.GeminiMapper").error(f"Gemini Mapping Error for '{raw_title}': {e}")
         return None

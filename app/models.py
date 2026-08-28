@@ -12,7 +12,6 @@ class Product(Base):
 
     title = Column(String, nullable=False)
     category = Column(String, nullable=False)
-    subcategory = Column(String, nullable=True)
 
     color = Column(ARRAY(String), nullable=True)
     style = Column(ARRAY(String), nullable=True)
@@ -24,7 +23,6 @@ class Product(Base):
     material = Column(String, nullable=True)
     pattern = Column(String, nullable=True)
     fit_type = Column(String, nullable=True)
-    target_gender = Column(String, nullable=True)
 
     image_url = Column(String, nullable=True)
     product_url = Column(String, nullable=True)
@@ -32,6 +30,7 @@ class Product(Base):
     description = Column(String, nullable=True)
 
     availability = Column(Boolean, default=True)
+    original_price = Column(Float, nullable=True)
     collected_at = Column(DateTime, default=lambda: datetime.now(timezone.utc))
 
     # ML Standardized Taxonomy Fields (Matches H&M Dataset)
