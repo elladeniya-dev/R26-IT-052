@@ -70,7 +70,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
         preferredBrands: widget.selectedBrands,
         priceMin: isPriceFilterEnabled ? minPrice : 0,
         priceMax: isPriceFilterEnabled ? maxPrice : 999999,
-        maxResults: 15,
+        maxResults: 50,
       );
 
       if (!mounted) return;
@@ -96,37 +96,29 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     final bool hasSpecificBrand =
         !widget.selectedBrands.contains('No specific brand');
 
-    final List<Map<String, dynamic>> mappedProducts = apiProducts
-        .map((product) => product.toProductDetailMap())
-        .where((product) {
-      final int productPrice = product['priceValue'] ?? 0;
-
+    final List<RecommendationProduct> matchedProducts =
+        apiProducts.where((product) {
       final bool matchesPrice = isPriceFilterEnabled
-          ? productPrice >= minPrice.round() &&
-              productPrice <= maxPrice.round()
+          ? product.price >= minPrice && product.price <= maxPrice
           : true;
 
-      final bool matchesCategory =
-          _matchesSelectedCategory(product['category'] ?? '');
+      final bool matchesCategory = _matchesSelectedCategory(product.category);
 
       final bool matchesBrand = hasSpecificBrand
           ? widget.selectedBrands
-              .map((brand) => brand.toLowerCase())
-              .contains((product['brand'] ?? '').toString().toLowerCase())
+              .map((brand) => brand.toLowerCase().trim())
+              .contains(product.brand.toLowerCase().trim())
           : true;
 
-      final bool matchesQuickStyle = selectedQuickStyle == 'All'
-          ? true
-          : _normalizeStyle(product['style'] ?? '') ==
-              _normalizeStyle(selectedQuickStyle);
+      final bool matchesQuickStyle = _matchesQuickStyle(product);
 
-      return matchesPrice &&
-          matchesCategory &&
-          matchesBrand &&
-          matchesQuickStyle;
+      return matchesPrice && matchesCategory && matchesBrand && matchesQuickStyle;
     }).toList();
 
-    return mappedProducts.take(maxResults).toList();
+    return matchedProducts
+        .take(maxResults)
+        .map((product) => product.toProductDetailMap())
+        .toList();
   }
 
   bool _matchesSelectedCategory(String productCategory) {
@@ -144,19 +136,179 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
 
     if (normalized.contains('dress')) return 'dress';
     if (normalized.contains('top')) return 'top';
+    if (normalized.contains('shirt')) return 'top';
+    if (normalized.contains('blouse')) return 'top';
+    if (normalized.contains('tee')) return 'top';
+    if (normalized.contains('blazer')) return 'top';
+    if (normalized.contains('jean')) return 'jeans';
+    if (normalized.contains('pant')) return 'pants';
+    if (normalized.contains('trouser')) return 'pants';
+    if (normalized.contains('short')) return 'shorts';
+    if (normalized.contains('skirt')) return 'skirt';
+    if (normalized.contains('jumpsuit')) return 'jumpsuit';
+    if (normalized.contains('legging')) return 'leggings';
 
     return normalized;
   }
 
-  String _normalizeStyle(String value) {
-    final String normalized = value.trim().toLowerCase();
+  bool _matchesQuickStyle(RecommendationProduct product) {
+    if (selectedQuickStyle == 'All') {
+      return true;
+    }
+
+    final Set<String> productStyleTokens = _productStyleTokens(product);
+    final Set<String> requiredTokens = _quickStyleTokens(selectedQuickStyle);
+
+    return productStyleTokens.any(requiredTokens.contains);
+  }
+
+  Set<String> _productStyleTokens(RecommendationProduct product) {
+    final String combinedText = [
+      product.title,
+      product.category,
+      product.brand,
+      ...product.style,
+      ...product.reasonTags,
+    ].join(' ').toLowerCase();
+
+    final Set<String> tokens = <String>{};
+
+    for (final String style in product.style) {
+      tokens.add(_normalizeStyleToken(style));
+    }
+
+    if (combinedText.contains('formal')) tokens.add('formal');
+    if (combinedText.contains('workwear') ||
+        combinedText.contains('work wear') ||
+        combinedText.contains('office')) {
+      tokens.add('workwear');
+      tokens.add('formal');
+    }
+
+    if (combinedText.contains('smart_casual') ||
+        combinedText.contains('smart casual')) {
+      tokens.add('smart_casual');
+      tokens.add('formal');
+    }
+
+    if (combinedText.contains('casual')) tokens.add('casual');
+    if (combinedText.contains('party')) tokens.add('party');
+    if (combinedText.contains('evening')) tokens.add('evening');
+    if (combinedText.contains('trendy')) tokens.add('trendy');
+    if (combinedText.contains('new_in') ||
+        combinedText.contains('new in') ||
+        combinedText.contains('new arrival')) {
+      tokens.add('new_in');
+      tokens.add('trendy');
+    }
+
+    if (combinedText.contains('elegant')) tokens.add('elegant');
+    if (combinedText.contains('minimal')) tokens.add('minimal');
+
+    if (combinedText.contains('basic') ||
+        combinedText.contains('classic') ||
+        combinedText.contains('clean') ||
+        combinedText.contains('solid')) {
+      tokens.add('minimal');
+    }
+
+    return tokens.where((token) => token.trim().isNotEmpty).toSet();
+  }
+
+  Set<String> _quickStyleTokens(String quickStyle) {
+    final String normalized = _normalizeStyleToken(quickStyle);
+
+    if (normalized == 'formal') {
+      return {
+        'formal',
+        'smart_casual',
+        'workwear',
+      };
+    }
+
+    if (normalized == 'casual') {
+      return {
+        'casual',
+        'smart_casual',
+        'athleisure',
+        'lifestyle',
+      };
+    }
+
+    if (normalized == 'trendy') {
+      return {
+        'trendy',
+        'new_in',
+        'denim',
+        'fitted',
+        'oversized',
+      };
+    }
+
+    if (normalized == 'elegant') {
+      return {
+        'elegant',
+        'formal',
+        'party',
+        'evening',
+        'smart_casual',
+      };
+    }
+
+    if (normalized == 'party') {
+      return {
+        'party',
+        'evening',
+        'cocktail',
+        'occasion',
+      };
+    }
+
+    if (normalized == 'minimal') {
+      return {
+        'minimal',
+        'basic',
+        'classic',
+        'clean',
+        'solid',
+        'smart_casual',
+      };
+    }
+
+    return {normalized};
+  }
+
+  String _normalizeStyleToken(String value) {
+    final String normalized = value.trim().toLowerCase().replaceAll('-', '_');
 
     if (normalized.contains('party')) return 'party';
-    if (normalized.contains('casual')) return 'casual';
+    if (normalized.contains('evening')) return 'evening';
     if (normalized.contains('formal')) return 'formal';
+    if (normalized.contains('workwear') || normalized.contains('work_wear')) {
+      return 'workwear';
+    }
+    if (normalized.contains('smart_casual') ||
+        normalized.contains('smart casual')) {
+      return 'smart_casual';
+    }
+    if (normalized.contains('casual')) return 'casual';
     if (normalized.contains('trendy')) return 'trendy';
+    if (normalized.contains('new_in') || normalized.contains('new in')) {
+      return 'new_in';
+    }
     if (normalized.contains('elegant')) return 'elegant';
     if (normalized.contains('minimal')) return 'minimal';
+    if (normalized.contains('basic')) return 'basic';
+    if (normalized.contains('classic')) return 'classic';
+    if (normalized.contains('clean')) return 'clean';
+    if (normalized.contains('solid')) return 'solid';
+    if (normalized.contains('denim')) return 'denim';
+    if (normalized.contains('activewear')) return 'activewear';
+    if (normalized.contains('athleisure')) return 'athleisure';
+    if (normalized.contains('lifestyle')) return 'lifestyle';
+    if (normalized.contains('fitted')) return 'fitted';
+    if (normalized.contains('relaxed')) return 'relaxed';
+    if (normalized.contains('oversized')) return 'oversized';
 
     return normalized;
   }
@@ -378,9 +530,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
               borderRadius: BorderRadius.circular(18),
             ),
             child: Icon(
-              isLoading
-                  ? Icons.hourglass_top_rounded
-                  : Icons.recommend_rounded,
+              isLoading ? Icons.hourglass_top_rounded : Icons.recommend_rounded,
               color: Colors.white,
               size: 28,
             ),
@@ -774,9 +924,8 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                   duration: const Duration(milliseconds: 180),
                   padding: const EdgeInsets.symmetric(horizontal: 16),
                   decoration: BoxDecoration(
-                    color: isSelected
-                        ? const Color(0xFF0B5D85)
-                        : Colors.white,
+                    color:
+                        isSelected ? const Color(0xFF0B5D85) : Colors.white,
                     borderRadius: BorderRadius.circular(22),
                     border: Border.all(
                       color: isSelected

@@ -2,7 +2,9 @@ from app.models.product import Product
 from app.services.crawlers.carnage_crawler import crawl_carnage_crop_tops
 from app.services.crawlers.gflock_crawler import crawl_gflock_dresses
 from app.services.crawlers.kelly_felder_crawler import crawl_kelly_felder_dresses
-
+from app.services.crawlers.zigzag_crawler import crawl_zigzag_products
+from app.services.crawlers.chenara_dodge_crawler import crawl_chenara_dodge_products
+from app.services.crawlers.bellini_crawler import crawl_bellini_products
 
 def save_crawled_products(db, products):
     inserted_count = 0
@@ -68,10 +70,11 @@ def generate_sample_crawled_products(request):
     Main crawler coordinator.
 
     Supported category values:
-    - category = "all"          -> Gflock + Carnage + Kelly Felder
+    - category = "all"          -> Gflock + Carnage + Kelly Felder + Zigzag
     - category = "gflock"       -> Gflock only
     - category = "carnage"      -> Carnage only
     - category = "kelly_felder" -> Kelly Felder only
+    - category = "zigzag"       -> Zigzag only
 
     If one crawler fails, the remaining crawlers still continue.
     """
@@ -83,6 +86,12 @@ def generate_sample_crawled_products(request):
         gflock_products = _safe_run_crawler(
             crawler_name="Gflock",
             crawler_function=crawl_gflock_dresses,
+            max_items=max_items,
+        )
+
+        bellini_products = _safe_run_crawler(
+            crawler_name="Bellini",
+            crawler_function=crawl_bellini_products,
             max_items=max_items,
         )
 
@@ -98,7 +107,27 @@ def generate_sample_crawled_products(request):
             max_items=max_items,
         )
 
-        return gflock_products + carnage_products + kelly_felder_products
+        zigzag_products = _safe_run_crawler(
+            crawler_name="Zigzag",
+            crawler_function=crawl_zigzag_products,
+            max_items=max_items,
+        )
+
+        chenara_dodge_products = _safe_run_crawler(
+            crawler_name="Chenara Dodge",
+            crawler_function=crawl_chenara_dodge_products,
+            max_items=max_items,
+        )
+
+        return (
+            gflock_products
+            + carnage_products
+            + kelly_felder_products
+            + zigzag_products
+            + chenara_dodge_products
+            + bellini_products
+
+        )
 
     if category == "gflock":
         return _safe_run_crawler(
@@ -114,11 +143,33 @@ def generate_sample_crawled_products(request):
             max_items=max_items,
         )
 
+    if category == "bellini":
+        return _safe_run_crawler(
+        crawler_name="Bellini",
+        crawler_function=crawl_bellini_products,
+        max_items=max_items,
+        )
+
     if category == "kelly_felder":
         return _safe_run_crawler(
             crawler_name="Kelly Felder",
             crawler_function=crawl_kelly_felder_dresses,
             max_items=max_items,
         )
+
+    if category == "zigzag":
+        return _safe_run_crawler(
+            crawler_name="Zigzag",
+            crawler_function=crawl_zigzag_products,
+            max_items=max_items,
+        )
+
+    if category == "chenara_dodge" or category == "chenara":
+        return _safe_run_crawler(
+        crawler_name="Chenara Dodge",
+        crawler_function=crawl_chenara_dodge_products,
+        max_items=max_items,
+    )
+    
 
     return []
