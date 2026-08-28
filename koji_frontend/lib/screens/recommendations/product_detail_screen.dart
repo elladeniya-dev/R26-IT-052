@@ -64,6 +64,16 @@ class ProductDetailScreen extends StatelessWidget {
     ];
   }
 
+  double _detailImageHeight(BuildContext context) {
+    final Size size = MediaQuery.of(context).size;
+
+    if (size.width >= 900) {
+      return (size.height * 0.78).clamp(560.0, 820.0).toDouble();
+    }
+
+    return (size.height * 0.60).clamp(430.0, 620.0).toDouble();
+  }
+
   void _showFeedbackMessage(BuildContext context, String message) {
     ScaffoldMessenger.of(context).hideCurrentSnackBar();
 
@@ -183,45 +193,48 @@ class ProductDetailScreen extends StatelessWidget {
   }
 
   Widget _buildImageSection(BuildContext context, String image, String match) {
-    return SizedBox(
-      height: 430,
+    final double imageHeight = _detailImageHeight(context);
+
+    return Container(
+      height: imageHeight,
+      width: double.infinity,
+      color: Colors.white,
       child: Stack(
         children: [
           Positioned.fill(
-            child: CachedNetworkImage(
-              imageUrl: image,
-              fit: BoxFit.cover,
-              placeholder: (context, url) => Container(
-                color: const Color(0xFFE5E7EB),
-                child: const Center(
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                ),
-              ),
-              errorWidget: (context, url, error) => Container(
-                color: const Color(0xFFE5E7EB),
-                child: const Center(
-                  child: Icon(
-                    Icons.image_not_supported_rounded,
-                    size: 48,
-                    color: Color(0xFF9CA3AF),
-                  ),
-                ),
-              ),
-            ),
-          ),
-          Positioned.fill(
-            child: DecoratedBox(
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    Colors.black.withOpacity(0.25),
-                    Colors.transparent,
-                    Colors.black.withOpacity(0.45),
-                  ],
-                ),
-              ),
+            child: Container(
+              color: Colors.white,
+              child: image.isEmpty
+                  ? const Center(
+                      child: Icon(
+                        Icons.image_not_supported_rounded,
+                        size: 48,
+                        color: Color(0xFF9CA3AF),
+                      ),
+                    )
+                  : CachedNetworkImage(
+                      imageUrl: image,
+                      width: double.infinity,
+                      height: double.infinity,
+                      fit: BoxFit.contain,
+                      alignment: Alignment.center,
+                      placeholder: (context, url) => Container(
+                        color: const Color(0xFFE5E7EB),
+                        child: const Center(
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        ),
+                      ),
+                      errorWidget: (context, url, error) => Container(
+                        color: const Color(0xFFE5E7EB),
+                        child: const Center(
+                          child: Icon(
+                            Icons.image_not_supported_rounded,
+                            size: 48,
+                            color: Color(0xFF9CA3AF),
+                          ),
+                        ),
+                      ),
+                    ),
             ),
           ),
           Positioned(
@@ -237,8 +250,15 @@ class ProductDetailScreen extends StatelessWidget {
                 height: 44,
                 width: 44,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.92),
+                  color: Colors.white.withOpacity(0.94),
                   borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 14,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
                 ),
                 child: const Icon(
                   Icons.arrow_back_ios_new_rounded,
@@ -261,8 +281,15 @@ class ProductDetailScreen extends StatelessWidget {
                 height: 44,
                 width: 44,
                 decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.92),
+                  color: Colors.white.withOpacity(0.94),
                   borderRadius: BorderRadius.circular(16),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.08),
+                      blurRadius: 14,
+                      offset: const Offset(0, 5),
+                    ),
+                  ],
                 ),
                 child: const Icon(
                   Icons.favorite_border_rounded,
@@ -280,8 +307,16 @@ class ProductDetailScreen extends StatelessWidget {
               decoration: BoxDecoration(
                 color: const Color(0xFF0B5D85),
                 borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.12),
+                    blurRadius: 14,
+                    offset: const Offset(0, 5),
+                  ),
+                ],
               ),
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   const Icon(
                     Icons.auto_awesome_rounded,
@@ -336,27 +371,33 @@ class ProductDetailScreen extends StatelessWidget {
         const SizedBox(height: 8),
         Row(
           children: [
-            Text(
-              price,
-              style: GoogleFonts.poppins(
-                fontSize: 20,
-                fontWeight: FontWeight.w800,
-                color: const Color(0xFF0B5D85),
+            Expanded(
+              child: Text(
+                price,
+                style: GoogleFonts.poppins(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w800,
+                  color: const Color(0xFF0B5D85),
+                ),
               ),
             ),
-            const Spacer(),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE8F3F8),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Text(
-                category,
-                style: GoogleFonts.poppins(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w700,
-                  color: const Color(0xFF0B5D85),
+            const SizedBox(width: 12),
+            Flexible(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE8F3F8),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: Text(
+                  category,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.poppins(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: const Color(0xFF0B5D85),
+                  ),
                 ),
               ),
             ),
@@ -458,39 +499,48 @@ class ProductDetailScreen extends StatelessWidget {
             spacing: 10,
             runSpacing: 10,
             children: _reasonTags.map((tag) {
-              return Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 13,
-                  vertical: 9,
-                ),
-                decoration: BoxDecoration(
-                  color: const Color(0xFFE8F3F8),
-                  borderRadius: BorderRadius.circular(18),
-                  border: Border.all(
-                    color: const Color(0xFF0B5D85).withOpacity(0.14),
-                  ),
-                ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.check_rounded,
-                      size: 15,
-                      color: Color(0xFF0B5D85),
-                    ),
-                    const SizedBox(width: 5),
-                    Text(
-                      tag,
-                      style: GoogleFonts.poppins(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w700,
-                        color: const Color(0xFF0B5D85),
-                      ),
-                    ),
-                  ],
-                ),
-              );
+              return _buildReasonTag(tag);
             }).toList(),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildReasonTag(String tag) {
+    return Container(
+      constraints: const BoxConstraints(maxWidth: 280),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 13,
+        vertical: 9,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0xFFE8F3F8),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: const Color(0xFF0B5D85).withOpacity(0.14),
+        ),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          const Icon(
+            Icons.check_rounded,
+            size: 15,
+            color: Color(0xFF0B5D85),
+          ),
+          const SizedBox(width: 5),
+          Flexible(
+            child: Text(
+              tag,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: GoogleFonts.poppins(
+                fontSize: 12,
+                fontWeight: FontWeight.w700,
+                color: const Color(0xFF0B5D85),
+              ),
+            ),
           ),
         ],
       ),
@@ -561,11 +611,15 @@ class ProductDetailScreen extends StatelessWidget {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text(
-                'Open Store Page',
-                style: GoogleFonts.poppins(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w800,
+              Flexible(
+                child: Text(
+                  'Open Store Page',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.poppins(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                  ),
                 ),
               ),
               const SizedBox(width: 8),
@@ -601,6 +655,8 @@ class ProductDetailScreen extends StatelessWidget {
           Expanded(
             child: Text(
               value,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
               style: GoogleFonts.poppins(
                 fontSize: 12,
                 fontWeight: FontWeight.w800,
@@ -633,6 +689,7 @@ class ProductDetailScreen extends StatelessWidget {
                 ),
               ),
             ),
+            const SizedBox(width: 10),
             Text(
               valueText,
               style: GoogleFonts.poppins(
@@ -669,12 +726,16 @@ class ProductDetailScreen extends StatelessWidget {
           size: 21,
         ),
         const SizedBox(width: 8),
-        Text(
-          title,
-          style: GoogleFonts.poppins(
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-            color: const Color(0xFF111827),
+        Flexible(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: const Color(0xFF111827),
+            ),
           ),
         ),
       ],
@@ -693,12 +754,16 @@ class ProductDetailScreen extends StatelessWidget {
           size: 21,
         ),
         const SizedBox(width: 8),
-        Text(
-          title,
-          style: GoogleFonts.poppins(
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-            color: Colors.white,
+        Flexible(
+          child: Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: GoogleFonts.poppins(
+              fontSize: 16,
+              fontWeight: FontWeight.w800,
+              color: Colors.white,
+            ),
           ),
         ),
       ],

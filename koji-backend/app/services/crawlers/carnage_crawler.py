@@ -1,19 +1,168 @@
 import re
-from urllib.parse import urljoin
+from html import unescape
+from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
 
 import requests
 from bs4 import BeautifulSoup
 
 
-CARNAGE_CROP_TOPS_URL = "https://incarnage.com/collections/womens-crop-tops"
+CARNAGE_BASE_URL = "https://incarnage.com"
 CARNAGE_PLACEHOLDER_IMAGE_URL = "https://example.com/carnage-placeholder.jpg"
+
+# These are the Carnage women clothing collection pages we crawl.
+# The crawler automatically adds:
+# filter.v.availability=1
+# so only available products are collected from collection pages.
+CARNAGE_COLLECTIONS = [
+    {
+        "name": "crop_tops",
+        "url": "https://incarnage.com/collections/womens-crop-tops",
+        "category": "top",
+        "subcategory": "crop_top",
+        "extra_styles": ["casual"],
+    },
+    {
+        "name": "leggings",
+        "url": "https://incarnage.com/collections/womens-leggings",
+        "category": "leggings",
+        "subcategory": "leggings",
+        "extra_styles": ["activewear", "athleisure"],
+    },
+    {
+        "name": "skirts",
+        "url": "https://incarnage.com/collections/skirts",
+        "category": "skirt",
+        "subcategory": "skirt",
+        "extra_styles": ["casual"],
+    },
+    {
+        "name": "shorts",
+        "url": "https://incarnage.com/collections/womens-shorts-1",
+        "category": "shorts",
+        "subcategory": "shorts",
+        "extra_styles": ["casual", "activewear"],
+    },
+    {
+        "name": "jeans",
+        "url": "https://incarnage.com/collections/womens-jeans",
+        "category": "jeans",
+        "subcategory": "jeans",
+        "extra_styles": ["denim", "casual"],
+    },
+    {
+        "name": "joggers_pants",
+        "url": "https://incarnage.com/collections/womens-joggers-pants",
+        "category": "pants",
+        "subcategory": "joggers",
+        "extra_styles": ["activewear", "athleisure", "casual"],
+    },
+]
+
+
+COLOR_ALIASES = {
+    "black": ["black", "jet black"],
+    "white": ["white", "sheer white", "off white", "ivory"],
+    "brown": ["brown", "mocha", "coffee", "chocolate", "espresso"],
+    "grey": ["grey", "gray", "slate grey", "charcoal", "silver"],
+    "green": ["green", "olive", "sage", "mint"],
+    "blue": ["blue", "navy", "sky blue", "light blue", "denim"],
+    "red": ["red", "burgundy", "maroon", "wine", "crimson"],
+    "pink": ["pink", "vintage rose", "serene pink", "rose", "blush"],
+    "beige": ["beige", "cream", "nude", "sand", "khaki"],
+    "purple": ["purple", "lilac", "lavender", "plum"],
+    "yellow": ["yellow", "butter yellow", "mustard"],
+    "orange": ["orange", "rust", "terracotta"],
+    "multi": [
+        "multi",
+        "multicolor",
+        "multi color",
+        "print",
+        "printed",
+        "floral",
+        "stripe",
+        "striped",
+        "pattern",
+    ],
+}
+
+
+CATEGORY_KEYWORDS = [
+    ("top", "crop_top", ["crop top", "crop tee", "baby tee", "tee", "t-shirt", "tshirt", "top", "polo"]),
+    ("leggings", "leggings", ["legging", "leggings", "tights"]),
+    ("skirt", "skirt", ["skirt"]),
+    ("shorts", "shorts", ["short", "shorts"]),
+    ("jeans", "jeans", ["jean", "jeans", "denim"]),
+    ("pants", "joggers", ["jogger", "joggers"]),
+    ("pants", "pants", ["pant", "pants", "trouser", "trousers"]),
+]
+
+
+STYLE_KEYWORDS = {
+    "activewear": [
+        "training",
+        "gym",
+        "workout",
+        "active",
+        "activewear",
+        "moisture-wicking",
+        "moisture wicking",
+        "sweat-wicking",
+        "sweat wicking",
+    ],
+    "athleisure": ["athleisure", "jogger", "joggers", "leggings"],
+    "lifestyle": ["lifestyle", "everyday", "daily wear", "wardrobe"],
+    "seamless": ["seamless"],
+    "ribbed": ["ribbed"],
+    "fitted": [
+        "fitted",
+        "sleek",
+        "sculpted",
+        "body-hugging",
+        "body hugging",
+        "slim",
+        "slim fit",
+        "flattering fit",
+    ],
+    "relaxed": ["relaxed", "loose", "oversized"],
+    "smart_casual": ["polo", "collar", "button"],
+    "denim": ["denim", "jeans"],
+    "casual": ["casual", "easy to wear", "daily wardrobe"],
+    "crop": ["crop", "cropped"],
+    "high_waist": ["high waist", "high-waist", "high waisted", "high-waisted"],
+}
+
+
+SESSION = requests.Session()
+SESSION.headers.update(
+    {
+        "User-Agent": (
+            "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) "
+            "AppleWebKit/537.36 (KHTML, like Gecko) "
+            "Chrome/120.0.0.0 Safari/537.36"
+        ),
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+    }
+)
 
 
 def clean_text(text):
-    return re.sub(r"\s+", " ", text).strip()
+    return re.sub(r"\s+", " ", unescape(str(text or ""))).strip()
+
+
+def remove_emojis(text):
+    return re.sub(r"[^\w\s.,/&'()-]", "", text or "").strip()
+
+
+def strip_html(html_text):
+    if not html_text:
+        return None
+
+    return BeautifulSoup(str(html_text), "html.parser").get_text(" ", strip=True)
 
 
 def clean_product_description(description):
+    description = strip_html(description)
+
     if not description:
         return None
 
@@ -23,16 +172,10 @@ def clean_product_description(description):
     description = re.sub(r"^\d+(?=[A-Za-z])", "", description)
 
     description = re.sub(
-        r"^(?:Product\s+details:?\s*)+",
+        r"^(?:Description|Product\s+details?:?|Key Features:?)\s*",
         "",
         description,
-        flags=re.IGNORECASE
-    )
-    description = re.sub(
-        r"(?:\s*Product\s+details:?\s*)+$",
-        "",
-        description,
-        flags=re.IGNORECASE
+        flags=re.IGNORECASE,
     )
 
     description = clean_text(description).strip(" -:|")
@@ -40,390 +183,575 @@ def clean_product_description(description):
     return description or None
 
 
-def remove_emojis(text):
-    return re.sub(
-        r"[^\w\s.,/&'()-]",
-        "",
-        text
-    ).strip()
+def slugify(value):
+    value = clean_text(value).lower()
+    value = re.sub(r"[^a-zA-Z0-9_]+", "_", value)
+    return value.strip("_") or "unknown"
 
 
-def infer_color_from_title(title):
-    title_lower = title.lower()
+def make_absolute_url(url, page_url=CARNAGE_BASE_URL):
+    url = clean_text(url)
 
-    color_keywords = {
-        "black": ["black", "jet black"],
-        "white": ["white", "off white"],
-        "brown": ["brown", "mocha"],
-        "grey": ["grey", "gray", "slate grey"],
-        "green": ["green", "olive"],
-        "blue": ["blue", "navy"],
-        "red": ["red"],
-        "pink": ["pink"],
-        "beige": ["beige", "cream"],
-        "purple": ["purple"],
-        "yellow": ["yellow"]
-    }
+    if not url:
+        return None
 
+    if url.startswith("//"):
+        return f"https:{url}"
+
+    return urljoin(page_url, url)
+
+
+def clean_product_url(product_url):
+    absolute_url = make_absolute_url(product_url, CARNAGE_BASE_URL)
+
+    if not absolute_url:
+        return None
+
+    parsed_url = urlparse(absolute_url)
+    path_parts = [part for part in parsed_url.path.split("/") if part]
+
+    if "products" not in path_parts:
+        return None
+
+    product_index = path_parts.index("products")
+
+    if product_index + 1 >= len(path_parts):
+        return None
+
+    slug = path_parts[product_index + 1]
+    return f"https://incarnage.com/products/{slug}"
+
+
+def get_product_slug(product_url):
+    return urlparse(product_url).path.rstrip("/").split("/")[-1]
+
+
+def get_product_json_url(product_url):
+    slug = get_product_slug(product_url)
+    return f"https://incarnage.com/products/{slug}.js"
+
+
+def add_available_filter(collection_url):
+    parsed_url = urlparse(collection_url)
+    query_params = dict(parse_qsl(parsed_url.query, keep_blank_values=True))
+
+    query_params["filter.v.availability"] = "1"
+
+    return urlunparse(
+        (
+            parsed_url.scheme,
+            parsed_url.netloc,
+            parsed_url.path,
+            parsed_url.params,
+            urlencode(query_params),
+            parsed_url.fragment,
+        )
+    )
+
+
+def upgrade_shopify_image_quality(image_url, target_width=1600):
+    if not image_url:
+        return image_url
+
+    absolute_url = make_absolute_url(image_url, CARNAGE_BASE_URL)
+    parsed_url = urlparse(absolute_url)
+    query_params = dict(parse_qsl(parsed_url.query, keep_blank_values=True))
+
+    query_params["width"] = str(target_width)
+
+    return urlunparse(
+        (
+            parsed_url.scheme,
+            parsed_url.netloc,
+            parsed_url.path,
+            parsed_url.params,
+            urlencode(query_params),
+            parsed_url.fragment,
+        )
+    )
+
+
+def parse_shopify_price(price_value):
+    if price_value is None:
+        return None
+
+    try:
+        price = float(price_value)
+    except (TypeError, ValueError):
+        return None
+
+    # Shopify commonly stores LKR price as cents.
+    # Example: 425000 means LKR 4,250.00
+    if price > 100000:
+        return round(price / 100, 2)
+
+    return round(price, 2)
+
+
+def normalize_color_value(color_text):
+    if not color_text:
+        return None
+
+    color_text = clean_text(color_text).lower()
+    color_text = re.sub(r"[^a-z\s/-]", " ", color_text)
+    color_text = clean_text(color_text)
+
+    for canonical_color, aliases in COLOR_ALIASES.items():
+        for alias in aliases:
+            pattern = rf"\b{re.escape(alias)}\b"
+            if re.search(pattern, color_text, flags=re.IGNORECASE):
+                return canonical_color
+
+    return None
+
+
+def normalize_colors_from_text(text):
     matched_colors = []
 
-    for color, keywords in color_keywords.items():
-        for keyword in keywords:
-            if keyword in title_lower:
-                matched_colors.append(color)
+    for canonical_color, aliases in COLOR_ALIASES.items():
+        for alias in aliases:
+            pattern = rf"\b{re.escape(alias)}\b"
+            if re.search(pattern, text or "", flags=re.IGNORECASE):
+                if canonical_color not in matched_colors:
+                    matched_colors.append(canonical_color)
                 break
 
-    return matched_colors if matched_colors else ["unknown"]
+    return matched_colors
 
 
-def infer_styles_from_text(title, description):
-    searchable_text = f"{title or ''} {description or ''}".lower()
+def get_option_names(product_json):
+    option_names = []
+
+    for option in product_json.get("options", []):
+        if isinstance(option, dict):
+            option_names.append(clean_text(option.get("name", "")).lower())
+        else:
+            option_names.append(clean_text(option).lower())
+
+    return option_names
+
+
+def get_color_option_index(product_json):
+    option_names = get_option_names(product_json)
+
+    for index, option_name in enumerate(option_names):
+        if "color" in option_name or "colour" in option_name:
+            return index
+
+    # Carnage usually uses Color as option1.
+    # If option names are missing, use option1 as a safe fallback.
+    return 0
+
+
+def get_variant_option_value(variant, option_index):
+    if option_index is None:
+        return ""
+
+    option_key = f"option{option_index + 1}"
+    return clean_text(variant.get(option_key, ""))
+
+
+def get_variant_available(variant):
+    available = variant.get("available")
+
+    if isinstance(available, bool):
+        return available
+
+    return str(available).lower() == "true"
+
+
+def get_variant_id(variant):
+    variant_id = variant.get("id")
+    return str(variant_id) if variant_id is not None else None
+
+
+def get_variant_product_url(product_url, variant):
+    variant_id = get_variant_id(variant)
+
+    if not variant_id:
+        return product_url
+
+    return f"{product_url}?variant={variant_id}"
+
+
+def get_variant_image_url(variant, product_json):
+    featured_image = variant.get("featured_image")
+
+    if isinstance(featured_image, dict):
+        image_url = (
+            featured_image.get("src")
+            or featured_image.get("url")
+            or featured_image.get("preview_image", {}).get("src")
+        )
+
+        if image_url:
+            return upgrade_shopify_image_quality(image_url)
+
+    if isinstance(featured_image, str) and featured_image:
+        return upgrade_shopify_image_quality(featured_image)
+
+    featured_media = variant.get("featured_media")
+
+    if isinstance(featured_media, dict):
+        image_url = (
+            featured_media.get("src")
+            or featured_media.get("preview_image", {}).get("src")
+        )
+
+        if image_url:
+            return upgrade_shopify_image_quality(image_url)
+
+    product_featured_image = product_json.get("featured_image")
+
+    if product_featured_image:
+        return upgrade_shopify_image_quality(product_featured_image)
+
+    for image_url in product_json.get("images", []):
+        if image_url:
+            return upgrade_shopify_image_quality(image_url)
+
+    return CARNAGE_PLACEHOLDER_IMAGE_URL
+
+
+def get_best_variant_for_color(variants):
+    available_variants = [variant for variant in variants if get_variant_available(variant)]
+
+    for variant in available_variants:
+        if variant.get("featured_image") or variant.get("featured_media"):
+            return variant
+
+    if available_variants:
+        return available_variants[0]
+
+    return None
+
+
+def group_variants_by_color(product_json):
+    variants = product_json.get("variants", [])
+    color_option_index = get_color_option_index(product_json)
+    grouped_variants = {}
+
+    for variant in variants:
+        raw_color_value = get_variant_option_value(variant, color_option_index)
+
+        if not raw_color_value:
+            raw_color_value = "unknown"
+
+        color_key = clean_text(raw_color_value).lower()
+        grouped_variants.setdefault(color_key, []).append(variant)
+
+    return grouped_variants
+
+
+def clean_title(title):
+    title = remove_emojis(clean_text(title))
+
+    title = re.sub(
+        r"\s*(?:\||-|–)\s*CARNAGE.*$",
+        "",
+        title,
+        flags=re.IGNORECASE,
+    )
+
+    title = re.split(
+        r"(?:LKR|Rs\.?|Rs)\s*[\d,]+(?:\.\d{1,2})?",
+        title,
+        flags=re.IGNORECASE,
+    )[0]
+
+    title = re.sub(
+        r"\b(sold out|sale|new|popular|style|best seller|quick view|select options|add to cart)\b",
+        "",
+        title,
+        flags=re.IGNORECASE,
+    )
+
+    title = re.sub(r"\d+%\s*off", "", title, flags=re.IGNORECASE)
+
+    return clean_text(title)
+
+
+def infer_category_from_product(product_json, fallback_category, fallback_subcategory):
+    title = clean_text(product_json.get("title", ""))
+    product_type = clean_text(product_json.get("type", ""))
+    tags = product_json.get("tags", [])
+
+    if isinstance(tags, list):
+        tag_text = " ".join(clean_text(tag) for tag in tags)
+    else:
+        tag_text = clean_text(tags)
+
+    searchable_text = f"{title} {product_type} {tag_text}".lower()
+
+    for category, subcategory, keywords in CATEGORY_KEYWORDS:
+        for keyword in keywords:
+            if re.search(rf"\b{re.escape(keyword)}\b", searchable_text):
+                return category, subcategory
+
+    return fallback_category, fallback_subcategory
+
+
+def infer_styles_from_text(title, description, product_json=None, extra_styles=None):
+    extra_styles = extra_styles or []
+
+    product_type = ""
+    tags = []
+
+    if product_json:
+        product_type = clean_text(product_json.get("type", ""))
+        raw_tags = product_json.get("tags", [])
+
+        if isinstance(raw_tags, list):
+            tags = [clean_text(tag) for tag in raw_tags]
+        else:
+            tags = [clean_text(raw_tags)]
+
+    searchable_text = f"{title or ''} {description or ''} {product_type} {' '.join(tags)}".lower()
     styles = ["casual"]
 
-    style_keywords = {
-        "activewear": [
-            "training",
-            "gym",
-            "workout",
-            "moisture-wicking",
-            "moisture wicking",
-            "sweat-wicking",
-            "sweat wicking"
-        ],
-        "athleisure": ["athleisure"],
-        "lifestyle": ["lifestyle", "everyday", "daily wear"],
-        "seamless": ["seamless"],
-        "ribbed": ["ribbed"],
-        "fitted": ["sleek", "sculpted", "body-hugging", "body hugging"],
-        "smart_casual": ["polo", "collar"]
-    }
-
-    for style, keywords in style_keywords.items():
+    for style, keywords in STYLE_KEYWORDS.items():
         for keyword in keywords:
-            if keyword in searchable_text:
+            if re.search(rf"\b{re.escape(keyword)}\b", searchable_text, flags=re.IGNORECASE):
                 styles.append(style)
                 break
 
-    return styles
+    styles.extend(extra_styles)
+
+    return list(dict.fromkeys([style for style in styles if style]))
 
 
-def create_item_id(product_url):
-    slug = product_url.rstrip("/").split("/")[-1]
-    slug = re.sub(r"[^a-zA-Z0-9_]+", "_", slug).strip("_").lower()
+def create_item_id(product_url, color_value=None):
+    slug = slugify(get_product_slug(product_url))
+
+    if color_value:
+        return f"CARNAGE_{slug}_{slugify(color_value)}"
+
     return f"CARNAGE_{slug}"
 
 
-def extract_price(text):
-    price_match = re.search(r"LKR\s*([\d,]+(?:\.\d{2})?)", text)
+def fetch_product_json(product_url):
+    json_url = get_product_json_url(product_url)
 
-    if not price_match:
-        return None
-
-    price_text = price_match.group(1).replace(",", "")
-
-    try:
-        return float(price_text)
-    except ValueError:
-        return None
-
-
-def extract_title(text):
-    text = clean_text(text)
-
-    # Remove common badge/status words
-    text = re.sub(
-        r"\b(new|popular|style|best seller|sold out)\b",
-        "",
-        text,
-        flags=re.IGNORECASE
-    )
-
-    # Remove discount words like "58% off"
-    text = re.sub(r"\d+%\s*off", "", text, flags=re.IGNORECASE)
-
-    # Remove price and everything after first price
-    text = re.split(r"LKR\s*[\d,]+(?:\.\d{2})?", text)[0]
-
-    return remove_emojis(clean_text(text))
-
-
-def extract_detail_page_title(soup):
-    title_candidates = []
-
-    heading = soup.find("h1")
-    if heading:
-        title_candidates.append(heading.get_text(" ", strip=True))
-
-    for selector in [
-        {"property": "og:title"},
-        {"name": "twitter:title"},
-    ]:
-        meta_title = soup.find("meta", attrs=selector)
-        if meta_title and meta_title.get("content"):
-            title_candidates.append(meta_title["content"])
-
-    if soup.title and soup.title.string:
-        title_candidates.append(soup.title.string)
-
-    for candidate in title_candidates:
-        title = remove_emojis(clean_text(candidate))
-        title = re.sub(
-            r"\s*(?:\||–|-)\s*CARNAGE.*$",
-            "",
-            title,
-            flags=re.IGNORECASE
-        )
-        title = clean_text(title)
-
-        if title:
-            return title
-
-    return None
-
-
-def make_absolute_image_url(image_url, product_url):
-    image_url = clean_text(image_url)
-
-    if image_url.startswith("//"):
-        return f"https:{image_url}"
-
-    return urljoin(product_url, image_url)
-
-
-def extract_image_from_srcset(srcset):
-    image_urls = []
-
-    for srcset_item in srcset.split(","):
-        image_url = clean_text(srcset_item).split(" ")[0]
-        if image_url:
-            image_urls.append(image_url)
-
-    if not image_urls:
-        return None
-
-    return image_urls[-1]
-
-
-def is_valid_product_image_url(image_url):
-    if not image_url:
-        return False
-
-    image_url_lower = image_url.lower()
-
-    if image_url_lower.startswith("data:"):
-        return False
-
-    blocked_words = ["logo", "icon", "placeholder", "spinner", "loading"]
-    if any(word in image_url_lower for word in blocked_words):
-        return False
-
-    image_path = image_url_lower.split("?")[0]
-    image_extensions = (".jpg", ".jpeg", ".png", ".webp", ".avif")
-
-    return image_path.endswith(image_extensions)
-
-
-def image_url_from_tag(image_tag, product_url):
-    for attr in ["srcset", "data-srcset"]:
-        if image_tag.get(attr):
-            image_url = extract_image_from_srcset(image_tag[attr])
-            if image_url:
-                absolute_url = make_absolute_image_url(image_url, product_url)
-                if is_valid_product_image_url(absolute_url):
-                    return absolute_url
-
-    for attr in ["src", "data-src", "data-image", "data-original", "data-zoom"]:
-        if image_tag.get(attr):
-            absolute_url = make_absolute_image_url(image_tag[attr], product_url)
-            if is_valid_product_image_url(absolute_url):
-                return absolute_url
-
-    return None
-
-
-def extract_detail_page_image(soup, product_url):
-    for selector in [
-        {"property": "og:image"},
-        {"name": "twitter:image"},
-    ]:
-        meta_image = soup.find("meta", attrs=selector)
-        if meta_image and meta_image.get("content"):
-            image_url = make_absolute_image_url(meta_image["content"], product_url)
-            if is_valid_product_image_url(image_url):
-                return image_url
-
-    product_image_keywords = re.compile(
-        r"product|featured|main|gallery|media",
-        flags=re.IGNORECASE
-    )
-
-    for image_tag in soup.find_all("img"):
-        searchable_text = " ".join([
-            image_tag.get("class") and " ".join(image_tag.get("class")) or "",
-            image_tag.get("id", ""),
-            image_tag.get("alt", "")
-        ])
-
-        if not product_image_keywords.search(searchable_text):
-            continue
-
-        image_url = image_url_from_tag(image_tag, product_url)
-        if image_url:
-            return image_url
-
-    for image_tag in soup.find_all("img"):
-        image_url = image_url_from_tag(image_tag, product_url)
-        if image_url:
-            return image_url
-
-    return None
-
-
-def extract_product_detail_data(product_url):
-    """
-    Opens a Carnage product detail page and extracts more accurate product data.
-    This improves collection-page crawling by getting exact title, image,
-    color, and description.
-    """
-
-    try:
-        response = requests.get(
-            product_url,
-            timeout=15,
-            headers={
-                "User-Agent": "Mozilla/5.0"
-            }
-        )
-        response.raise_for_status()
-
-        soup = BeautifulSoup(response.text, "html.parser")
-        page_text = clean_text(soup.get_text(" ", strip=True))
-        detail_title = extract_detail_page_title(soup)
-        detail_image_url = extract_detail_page_image(soup, product_url)
-
-        # Extract exact color from text like "Color: Mocha Brown"
-        color_match = re.search(
-            r"Color:\s*([A-Za-z\s]+?)(?:\s+Select size|\s+S\s+M\s+L|\s+Add to cart)",
-            page_text,
-            flags=re.IGNORECASE
-        )
-
-        extracted_color_text = None
-        if color_match:
-            extracted_color_text = clean_text(color_match.group(1))
-
-        # Extract useful description from Product details section
-        description = None
-        description_match = re.search(
-            r"Product details\s+(.*?)(?:Key Features|Material Composition|Care Details|Free standard shipping|Size guide)",
-            page_text,
-            flags=re.IGNORECASE
-        )
-
-        if description_match:
-            description = clean_product_description(description_match.group(1))
-
-        # Check availability
-        is_sold_out = "sold out" in page_text.lower()
-
-        return {
-            "title": detail_title,
-            "image_url": detail_image_url,
-            "color_text": extracted_color_text,
-            "description": description,
-            "availability": not is_sold_out
-        }
-
-    except Exception:
-        return {
-            "title": None,
-            "image_url": None,
-            "color_text": None,
-            "description": None,
-            "availability": True
-        }
-
-
-def crawl_carnage_crop_tops(max_items=10):
-    response = requests.get(
-        CARNAGE_CROP_TOPS_URL,
+    response = SESSION.get(
+        json_url,
         timeout=15,
         headers={
-            "User-Agent": "Mozilla/5.0"
-        }
+            "Accept": "application/json,text/plain,*/*",
+        },
     )
     response.raise_for_status()
 
-    soup = BeautifulSoup(response.text, "html.parser")
+    return response.json()
 
-    product_links = []
+
+def extract_product_links_from_collection(collection_url, max_items):
+    filtered_url = add_available_filter(collection_url)
+
+    product_urls = _extract_product_links_from_page(filtered_url, max_items=max_items)
+
+    # Backup: if the availability-filtered collection gives no products,
+    # try the normal collection URL. Product JSON availability still filters
+    # out unavailable variants later.
+    if not product_urls:
+        product_urls = _extract_product_links_from_page(collection_url, max_items=max_items)
+
+    return product_urls
+
+
+def _extract_product_links_from_page(page_url, max_items):
+    response = SESSION.get(page_url, timeout=20)
+    response.raise_for_status()
+
+    soup = BeautifulSoup(response.text, "html.parser")
+    product_urls = []
+    seen_urls = set()
 
     for link in soup.find_all("a", href=True):
         href = link["href"]
-        text = clean_text(link.get_text(" ", strip=True))
 
         if "/products/" not in href:
             continue
 
-        if "LKR" not in text:
+        product_url = clean_product_url(href)
+
+        if not product_url or product_url in seen_urls:
             continue
 
-        full_url = href
-        if href.startswith("/"):
-            full_url = f"https://incarnage.com{href}"
+        seen_urls.add(product_url)
+        product_urls.append(product_url)
 
-        title = extract_title(text)
-        price = extract_price(text)
+        if len(product_urls) >= max_items:
+            break
 
-        if not title:
-            continue
+    return product_urls
 
-        is_sold_out = "sold out" in text.lower()
 
-        product_links.append({
-            "title": title,
-            "price": price,
-            "product_url": full_url,
-            "availability": not is_sold_out
-        })
+def extract_products_from_shopify_json(product_json, product_url, collection_config):
+    if not product_json.get("available", False):
+        return []
 
-    # remove duplicates by product_url
-    unique_products = []
-    seen_urls = set()
+    title = clean_title(product_json.get("title")) or clean_text(product_json.get("handle"))
+    description = (
+        clean_product_description(product_json.get("description"))
+        or f"Carnage fashion product: {title}"
+    )
 
-    for item in product_links:
-        if item["product_url"] in seen_urls:
-            continue
+    category, subcategory = infer_category_from_product(
+        product_json=product_json,
+        fallback_category=collection_config["category"],
+        fallback_subcategory=collection_config["subcategory"],
+    )
 
-        seen_urls.add(item["product_url"])
-        unique_products.append(item)
+    grouped_variants = group_variants_by_color(product_json)
+
+    if not grouped_variants:
+        return []
 
     crawled_products = []
 
-    for item in unique_products[:max_items]:
-        detail_data = extract_product_detail_data(item["product_url"])
+    raw_tags = product_json.get("tags", [])
+    if isinstance(raw_tags, list):
+        tags_text = " ".join(clean_text(tag) for tag in raw_tags)
+    else:
+        tags_text = clean_text(raw_tags)
 
-        trusted_title = detail_data["title"] or item["title"]
-        image_url = detail_data["image_url"] or CARNAGE_PLACEHOLDER_IMAGE_URL
-        color_source_text = detail_data["color_text"] or trusted_title
-        description = detail_data["description"] or f"Carnage women's crop top: {trusted_title}"
-        styles = infer_styles_from_text(trusted_title, description)
+    for color_key, variants in grouped_variants.items():
+        selected_variant = get_best_variant_for_color(variants)
 
-        crawled_products.append({
-            "item_id": create_item_id(item["product_url"]),
-            "title": trusted_title,
-            "category": "top",
-            "subcategory": "crop_top",
-            "color": infer_color_from_title(color_source_text),
-            "style": styles,
-            "brand": "Carnage",
-            "price": item["price"],
-            "currency": "LKR",
-            "image_url": image_url,
-            "product_url": item["product_url"],
-            "source": "carnage",
-            "description": description,
-            "availability": item["availability"] and detail_data["availability"]
-        })
+        if selected_variant is None:
+            continue
+
+        raw_color_value = color_key if color_key != "unknown" else ""
+        normalized_color = normalize_color_value(raw_color_value)
+
+        if normalized_color:
+            normalized_colors = [normalized_color]
+        else:
+            normalized_colors = normalize_colors_from_text(
+                f"{raw_color_value} {title} {tags_text}"
+            )
+
+        if not normalized_colors:
+            normalized_colors = ["unknown"]
+
+        availability = any(get_variant_available(variant) for variant in variants)
+
+        if not availability:
+            continue
+
+        image_url = get_variant_image_url(selected_variant, product_json)
+        price = parse_shopify_price(selected_variant.get("price") or product_json.get("price"))
+        variant_product_url = get_variant_product_url(product_url, selected_variant)
+        color_for_id = raw_color_value or normalized_colors[0]
+
+        crawled_products.append(
+            {
+                "item_id": create_item_id(product_url, color_for_id),
+                "title": title,
+                "category": category,
+                "subcategory": subcategory,
+                "color": normalized_colors,
+                "style": infer_styles_from_text(
+                    title=title,
+                    description=description,
+                    product_json=product_json,
+                    extra_styles=collection_config.get("extra_styles", []),
+                ),
+                "brand": "Carnage",
+                "price": price,
+                "currency": "LKR",
+                "image_url": image_url,
+                "product_url": variant_product_url,
+                "source": "carnage",
+                "description": description,
+                "availability": True,
+            }
+        )
 
     return crawled_products
+
+
+def crawl_single_carnage_product(product_url, collection_config):
+    try:
+        product_json = fetch_product_json(product_url)
+        return extract_products_from_shopify_json(
+            product_json=product_json,
+            product_url=product_url,
+            collection_config=collection_config,
+        )
+    except Exception as error:
+        print(f"Carnage product JSON failed for {product_url}: {error}")
+        return []
+
+
+def deduplicate_products(products):
+    unique_products = []
+    seen_item_ids = set()
+
+    for product in products:
+        item_id = product.get("item_id")
+
+        if not item_id or item_id in seen_item_ids:
+            continue
+
+        seen_item_ids.add(item_id)
+        unique_products.append(product)
+
+    return unique_products
+
+
+def crawl_carnage_products(max_items=10):
+    """
+    Crawls multiple Carnage women clothing collections using Shopify product JSON.
+
+    Important:
+    - max_items means max product URLs per collection.
+    - Only available products/variants are returned.
+    - Products are de-duplicated by product URL and final item_id.
+    - One DB row is returned per available color variant.
+    """
+
+    max_items = max_items or 10
+    all_products = []
+    seen_product_urls = set()
+
+    for collection_config in CARNAGE_COLLECTIONS:
+        collection_url = collection_config["url"]
+
+        try:
+            product_urls = extract_product_links_from_collection(
+                collection_url=collection_url,
+                max_items=max_items,
+            )
+        except Exception as error:
+            print(f"Carnage collection failed: {collection_config['name']} - {error}")
+            continue
+
+        for product_url in product_urls:
+            if product_url in seen_product_urls:
+                continue
+
+            seen_product_urls.add(product_url)
+
+            product_variants = crawl_single_carnage_product(
+                product_url=product_url,
+                collection_config=collection_config,
+            )
+            all_products.extend(product_variants)
+
+    unique_products = deduplicate_products(all_products)
+    print(f"Carnage crawler success: {len(unique_products)} available products")
+
+    return unique_products
+
+
+def crawl_carnage_all_clothing(max_items=10):
+    return crawl_carnage_products(max_items=max_items)
+
+
+# Keep this old function name because crawler_service.py already imports it.
+# After replacing this file, your existing backend can still call
+# crawl_carnage_crop_tops(), but it will now collect all configured
+# Carnage women clothing categories.
+def crawl_carnage_crop_tops(max_items=10):
+    return crawl_carnage_products(max_items=max_items)

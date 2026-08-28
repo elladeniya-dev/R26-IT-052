@@ -5,6 +5,7 @@ from app.services.ml_similarity_service import calculate_ml_similarity_score
 PLACEHOLDER_IMAGE_URLS = {
     "https://example.com/carnage-placeholder.jpg",
     "https://example.com/gflock-placeholder.jpg",
+    "https://example.com/kelly-felder-placeholder.jpg",
 }
 
 EXCLUDED_SOURCES = {"sample_data", "sample_crawler"}
@@ -42,6 +43,9 @@ def is_real_recommendable_product(product: Product):
     source = (product.source or "").lower()
     product_url = (product.product_url or "").lower()
     image_url = (product.image_url or "").lower()
+
+    if product.availability is not True:
+        return False
 
     if source in EXCLUDED_SOURCES:
         return False
@@ -183,7 +187,18 @@ def calculate_recommendation_score(product: Product, request):
 
 
 def generate_recommendations(db, request):
-    products = db.query(Product).filter(Product.availability == True).all()
+    """
+    Generates recommendations only from currently available products.
+
+    This prevents old, hidden, sample, placeholder, and out-of-stock
+    products from being recommended to the user.
+    """
+
+    products = (
+        db.query(Product)
+        .filter(Product.availability.is_(True))
+        .all()
+    )
 
     scored_products = []
 

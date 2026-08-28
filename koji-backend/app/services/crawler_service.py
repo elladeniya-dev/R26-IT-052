@@ -67,20 +67,28 @@ def generate_sample_crawled_products(request):
     """
     Main crawler coordinator.
 
-    Current supported crawlers:
-    - category = "top"   -> Carnage crop tops
-    - category = "dress" -> Gflock dresses + Kelly Felder dresses
+    Supported category values:
+    - category = "all"          -> Gflock + Carnage + Kelly Felder
+    - category = "gflock"       -> Gflock only
+    - category = "carnage"      -> Carnage only
+    - category = "kelly_felder" -> Kelly Felder only
 
-    If one crawler fails, the remaining crawler still continues.
+    If one crawler fails, the remaining crawlers still continue.
     """
 
-    category = (request.category or "top").lower()
+    category = (request.category or "all").lower()
     max_items = request.max_items or 10
 
-    if category == "dress":
+    if category == "all":
         gflock_products = _safe_run_crawler(
             crawler_name="Gflock",
             crawler_function=crawl_gflock_dresses,
+            max_items=max_items,
+        )
+
+        carnage_products = _safe_run_crawler(
+            crawler_name="Carnage",
+            crawler_function=crawl_carnage_crop_tops,
             max_items=max_items,
         )
 
@@ -90,10 +98,27 @@ def generate_sample_crawled_products(request):
             max_items=max_items,
         )
 
-        return gflock_products + kelly_felder_products
+        return gflock_products + carnage_products + kelly_felder_products
 
-    return _safe_run_crawler(
-        crawler_name="Carnage",
-        crawler_function=crawl_carnage_crop_tops,
-        max_items=max_items,
-    )
+    if category == "gflock":
+        return _safe_run_crawler(
+            crawler_name="Gflock",
+            crawler_function=crawl_gflock_dresses,
+            max_items=max_items,
+        )
+
+    if category == "carnage":
+        return _safe_run_crawler(
+            crawler_name="Carnage",
+            crawler_function=crawl_carnage_crop_tops,
+            max_items=max_items,
+        )
+
+    if category == "kelly_felder":
+        return _safe_run_crawler(
+            crawler_name="Kelly Felder",
+            crawler_function=crawl_kelly_felder_dresses,
+            max_items=max_items,
+        )
+
+    return []
