@@ -9,6 +9,7 @@ from app.routers import (
     ml_predictions,
     insights,
     recommendations,
+    trending_products,
 )
 
 Base.metadata.create_all(bind=engine)
@@ -35,3 +36,4 @@ app.include_router(trends.router)
 app.include_router(ml_predictions.router)
 app.include_router(insights.router)
 app.include_router(recommendations.router)
+app.include_router(trending_products.router)

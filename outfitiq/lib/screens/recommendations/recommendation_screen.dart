@@ -6,6 +6,7 @@ import 'package:google_fonts/google_fonts.dart';
 import '../../models/recommendation_product_model.dart';
 import '../../services/recommendation_api_service.dart';
 import '../splash_screen.dart';
+import '../trending/trending_screen.dart';
 import 'product_detail_screen.dart';
 
 class RecommendationScreen extends StatefulWidget {
@@ -1189,15 +1190,32 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
           ),
         ],
       ),
-      child: const Row(
+      child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          Icon(Icons.home_rounded, color: Color(0xFF0B5D85)),
-          Icon(Icons.favorite_border_rounded, color: Color(0xFF9CA3AF)),
-          Icon(Icons.shopping_bag_outlined, color: Color(0xFF9CA3AF)),
-          Icon(Icons.person_outline_rounded, color: Color(0xFF9CA3AF)),
+          const Icon(Icons.home_rounded, color: Color(0xFF0B5D85)),
+          InkWell(
+            onTap: _goToTrending,
+            borderRadius: BorderRadius.circular(20),
+            child: const Padding(
+              padding: EdgeInsets.all(12),
+              child: Icon(Icons.trending_up_rounded, color: Color(0xFF9CA3AF)),
+            ),
+          ),
+          const Icon(Icons.favorite_border_rounded, color: Color(0xFF9CA3AF)),
+          const Icon(Icons.shopping_bag_outlined, color: Color(0xFF9CA3AF)),
+          const Icon(Icons.person_outline_rounded, color: Color(0xFF9CA3AF)),
         ],
       ),
+    );
+  }
+
+  void _goToTrending() {
+    HapticFeedback.lightImpact();
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const TrendingScreen()),
     );
   }
 }

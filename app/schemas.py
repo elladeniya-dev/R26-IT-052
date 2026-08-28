@@ -151,3 +151,23 @@ class RecommendationProduct(BaseModel):
 
 class RecommendationsResponse(BaseModel):
     recommendations: List[RecommendationProduct]
+
+
+class TrendingProduct(BaseModel):
+    item_id: str
+    title: str
+    category: str
+    color: List[str]
+    style: List[str]
+    brand: str
+    source: str
+    price: float
+    image_url: str
+    product_url: str
+    trend_score: float
+    trend_reason: str
+
+
+class TrendingProductsResponse(BaseModel):
+    total: int
+    products: List[TrendingProduct]
