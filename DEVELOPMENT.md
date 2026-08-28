@@ -357,3 +357,110 @@ trend_score = 0.50 * growth_score + 0.30 * count_score + 0.20 * rank_score
   (`1 - (average_rank - 1) / 20`), defaults to 0.5 with insufficient rank history.
 
 Implemented in [trend_analysis_service.py](app/services/trend_analysis_service.py).
+
+---
+
+## 12. Full Codebase Audit (Bugs Found and Fixed)
+
+A systematic pass across all 52 Python files (pyflakes for dead code/unused
+imports, manual review of every pipeline/router/service file, live-database
+verification of anything data-shaped) after the Copilot PR review, looking
+specifically for currently-dormant bugs — the kind that don't show up yet
+because the data hasn't grown enough to trigger them, but would the moment it
+does. Each finding below was reproduced or empirically confirmed before being
+fixed, not just inferred from reading the code.
+
+1. **`Product.collected_at` was silently the store's publish date, not the
+   scrape date, for 82% of the catalog.** [ingest_garments_etl.py](app/pipeline/ingest_garments_etl.py)
+   derived `collected_at` from Shopify's `published_at` field when present.
+   Verified against the live database: `tier1_shopify_json` products (2,797 of
+   3,396 rows) had `collected_at` values ranging back to **2025-04-07** — over
+   a year before this project existed — while `tier3` products (no
+   `published_at` to hijack it) correctly showed the real scrape date. This
+   broke `/products/new-arrivals`'s documented contract ("genuinely new, not
+   just recently updated") for the majority of the catalog: a product scraped
+   for the first time today but published by the store months ago would never
+   appear. Fixed to derive `collected_at` from the run folder's own date — the
+   same source of truth `generate_trend_observations.py` and
+   `joint_trend_forecast.py` already use — instead of the store's timestamp.
+   (Existing rows in the live DB still carry the old, incorrect dates; only
+   newly-ingested rows get the fix. A retroactive backfill would need to be a
+   separate, deliberate decision, not a side effect of a bug-fix pass.)
+2. **Joint-forecast rows could silently blank out `/trends`, `/trends/history`,
+   `/trends/{attribute_type}`, and `/trend-insights`.** All four endpoints
+   picked their "current window" via `ORDER BY end_date DESC LIMIT 1` with no
+   filter excluding `attribute_type="joint_forecast"` rows. Those rows are
+   persisted by `joint_trend_forecast.py` with `end_date=datetime.now()` at
+   forecast-run time — always later than the real "weekly" window's end_date,
+   since that script runs after `compute_trend_signals.py` in the same daily
+   pipeline. Reproduced against an in-memory database: the old query picked
+   the joint_forecast row as "latest," and since `attribute_type="joint_forecast"`
+   isn't in `ALLOWED_INSIGHT_ATTRIBUTE_TYPES`
+   ([constants.py](app/core/constants.py)), every row would then fail the
+   safety filter — the endpoints would go silently empty the moment the joint
+   LightGBM forecaster produces its first real result (expected within weeks,
+   per the 6-week history threshold). Currently dormant only because 0/241
+   attributes qualify yet. Fixed by filtering `time_window == "weekly"` in all
+   four queries.
+3. **Shape-template fallback category casing broke lift-grounding.**
+   `_shape_template_category_fallback()` in
+   [ml_prediction_service.py](app/services/ml_prediction_service.py) needed to
+   pass a category into `get_grounded_attributes()`, which does an exact-match
+   filter against `Product.ml_category` (always exact `HM_CATEGORIES` casing,
+   e.g. `"Vest top"`). The category source, `TrendSignal.attribute_value`, is
+   lowercased by `calculate_trend_signals()`
+   ([trend_analysis_service.py](app/services/trend_analysis_service.py):17)
+   before it's persisted — so the exact match always failed, silently
+   returning `colors: ["Unknown"], patterns: ["Unknown"]` for every
+   shape-template-sourced prediction. Fixed by restoring canonical
+   `HM_CATEGORIES` casing via a lowercase lookup before the category is used.
+4. **`/trends/analyze`'s stale-row deletion bug had only been fixed in the
+   standalone script, not the API endpoint.** The exact-match deletion bug
+   documented in §4 ("TrendSignal staleness bug") was fixed in
+   `compute_trend_signals.py` but the identical logic in
+   [trends.py](app/routers/trends.py)'s `/trends/analyze` endpoint still used
+   the old exact-match filter, letting orphaned rows accumulate again whenever
+   that endpoint (rather than the script) was used to trigger analysis. Fixed
+   to match.
+5. **Non-deterministic `rank_position` from set iteration order.**
+   [tier2_jsonld.py](trend-data-collector/services/tier2_jsonld.py)'s static
+   detail-page scraper collected product links into a `set` and ranked them
+   via `enumerate(list(detail_links))` — Python's string hash randomization
+   means set iteration order isn't stable across process runs, so identical
+   HTML could produce different `rank_position` values from one day's scrape
+   to the next, injecting pure noise into `rank_score`. Fixed to sort before
+   ranking.
+6. **`/products/on-sale` loaded every discounted row into memory to sort/filter
+   in Python.** Rewritten to filter, order, and limit in SQL, and added an
+   `original_price > 0` guard against a division-by-zero.
+7. **`tests/test_ml_model_load.py` tested a model that no longer exists and
+   wasn't even a real test.** It loaded `trend_random_forest_model.pkl` plus
+   three encoder files — all retired when the Random Forest architecture was
+   replaced with the joint LightGBM + shape-template approach (§5) — and
+   defined only `main()`, not a `test_*` function, so pytest would never have
+   discovered it even if the files existed. Separately, `pytest` itself wasn't
+   declared in any requirements file, so the suite had never actually been
+   run by anyone in this project's history. Rewritten to load and predict with
+   the real `joint_attribute_lgbm_model.pkl` and validate the shape template
+   JSON; `pytest` added to `requirements-pipeline.txt`; both tests verified
+   passing.
+8. **The daily workflow's "commit JSON snapshots to the repo" step had never
+   committed anything.** `.gitignore`'s blanket `*.json` rule (intended for
+   local datasets) also matched `trend-data-collector/output/`, and `git add`
+   on a gitignored path is a silent no-op — confirmed via `git log --author
+   "GitHub Actions Bot"` returning zero commits despite 24+ real daily runs.
+   Removed the dead step rather than "fixing" it to actually commit — the
+   data is already retained via the workflow's 90-day artifact upload and,
+   more importantly, Postgres itself; committing several MB of raw scrape
+   JSON to git every day would only bloat the repository for no benefit.
+9. **`--latest-only` picked a run folder by filesystem mtime instead of its
+   own date-encoded name.** `ingest_garments_etl.py` used
+   `max(run_folders, key=os.path.getmtime)`; a fresh git checkout or artifact
+   restore can give every folder a near-identical mtime regardless of actual
+   scrape date, which could pick the wrong folder. `run_folders` was already
+   correctly sorted by name (`run_YYYY-MM-DD_HHMMSS` sorts chronologically as
+   a string); switched to using that order directly, matching how
+   `joint_trend_forecast.py` already determines folder ordering.
+
+All fixes verified: full-repo `pyflakes` clean, `pytest` passing, and every
+API endpoint smoke-tested live against the real database after each change.

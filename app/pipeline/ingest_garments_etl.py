@@ -9,6 +9,20 @@ from pathlib import Path
 from datetime import datetime
 from sqlalchemy.orm import Session
 
+# Matches app/pipeline/generate_trend_observations.py's RUN_DIR_RE — same
+# folder-name-encoded date, used as the single source of truth for "when did
+# we actually scrape this," consistent across the whole pipeline.
+RUN_DIR_RE = re.compile(r"run_(\d{4}-\d{2}-\d{2})_(\d{2})(\d{2})(\d{2})$")
+
+
+def parse_run_date(run_dir: str) -> datetime:
+    name = os.path.basename(run_dir.rstrip("/\\"))
+    m = RUN_DIR_RE.search(name)
+    if not m:
+        raise ValueError(f"Cannot parse date from run folder name: {name}")
+    date_part, hh, mm, ss = m.groups()
+    return datetime.strptime(f"{date_part} {hh}:{mm}:{ss}", "%Y-%m-%d %H:%M:%S")
+
 # Only import GLiNER when the script runs to prevent module loading errors if missing
 try:
     from gliner import GLiNER
@@ -401,7 +415,11 @@ def ingest_garments(latest_only: bool = False, wipe_db: bool = False, use_gemini
         return
 
     if latest_only:
-        latest_folder = max(run_folders, key=os.path.getmtime)
+        # run_folders is already sorted by name, and the folder name encodes
+        # the actual scrape date/time — filesystem mtime isn't a reliable
+        # proxy for "latest" (e.g. a fresh git checkout/artifact restore can
+        # give every folder a near-identical mtime regardless of scrape date).
+        latest_folder = run_folders[-1]
         run_folders = [latest_folder]
         print(f"Processing ONLY latest run folder: {latest_folder}")
     else:
@@ -414,6 +432,7 @@ def ingest_garments(latest_only: bool = False, wipe_db: bool = False, use_gemini
     mapping_cache = {}
 
     for run_dir in run_folders:
+        run_date = parse_run_date(run_dir)
         files = glob.glob(os.path.join(run_dir, "*_garments.json"))
         for file_path in files:
             if 'combined' in file_path: continue
@@ -533,14 +552,17 @@ def ingest_garments(latest_only: bool = False, wipe_db: bool = False, use_gemini
                             db.flush()
                             mapping_cache[mapping_key] = (ml_cat, ml_col, ml_pat)
                 
-                published_at = garment.get("published_at")
-                if published_at:
-                    try:
-                        collected_at = datetime.fromisoformat(published_at.replace("Z", "+00:00"))
-                    except ValueError:
-                        collected_at = datetime.now()
-                else:
-                    collected_at = datetime.now()
+                # collected_at = when WE scraped this, not the store's own
+                # published_at (which for Tier 1/Shopify items can be over a
+                # year old — using it here silently broke "genuinely new"
+                # semantics for /products/new-arrivals on the majority of the
+                # catalog, and could also mix naive/aware datetimes in the
+                # same column since published_at carries a real UTC offset
+                # while every other tier had none). run_date is the actual
+                # scrape date, consistently naive, same source of truth
+                # generate_trend_observations.py and joint_trend_forecast.py
+                # already use.
+                collected_at = run_date
 
                 product = Product(
                     item_id=item_id,
