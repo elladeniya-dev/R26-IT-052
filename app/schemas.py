@@ -118,3 +118,36 @@ class OutfitPredictionResponse(BaseModel):
     patterns: list[str]
     predicted_change: Optional[float] = None
     model_type: str
+
+
+class RecommendationRequest(BaseModel):
+    user_id: str
+    preferred_categories: List[str] = []
+    preferred_colors: List[str] = []
+    preferred_styles: List[str] = []
+    preferred_brands: List[str] = []
+    price_min: float = 0
+    price_max: float = 999999
+    max_results: int = 15
+
+
+class RecommendationProduct(BaseModel):
+    item_id: str
+    title: str
+    category: str
+    color: List[str]
+    style: List[str]
+    brand: str
+    source: str
+    price: float
+    image_url: str
+    product_url: str
+    final_score: float
+    user_match_score: float
+    ml_similarity_score: float
+    product_quality_score: float
+    reason_tags: List[str]
+
+
+class RecommendationsResponse(BaseModel):
+    recommendations: List[RecommendationProduct]

@@ -1,0 +1,37 @@
+name: OutfitIQ
+description: "OutfitIQ - Smart Fashion Assistant mobile frontend."
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  cupertino_icons: ^1.0.8
+  http: ^1.2.2
+  cached_network_image: ^3.4.1
+  url_launcher: ^6.3.1
+  google_fonts: ^6.2.1
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+
+  flutter_lints: ^6.0.0
+  flutter_launcher_icons: ^0.14.4
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/app_icon/logo.jpg
+
+flutter_launcher_icons:
+  android: true
+  ios: true
+  image_path: "assets/app_icon/logo.jpg"
+  remove_alpha_ios: true
