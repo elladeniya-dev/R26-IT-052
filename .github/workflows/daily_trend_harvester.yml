@@ -94,6 +94,7 @@ jobs:
           else
             python scripts/generate_trend_observations.py
             python scripts/compute_trend_signals.py
+            python scripts/joint_trend_forecast.py
           fi
 
       - name: Upload Downloadable Backup Artifact (ZIP Bundle)

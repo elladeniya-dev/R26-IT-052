@@ -194,4 +194,5 @@ class OutfitPredictionResponse(BaseModel):
     category: str
     colors: list[str]
     patterns: list[str]
-    model_type: str = "TFT + Lift-Filtered Grounding"
+    predicted_change: Optional[float] = None
+    model_type: str

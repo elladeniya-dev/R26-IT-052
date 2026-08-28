@@ -38,11 +38,12 @@ def compute_and_persist():
         db.close()
         return
 
-    db.query(TrendSignal).filter(
-        TrendSignal.time_window == "weekly",
-        TrendSignal.start_date == current_start,
-        TrendSignal.end_date == current_end,
-    ).delete(synchronize_session=False)
+    # Wipe ALL prior "weekly" rows, not just an exact start/end match — every
+    # consumer only ever reads the single latest window (see trends.py,
+    # insights.py), so an older window left behind by a previous run is pure
+    # staleness, not history anyone queries. Exact-match deletion let 153
+    # orphaned rows from earlier runs accumulate silently this session.
+    db.query(TrendSignal).filter(TrendSignal.time_window == "weekly").delete(synchronize_session=False)
 
     for item in analyzed_results:
         db.add(TrendSignal(
