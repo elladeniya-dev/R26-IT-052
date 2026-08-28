@@ -2,38 +2,6 @@ from pydantic import BaseModel
 from datetime import datetime
 from typing import List, Optional
 
-
-class ProductCreate(BaseModel):
-    item_id: str
-    title: str
-    category: str
-
-    color: Optional[List[str]] = []
-    style: Optional[List[str]] = []
-
-    brand: Optional[str] = None
-    price: Optional[float] = None
-    currency: Optional[str] = "LKR"
-
-    material: Optional[str] = None
-    pattern: Optional[str] = None
-    fit_type: Optional[str] = None
-
-    image_url: Optional[str] = None
-    product_url: Optional[str] = None
-    source: Optional[str] = None
-    description: Optional[str] = None
-
-    availability: Optional[bool] = True
-    collected_at: Optional[datetime] = None
-    original_price: Optional[float] = None
-
-
-class ProductResponse(ProductCreate):
-    class Config:
-        from_attributes = True
-
-
 class NewArrivalItem(BaseModel):
     item_id: str
     title: str
@@ -77,45 +45,6 @@ class DiscountedItemsResponse(BaseModel):
     items: list[DiscountedItem]
 
 
-class ProductTrendMetricCreate(BaseModel):
-    item_id: str
-    view_count: Optional[int] = 0
-    wishlist_count: Optional[int] = 0
-    sales_volume: Optional[int] = 0
-    social_mentions: Optional[int] = 0
-    availability: Optional[bool] = True
-    recorded_at: Optional[datetime] = None
-
-
-class ProductTrendMetricResponse(ProductTrendMetricCreate):
-    metric_id: int
-
-    class Config:
-        from_attributes = True
-
-
-class TrendObservationCreate(BaseModel):
-    source_name: str
-    source_type: str
-    attribute_type: str
-    attribute_value: str
-    keyword: Optional[str] = None
-    mention_count: Optional[int] = 1
-    rank_position: Optional[int] = None
-    collected_at: Optional[datetime] = None
-
-
-class BulkTrendObservationCreate(BaseModel):
-    observations: List[TrendObservationCreate]
-
-
-class TrendObservationResponse(TrendObservationCreate):
-    observation_id: int
-
-    class Config:
-        from_attributes = True
-
-
 class TrendSignalResponse(BaseModel):
     trend_id: int
     attribute_type: str
@@ -129,7 +58,6 @@ class TrendSignalResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
 
 class TrendPredictionRequest(BaseModel):
     attribute_type: str
@@ -146,14 +74,12 @@ class TrendPredictionRequest(BaseModel):
     rank_score: float
     trend_score: float
 
-
 class TrendPredictionResponse(BaseModel):
     attribute_type: str
     attribute_value: str
     predicted_trend_label: str
     confidence_scores: dict
     model_type: str
-
 
 class LatestTrendPredictionItem(BaseModel):
     trend_id: int
@@ -165,11 +91,9 @@ class LatestTrendPredictionItem(BaseModel):
     confidence_scores: dict
     model_type: str
 
-
 class LatestTrendPredictionsResponse(BaseModel):
     total_predictions: int
     predictions: list[LatestTrendPredictionItem]
-
 
 class TrendInsightItem(BaseModel):
     trend_id: int
@@ -184,11 +108,9 @@ class TrendInsightItem(BaseModel):
     confidence: float
     display_badge: str
 
-
 class TrendInsightsResponse(BaseModel):
     total_insights: int
     insights: list[TrendInsightItem]
-
 
 class OutfitPredictionResponse(BaseModel):
     category: str
