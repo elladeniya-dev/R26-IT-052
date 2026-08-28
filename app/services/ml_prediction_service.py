@@ -240,7 +240,7 @@ class TrendMLPredictionService:
             projection = forecast_with_template(r["current_count"], template)
             predicted_change = round(float(projection[-1] - r["current_count"]), 1)
             results.append({
-                "category": r["attribute_value"].title(),
+                "category": r["attribute_value"],
                 "predicted_change": predicted_change,
                 "model_type": "Shape-Template Projection (real H&M rise curve, applied to live SL trend_score) + Lift-Filtered Grounding",
             })

@@ -43,34 +43,37 @@ def get_new_arrivals(hours: int = 48, limit: int = 50, db: Session = Depends(get
 @router.get("/products/on-sale", response_model=schemas.DiscountedItemsResponse)
 def get_discounted_products(min_discount_pct: float = 5.0, limit: int = 50, db: Session = Depends(get_db)):
     """Products currently marked down (original_price > price), ranked by discount size."""
+    discount_pct_expr = (
+        100 * (models.Product.original_price - models.Product.price) / models.Product.original_price
+    )
     products = (
-        db.query(models.Product)
+        db.query(models.Product, discount_pct_expr.label("discount_pct"))
         .filter(
             models.Product.original_price.isnot(None),
+            models.Product.original_price > 0,
             models.Product.original_price > models.Product.price,
+            discount_pct_expr >= min_discount_pct,
         )
+        .order_by(discount_pct_expr.desc())
+        .limit(limit)
         .all()
     )
 
-    items = []
-    for p in products:
-        discount_pct = round(100 * (p.original_price - p.price) / p.original_price, 1)
-        if discount_pct >= min_discount_pct:
-            items.append({
-                "item_id": p.item_id,
-                "title": p.title,
-                "brand": p.brand,
-                "category": p.category,
-                "price": p.price,
-                "original_price": p.original_price,
-                "discount_pct": discount_pct,
-                "availability": p.availability,
-                "image_url": p.image_url,
-                "product_url": p.product_url,
-            })
-
-    items.sort(key=lambda x: x["discount_pct"], reverse=True)
-    items = items[:limit]
+    items = [
+        {
+            "item_id": p.item_id,
+            "title": p.title,
+            "brand": p.brand,
+            "category": p.category,
+            "price": p.price,
+            "original_price": p.original_price,
+            "discount_pct": round(discount_pct, 1),
+            "availability": p.availability,
+            "image_url": p.image_url,
+            "product_url": p.product_url,
+        }
+        for p, discount_pct in products
+    ]
     return {"total": len(items), "items": items}
 
 

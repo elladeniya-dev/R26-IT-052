@@ -216,7 +216,7 @@ def _find_product_detail_links(listing_html: str, base_url: str) -> List[str]:
             links.add(full_url)
         if len(links) >= MAX_DETAIL_PAGES:
             break
-    return list(links)
+    return sorted(links)
 
 
 def _extract_detail_page(url: str, brand_name: str, segment: str, rank: int) -> Dict[str, Any]:
@@ -300,7 +300,7 @@ def execute_tier2_static_detail_scrape(
             break
 
     validated_items: List[Dict[str, Any]] = []
-    for rank, url in enumerate(list(detail_links)[:MAX_DETAIL_PAGES], start=1):
+    for rank, url in enumerate(sorted(detail_links)[:MAX_DETAIL_PAGES], start=1):
         try:
             item = _extract_detail_page(url, brand_name, segment, rank)
             if item:
