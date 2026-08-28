@@ -8,6 +8,7 @@ ALLOWED_INSIGHT_ATTRIBUTE_TYPES = [
     "new_arrival_color",
     "new_arrival_pattern",
     "new_arrival_material",
+    "new_arrival_style",
 ]
 
 EXCLUDED_INSIGHT_KEYWORDS = [

@@ -79,6 +79,50 @@ def normalize_fit_type(text: str):
     return None
 
 
+# Real style descriptions are free text ("Short sleeve, Square neck line
+# cropped top") and mostly don't repeat verbatim — but sleeve length and
+# neckline type DO repeat across products (verified: "3/4 Sleeves" x24,
+# "Short Sleeves" x14, "Classic crew neck" x11 in real scraped data). Extract
+# those as controlled tags instead of storing the whole free-text sentence.
+KNOWN_SLEEVE_TYPES = sorted([
+    "sleeveless", "cap sleeve", "short sleeve", "3/4 sleeve", "elbow sleeve",
+    "long sleeve", "puff sleeve", "bell sleeve", "bishop sleeve",
+], key=len, reverse=True)
+
+KNOWN_NECKLINES = sorted([
+    "crew neck", "round neck", "v neck", "v-neck", "square neck",
+    "off shoulder", "off-shoulder", "halter neck", "halter", "sweetheart neckline",
+    "boat neck", "collar", "turtleneck", "cowl neck",
+], key=len, reverse=True)
+
+KNOWN_SILHOUETTES = sorted([
+    "a-line", "a line", "bodycon", "wrap", "shift dress", "empire waist",
+    "fit and flare", "asymmetric",
+], key=len, reverse=True)
+
+_STYLE_TAG_ALIASES = {"A Line": "A-Line"}
+
+
+def normalize_style(text: str) -> list:
+    """Extracts controlled style tags (sleeve length, neckline, silhouette)
+    from a free-text style description. Returns whatever matches — never
+    invents a tag, and a description can legitimately match more than one
+    (a top can have both a sleeve type and a neckline)."""
+    if not text:
+        return []
+    value = text.lower()
+    found = []
+    for vocab in (KNOWN_SLEEVE_TYPES, KNOWN_NECKLINES, KNOWN_SILHOUETTES):
+        for term in vocab:
+            if term in value:
+                tag = term.title().replace("V-Neck", "V Neck").replace("Off-Shoulder", "Off Shoulder")
+                tag = _STYLE_TAG_ALIASES.get(tag, tag)
+                if tag not in found:
+                    found.append(tag)
+                break  # only the first/longest match per vocab category
+    return found
+
+
 def extract_material(text: str):
     """Free, deterministic material extraction from tags/title/description."""
     if not text:
@@ -423,11 +467,10 @@ def ingest_garments(latest_only: bool = False, wipe_db: bool = False, use_gemini
                 # as "Fit:", so only accept it if it matches known fit vocabulary.
                 fit_type = normalize_fit_type(str(garment.get("desc_fit_type", "")).strip())
 
-                # style stays free text (it's inherently descriptive), but cap
-                # length so a full product description doesn't become a
-                # "trend attribute" that will never repeat across products.
-                style_raw = str(garment.get("desc_style", "")).strip()
-                style = style_raw if style_raw and len(style_raw) <= 60 else None
+                # Controlled tags (sleeve/neckline/silhouette), not raw free
+                # text — the raw sentence rarely repeats across products, so
+                # it can never function as a trend attribute.
+                style = normalize_style(str(garment.get("desc_style", "")).strip())
 
                 # 3. NLP Fallback for Missing Data
                 final_color, final_pattern, final_cat = extract_missing_entities(
@@ -508,7 +551,7 @@ def ingest_garments(latest_only: bool = False, wipe_db: bool = False, use_gemini
                     pattern=final_pattern or "Solid",
                     material=material,
                     fit_type=fit_type,
-                    style=[style] if style else [],
+                    style=style,
                     price=garment.get("price_lkr"),
                     original_price=garment.get("original_price_lkr") or None,
                     currency="LKR",

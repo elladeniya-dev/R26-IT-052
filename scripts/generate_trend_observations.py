@@ -31,11 +31,12 @@ def parse_run_date(run_dir: str) -> datetime:
 
 
 def load_product_attributes(db) -> dict:
-    """product_url -> (ml_category, ml_color, ml_pattern, material)"""
+    """product_url -> (ml_category, ml_color, ml_pattern, material, style_tags)"""
     rows = db.query(
-        Product.product_url, Product.ml_category, Product.ml_color, Product.ml_pattern, Product.material
+        Product.product_url, Product.ml_category, Product.ml_color, Product.ml_pattern,
+        Product.material, Product.style,
     ).all()
-    return {url: (cat, col, pat, mat) for url, cat, col, pat, mat in rows if url}
+    return {url: (cat, col, pat, mat, sty or []) for url, cat, col, pat, mat, sty in rows if url}
 
 
 def generate_observations():
@@ -85,13 +86,18 @@ def generate_observations():
                     skipped_unknown_product += 1
                     continue
 
-                ml_cat, ml_col, ml_pat, material = attrs
+                ml_cat, ml_col, ml_pat, material, style_tags = attrs
                 is_new_arrival = url not in seen_items
                 if is_new_arrival:
                     seen_items.add(url)
 
                 any_known_attr = False
-                for attr_type, attr_val in (("category", ml_cat), ("color", ml_col), ("pattern", ml_pat), ("material", material)):
+                single_valued = (("category", ml_cat), ("color", ml_col), ("pattern", ml_pat), ("material", material))
+                # style is an array (a product can have both a sleeve type and
+                # a neckline) — one observation per tag, same as the others.
+                multi_valued = [("style", tag) for tag in style_tags]
+
+                for attr_type, attr_val in single_valued + tuple(multi_valued):
                     if not attr_val or attr_val == "Unknown":
                         continue
                     any_known_attr = True
