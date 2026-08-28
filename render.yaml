@@ -3,5 +3,14 @@ services:
     name: trend-analysis-engine
     env: python
     plan: free
+    # requirements.txt is deliberately the slim, API-only dependency set —
+    # verified (sys.modules check) that the live app never loads torch/
+    # gliner/lightgbm/etc. Those only run in the GitHub Actions pipeline via
+    # requirements-pipeline.txt. Installing them here would just add build
+    # time and memory for zero runtime benefit on a free-tier instance.
     buildCommand: pip install -r requirements.txt
     startCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /
+    envVars:
+      - key: DATABASE_URL
+        sync: false
