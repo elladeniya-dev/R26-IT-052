@@ -7,7 +7,7 @@ import sys
 from datetime import timedelta
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from app.core.database import SessionLocal
 from app.models import TrendObservation, TrendSignal

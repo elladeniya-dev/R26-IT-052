@@ -29,7 +29,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from statistics import mean, pstdev
 
-ROOT = Path(__file__).resolve().parent.parent
+ROOT = Path(__file__).resolve().parent.parent.parent
 sys.path.insert(0, str(ROOT))
 
 from app.core.database import SessionLocal
@@ -161,7 +161,7 @@ def persist_forecasts(results: list):
 
 
 def run(min_weeks: int = MIN_WEEKS, persist: bool = True):
-    print(f"Building weekly joint-attribute counts from real daily scrape history...")
+    print("Building weekly joint-attribute counts from real daily scrape history...")
     weekly_series = build_weekly_joint_counts()
     print(f"  {len(weekly_series)} joint attribute combinations observed.")
 

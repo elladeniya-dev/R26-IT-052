@@ -78,7 +78,7 @@ jobs:
           if [ -z "$DATABASE_URL" ]; then
             echo "[Notice] DATABASE_URL secret not provided. Skipping DB ingestion."
           else
-            python scripts/ingest_garments_etl.py --latest-only
+            python app/pipeline/ingest_garments_etl.py --latest-only
           fi
 
       # Without this step, Products accumulates daily but TrendObservation/
@@ -92,9 +92,9 @@ jobs:
           if [ -z "$DATABASE_URL" ]; then
             echo "[Notice] DATABASE_URL secret not provided. Skipping trend recomputation."
           else
-            python scripts/generate_trend_observations.py
-            python scripts/compute_trend_signals.py
-            python scripts/joint_trend_forecast.py
+            python app/pipeline/generate_trend_observations.py
+            python app/pipeline/compute_trend_signals.py
+            python app/pipeline/joint_trend_forecast.py
           fi
 
       - name: Upload Downloadable Backup Artifact (ZIP Bundle)

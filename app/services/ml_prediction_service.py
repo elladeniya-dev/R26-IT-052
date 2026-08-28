@@ -52,7 +52,7 @@ def get_grounded_attributes(top_category: str, transactions: pd.DataFrame,
 def get_top_forecast_categories(db, top_k: int = 1) -> List[Dict[str, Any]]:
     """
     Reads real joint-attribute forecasts (category|color|pattern, produced by
-    scripts/joint_trend_forecast.py — a LightGBM model trained on H&M's
+    app/pipeline/joint_trend_forecast.py — a LightGBM model trained on H&M's
     transaction history, run against our own daily Sri Lankan scrape data)
     from TrendSignal. Returns [] honestly if none exist yet — this happens
     when there isn't enough real history (the methodology requires >= 6 weeks
@@ -162,26 +162,33 @@ class TrendMLPredictionService:
 
     def predict_trending_outfit(self, transactions: pd.DataFrame = None, top_k_categories: int = 1) -> List[Dict[str, Any]]:
         """
-        Real category source: LightGBM joint-attribute forecasts (see
-        scripts/joint_trend_forecast.py), ranked by predicted_change.
-        Grounding (which colors/patterns actually co-occur): lift-filtered
-        analysis of our own live scraped inventory, not a global guess.
-        Returns [] if no forecast is available yet (insufficient history) —
-        never falls back to a hardcoded category.
+        Category source, in priority order:
+        1. LightGBM joint-attribute forecast (app/pipeline/joint_trend_forecast.py)
+           — real predicted_change, but only once a combo has >= 6 weeks of history.
+        2. Shape-template projection (app/pipeline/trend_shape_template.py) — for a
+           category our own trend_score already flags as rising right now, applied
+           via the real H&M-derived rise curve. Covers the pre-6-week gap honestly,
+           rather than leaving it empty just because model #1 isn't ready yet.
+        Grounding (which colors/patterns actually co-occur): lift-filtered analysis
+        of our own live scraped inventory, not a global guess, either way.
+        Returns [] only if NEITHER source has a real category to offer — never a
+        hardcoded fallback.
         """
         from app.core.database import SessionLocal
 
         db = SessionLocal()
         try:
             top_forecasts = get_top_forecast_categories(db, top_k=top_k_categories)
+            if not top_forecasts:
+                top_forecasts = self._shape_template_category_fallback(db, top_k=top_k_categories)
         finally:
             db.close()
 
         if not top_forecasts:
             logger.warning(
-                "No joint-attribute forecasts available yet — attribute "
-                "combinations need >= 6 weeks of real scrape history before "
-                "this methodology will forecast them."
+                "No category forecast available from either the joint LightGBM "
+                "model or the shape-template fallback — no attribute combination "
+                "has enough history, and no category is currently flagged rising."
             )
             return []
 
@@ -201,9 +208,42 @@ class TrendMLPredictionService:
                 'colors': colors.index.tolist() if not colors.empty else ["Unknown"],
                 'patterns': patterns.index.tolist() if not patterns.empty else ["Unknown"],
                 'predicted_change': forecast["predicted_change"],
-                'model_type': 'Joint-Attribute LightGBM Forecast + Lift-Filtered Grounding (Live Data)',
+                'model_type': forecast.get("model_type", "Joint-Attribute LightGBM Forecast + Lift-Filtered Grounding (Live Data)"),
             })
 
+        return results
+
+    def _shape_template_category_fallback(self, db, top_k: int = 1) -> List[Dict[str, Any]]:
+        """
+        Used only when the joint LightGBM model has no eligible forecast yet.
+        Looks for a CATEGORY (not color/pattern/material) our own trend_score
+        already flags as rising, and projects it forward with the real
+        H&M-derived rise-curve template. Deliberately restricted to category-
+        type attributes — colors/materials/patterns don't map onto the
+        category/colors/patterns "outfit" shape this endpoint returns.
+        """
+        from app.pipeline.trend_shape_template import get_rising_sl_attributes, load_template, forecast_with_template
+
+        template = load_template()
+        if template is None:
+            return []
+
+        rising = get_rising_sl_attributes(db)
+        rising_categories = [
+            r for r in rising if r["attribute_type"] in ("category", "new_arrival_category")
+        ]
+        if not rising_categories:
+            return []
+
+        results = []
+        for r in rising_categories[:top_k]:
+            projection = forecast_with_template(r["current_count"], template)
+            predicted_change = round(float(projection[-1] - r["current_count"]), 1)
+            results.append({
+                "category": r["attribute_value"].title(),
+                "predicted_change": predicted_change,
+                "model_type": "Shape-Template Projection (real H&M rise curve, applied to live SL trend_score) + Lift-Filtered Grounding",
+            })
         return results
 
 

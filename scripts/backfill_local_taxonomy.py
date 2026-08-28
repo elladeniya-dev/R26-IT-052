@@ -1,6 +1,6 @@
 """
 Re-maps ml_category/ml_color/ml_pattern for existing Product rows using the
-free local taxonomy mapper (scripts/local_taxonomy_mapper.py), against the
+free local taxonomy mapper (app/pipeline/local_taxonomy_mapper.py), against the
 raw category/color/pattern already stored in Postgres. No re-scraping, no
 NLP re-run, no Gemini required — just fixes rows that were previously left
 as "Unknown"/"Solid" (e.g. because Gemini quota was exhausted).
@@ -12,7 +12,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.core.database import SessionLocal
 from app.models import Product
-from scripts.local_taxonomy_mapper import map_category, map_color, map_pattern
+from app.pipeline.local_taxonomy_mapper import map_category, map_color, map_pattern
 
 
 def backfill():

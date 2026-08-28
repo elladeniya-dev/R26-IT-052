@@ -13,7 +13,7 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from app.core.database import SessionLocal
 from app.models import Product, TrendObservation
@@ -50,7 +50,7 @@ def generate_observations():
     product_attrs = load_product_attributes(db)
     print(f"  {len(product_attrs)} products with known attributes.")
 
-    root_dir = Path(__file__).resolve().parent.parent
+    root_dir = Path(__file__).resolve().parent.parent.parent
     run_folders = sorted(glob.glob(os.path.join(root_dir, "trend-data-collector", "output", "run_*")))
     if not run_folders:
         print("No run folders found.")

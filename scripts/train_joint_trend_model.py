@@ -34,7 +34,7 @@ PATTERN_COL = "graphical_appearance_name"
 MIN_WEEKS = 6
 FEATURES = ["lag_1", "lag_2", "roll_mean_4", "roll_std_4"]
 
-# Shape-template extraction settings (see scripts/trend_shape_template.py —
+# Shape-template extraction settings (see app/pipeline/trend_shape_template.py —
 # duplicated here rather than imported, since this script must not require
 # the app/DB stack to run standalone against raw CSVs).
 Z_THRESHOLD = 2.0
@@ -133,7 +133,7 @@ def train_and_evaluate(weekly: pd.DataFrame):
     mae_naive = mean_absolute_error(target_actual, naive_actual)
     improvement = (1 - mae_model / mae_naive) * 100
 
-    print(f"\n=== Held-out evaluation (real numbers, not asserted) ===")
+    print("\n=== Held-out evaluation (real numbers, not asserted) ===")
     print(f"Joint LightGBM MAE : {mae_model:.3f}")
     print(f"Naive baseline MAE : {mae_naive:.3f}")
     print(f"Improvement        : {improvement:+.1f}% vs. naive 'next week = this week'")
@@ -143,7 +143,7 @@ def train_and_evaluate(weekly: pd.DataFrame):
 
 def extract_and_save_shape_template(weekly: pd.DataFrame):
     """Real rise-shape extraction from actual H&M history — see
-    scripts/trend_shape_template.py for how this template gets applied."""
+    app/pipeline/trend_shape_template.py for how this template gets applied."""
 
     def rolling_zscore(counts, i):
         if i < MIN_HISTORY:

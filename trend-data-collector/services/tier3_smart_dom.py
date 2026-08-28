@@ -4,7 +4,6 @@ Executes JavaScript rendering and scrolling to substitute base64 placeholders wi
 Prioritizes autonomous Gemini Flash semantic parsing before defaulting to structural DOM matching.
 """
 import re
-import asyncio
 import logging
 from typing import List, Dict, Any, Set, Optional
 from urllib.parse import urljoin

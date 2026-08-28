@@ -4,9 +4,8 @@ Dynamically locates active e-commerce fashion category and product URLs by parsi
 sitemaps, eliminating brittle manual endpoint maintenance and bypassing routing blocks.
 """
 import logging
-import xml.etree.ElementTree as ET
 from typing import List, Set
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse
 import requests
 
 logger = logging.getLogger("OutfitIQ.SitemapDiscovery")
@@ -74,7 +73,6 @@ def discover_catalog_urls(base_url: str, max_urls: int = 15) -> List[str]:
             # Basic parsing optimization: extract <loc> contents without failing on strict XML schema issues
             lines = content_text.replace(">", "> \n").replace("<", "\n<").splitlines()
             in_loc = False
-            current_url = ""
 
             for line in lines:
                 line_str = line.strip()

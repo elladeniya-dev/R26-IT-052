@@ -31,7 +31,7 @@ Z_THRESHOLD = 2.0       # only used when extracting curves from H&M's own histor
 CURVE_LENGTH = 5        # weeks captured after a rise starts
 RISING_THRESHOLD = 0.55  # matches predict_trend_label's "rising" cutoff
 
-TEMPLATE_PATH = Path(__file__).resolve().parent.parent / "ml" / "models" / "trend_shape_template.json"
+TEMPLATE_PATH = Path(__file__).resolve().parent.parent.parent / "ml" / "models" / "trend_shape_template.json"
 
 
 def load_template() -> Optional[np.ndarray]:
@@ -158,7 +158,7 @@ def get_rising_sl_attributes(db, threshold: float = RISING_THRESHOLD) -> List[di
 
 def run():
     import sys
-    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
     from app.core.database import SessionLocal
 
     template = load_template()

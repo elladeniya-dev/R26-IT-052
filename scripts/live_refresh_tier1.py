@@ -18,8 +18,8 @@ from app.core.database import SessionLocal
 from app.models import Product
 from config.target_stores import SRI_LANKA_TARGET_STORES, TIER_1_SHOPIFY
 from services.tier1_shopify import execute_tier1_shopify_json
-from scripts.ingest_garments_etl import fast_raw_extraction, extract_material
-from scripts.local_taxonomy_mapper import map_category, map_color, map_pattern
+from app.pipeline.ingest_garments_etl import fast_raw_extraction, extract_material
+from app.pipeline.local_taxonomy_mapper import map_category, map_color, map_pattern
 
 
 def refresh():
@@ -100,7 +100,7 @@ def refresh():
 
     db.close()
 
-    print(f"\n=== Live Refresh Complete ===")
+    print("\n=== Live Refresh Complete ===")
     print(f"Existing products updated: {updated}")
     print(f"Genuinely new products discovered: {new_items}")
     print(f"Products currently discounted (original_price > price): {len(now_sale_items)}")

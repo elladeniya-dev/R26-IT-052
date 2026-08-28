@@ -2,7 +2,7 @@ import os
 import json
 from google import genai
 from google.genai import types
-from scripts.ml_taxonomy import HM_CATEGORIES, HM_PATTERNS, HM_COLORS
+from app.pipeline.ml_taxonomy import HM_CATEGORIES, HM_PATTERNS, HM_COLORS
 from pydantic import BaseModel, Field
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")

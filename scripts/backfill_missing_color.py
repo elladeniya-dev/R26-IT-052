@@ -13,8 +13,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.core.database import SessionLocal
 from app.models import Product
-from scripts.ingest_garments_etl import _scan_text_for_color, clean_title, extract_image_name
-from scripts.local_taxonomy_mapper import map_color
+from app.pipeline.ingest_garments_etl import _scan_text_for_color, clean_title, extract_image_name
+from app.pipeline.local_taxonomy_mapper import map_color
 
 
 def backfill():

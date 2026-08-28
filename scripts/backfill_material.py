@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from app.core.database import SessionLocal
 from app.models import Product
-from scripts.ingest_garments_etl import extract_material
+from app.pipeline.ingest_garments_etl import extract_material
 
 
 def backfill():

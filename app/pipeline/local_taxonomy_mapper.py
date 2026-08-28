@@ -8,7 +8,7 @@ a fallback. Only returns "Unknown"/"Solid" if nothing reasonably matches.
 import difflib
 import re
 
-from scripts.ml_taxonomy import HM_CATEGORIES, HM_COLORS, HM_PATTERNS
+from app.pipeline.ml_taxonomy import HM_CATEGORIES, HM_COLORS, HM_PATTERNS
 
 CATEGORY_SYNONYMS = {
     "top": "Top", "tops": "Top", "tank": "Vest top", "tank top": "Vest top",
@@ -145,7 +145,7 @@ def map_color(raw_color: str) -> str:
     # RGB color-space distance — more principled than string-edit-distance
     # fuzzy matching for genuine color synonyms (e.g. "crimson" -> "Red" isn't
     # a spelling variant, it's a color relationship difflib can't see).
-    from scripts.color_matcher import match_color_by_distance
+    from app.pipeline.color_matcher import match_color_by_distance
     rgb_match = match_color_by_distance(value)
     if rgb_match:
         return rgb_match

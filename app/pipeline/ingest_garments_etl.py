@@ -8,7 +8,6 @@ import argparse
 from pathlib import Path
 from datetime import datetime
 from sqlalchemy.orm import Session
-from sqlalchemy import text
 
 # Only import GLiNER when the script runs to prevent module loading errors if missing
 try:
@@ -16,7 +15,7 @@ try:
 except ImportError:
     GLiNER = None
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from app.core.database import SessionLocal
 from app.models import Product, AttributeMapping
@@ -154,7 +153,7 @@ def extract_material(text: str):
 def _call_gemini_mapping(mapping_key: str, garment: dict, raw_cat: str, raw_color: str, raw_pattern: str):
     """Optional, quota-limited refinement on top of the free local mapper. Never required."""
     import time
-    from scripts.gemini_mapper import map_attributes_with_gemini
+    from app.pipeline.gemini_mapper import map_attributes_with_gemini
 
     print(f"Refining via Gemini: {mapping_key}...")
     time.sleep(4)  # 15 RPM limit on free tier => 1 request every 4 seconds
@@ -249,7 +248,7 @@ def is_valid_color(value: str) -> bool:
     # Also accept standard CSS3 color names we haven't hand-curated (e.g.
     # "crimson", "burlywood") — recognized via actual color-space matching,
     # not a guess. Widens what counts as "a real color" beyond our ~50-word list.
-    from scripts.color_matcher import match_color_by_distance
+    from app.pipeline.color_matcher import match_color_by_distance
     for word in words:
         clean_word = re.sub(r'[^a-z]', '', word)
         if len(clean_word) >= 3 and match_color_by_distance(clean_word):
@@ -394,7 +393,7 @@ def ingest_garments(latest_only: bool = False, wipe_db: bool = False, use_gemini
         db.query(Product).delete()
         db.commit()
         
-    root_dir = Path(__file__).resolve().parent.parent
+    root_dir = Path(__file__).resolve().parent.parent.parent
     
     run_folders = sorted(glob.glob(os.path.join(root_dir, "trend-data-collector", "output", "run_*")))
     if not run_folders:
@@ -481,7 +480,7 @@ def ingest_garments(latest_only: bool = False, wipe_db: bool = False, use_gemini
                 ml_cat, ml_col, ml_pat = None, None, None
                 
                 # Check if they are already exactly in the H&M taxonomy
-                from scripts.ml_taxonomy import HM_CATEGORIES, HM_COLORS, HM_PATTERNS
+                from app.pipeline.ml_taxonomy import HM_CATEGORIES, HM_COLORS, HM_PATTERNS
                 
                 is_cat_valid = final_cat in HM_CATEGORIES if final_cat else False
                 is_col_valid = final_color in HM_COLORS if final_color else False
@@ -510,7 +509,7 @@ def ingest_garments(latest_only: bool = False, wipe_db: bool = False, use_gemini
                             mapping_cache[mapping_key] = (ml_cat, ml_col, ml_pat)
                         else:
                             # Free, local, deterministic mapping first (no API cost, no rate limit).
-                            from scripts.local_taxonomy_mapper import map_attributes_locally
+                            from app.pipeline.local_taxonomy_mapper import map_attributes_locally
                             local_res = map_attributes_locally(final_cat, final_color, final_pattern)
                             ml_cat = final_cat if is_cat_valid else local_res["mapped_category"]
                             ml_col = final_color if is_col_valid else local_res["mapped_color"]
@@ -581,11 +580,14 @@ def ingest_garments(latest_only: bool = False, wipe_db: bool = False, use_gemini
     try:
         db.commit()
     except Exception as e:
+        # Don't swallow this silently — a swallowed exception is exactly what
+        # hid the Gemini mapping failures for weeks earlier in this project.
+        print(f"Final commit failed, rolling back: {e}")
         db.rollback()
-    
+
     db.close()
-    
-    print(f"\n=== Database Ingestion Complete ===")
+
+    print("\n=== Database Ingestion Complete ===")
     print(f"Total Inserted: {total_inserted}")
     print(f"Skipped (Duplicates): {total_skipped_dupes}")
     print(f"Skipped (Inappropriate/Underwear): {total_skipped_inappropriate}")

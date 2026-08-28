@@ -12,7 +12,7 @@ router = APIRouter(prefix="/ml", tags=["Machine Learning Predictions"])
 def get_trending_outfits(top_k: int = 1, db: Session = Depends(get_db)):
     """
     Predicts trending outfits: category comes from a joint-attribute LightGBM
-    forecast (scripts/joint_trend_forecast.py) run against our real Sri Lankan
+    forecast (app/pipeline/joint_trend_forecast.py) run against our real Sri Lankan
     scrape history; colors/patterns are grounded via lift-filtered
     co-occurrence against live inventory. Returns [] if no attribute
     combination yet has enough history (>= 6 weeks) to forecast — never a
