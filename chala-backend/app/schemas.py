@@ -178,3 +178,13 @@ class EnrichedCurrentPreferencesResponse(BaseModel):
     current_preferences: CurrentPreferencesResponse
     ml_expansions: MLExpansionGroupsResponse
     enriched_preferences: PreferenceValuesResponse
+
+
+
+class IntegrationEnrichedPreferencesResponse(BaseModel):
+    user_id: int
+    categories: list[str]
+    colors: list[str]
+    styles: list[str]
+    occasions: list[str]
+    preferred_brands: list[str]

@@ -12,6 +12,7 @@ from app.routes.product_routes import router as product_router
 from app.routes.learning_routes import router as learning_router
 from app.routes.ml_routes import router as ml_router
 
+from app.routes.integration_routes import router as integration_router
 
 # ============================================================
 # DATABASE
@@ -61,7 +62,7 @@ app.include_router(interaction_router)
 app.include_router(product_router)
 app.include_router(learning_router)
 app.include_router(ml_router)
-
+app.include_router(integration_router)
 
 # ============================================================
 # BASIC ENDPOINTS
