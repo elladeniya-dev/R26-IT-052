@@ -1,6 +1,4 @@
-"""Tiny in-process TTL cache. No Redis — see architecture spec header:
-one service, one database, one in-process cache. Scale reality: ~3,200
-products, growing ~1,300 rows/day. This is small."""
+"""Tiny in-process TTL cache."""
 import time
 from typing import Any, Callable
 

@@ -1,14 +1,4 @@
-"""
-MRTF + TrendNet hybrid scoring — ported from research/trend_engine_original.py.
-No imports from the rest of app/ (spec §7.1) — takes plain DataFrames via
-features.build_panel(), returns plain dicts. This is what made independent
-validation (research/validate_engine_original.py) possible in the first place:
-the validator reuses this exact rank() method, so what's tested is what ships.
-
-Chronos-2 was evaluated only as a research benchmark (see the training
-notebook) — TrendNet alone already beats it at ~11,600x fewer parameters, so
-it isn't wired into production here.
-"""
+"""MRTF + TrendNet hybrid scoring engine. See docs/trend-engine-guide.html for the full explanation."""
 from __future__ import annotations
 
 import numpy as np
@@ -29,18 +19,10 @@ except ImportError:
 from app.ml.features import MIN_SUPPORT, WINDOW, build_panel
 from app.ml.trendnet import load_trendnet
 
-# Weights fixed from measured ICs (see research/trend_engine_original.py and
-# the training notebook's ablations). mk_z and breadth are reported but NOT
-# blended into the score — leave-one-out ablation showed both reduce
-# combined accuracy.
 W_RESTOCK = 0.60
 W_DISAPPEAR = -0.40
-W_TEMPORAL = 0.70  # temporal model vs MRTF; flat across 0.2-0.6, not tuned
+W_TEMPORAL = 0.70
 TRENDNET_WINDOW = 4
-# Both Mann-Kendall (+0.310 at 4, -0.207 at 32) and TrendNet (+0.428 at 4,
-# +0.382 at 8) peak at short windows: trend detection wants recent slope,
-# longer context dilutes it with the seasonal cycle (see the window-size
-# ablation in research/trendnet_training.ipynb, cell 12).
 
 
 class TrendEngine:
@@ -74,11 +56,9 @@ class TrendEngine:
     def model_ic(self) -> float | None:
         return self.checkpoint_meta.get("ic")
 
-    # ------------------------------------------------------------ scoring
     def rank_by_type(
         self, attrs_long: pd.DataFrame, presence: pd.DataFrame, top_k: int = 5, horizon: int = 3
     ) -> dict[str, list[dict]]:
-        """Separate leaderboards per attribute type — what the app displays."""
         allr = self.rank(attrs_long, presence, top_k=None, horizon=horizon)
         out: dict[str, list[dict]] = {}
         for r in allr:
@@ -142,9 +122,6 @@ class TrendEngine:
 
         F = pd.DataFrame(rows).T
 
-        # Rank WITHIN attribute type — cross-type rank comparison is ill-posed
-        # (colours/fabrics/categories have different base rates and dynamics).
-        # Within-type raises IC from +0.326 to +0.405 (h=3).
         def ztype(col):
             v = F[col].astype(float)
             g = v.groupby(F.attr_type)
@@ -164,9 +141,6 @@ class TrendEngine:
             F["score"] = F.mrtf
             F["model"] = "mrtf"
 
-        # breadth is a CONFIDENCE GATE, not a score term — ablation showed it
-        # hurts when blended, but a single-retailer move is a buyer's bet, not
-        # a market trend, and the output must say so.
         F["confidence"] = np.where(
             F.n_brands.astype(int) >= 5, "high",
             np.where(F.n_brands.astype(int) >= 3, "medium", "low"),
@@ -198,14 +172,9 @@ class TrendEngine:
         return out
 
     def _trendnet(self, S: pd.DataFrame) -> pd.Series:
-        """Scale-free per-series: context / context.mean(). Note: the model's
-        type vocabulary (tmap) only knows category/color/pattern/style — any
-        other attr_type (e.g. fabric) falls through to type-id 0, silently
-        sharing category's embedding. Preserved as-is from the original;
-        flagged here rather than silently changed."""
         w = self._net_window
         ctx = S.iloc[-w:].values.astype("float32")
-        if len(ctx) < w:  # pad short history by repeating the first row
+        if len(ctx) < w:
             ctx = np.vstack([np.repeat(ctx[:1], w - len(ctx), axis=0), ctx])
         mu = ctx.mean(0)
         ok = mu > 1e-9

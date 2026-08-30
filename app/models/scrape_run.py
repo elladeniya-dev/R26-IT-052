@@ -8,11 +8,7 @@ from app.database import Base
 
 
 class ScrapeRun(Base):
-    """THE CRITICAL TABLE — see architecture spec §1/§5. Without this, a
-    brand's failed scrape is indistinguishable from every one of its products
-    genuinely disappearing, which corrupts the restock/disappearance signal
-    the trend engine's MRTF half depends on (see trend_engine.py _build():
-    dis_mask is masked by brand-day validity from this table)."""
+    """Per-brand-per-day scrape status. See docs/trend-engine-guide.html for why this table exists."""
 
     __tablename__ = "scrape_runs"
     __table_args__ = (UniqueConstraint("run_date", "brand_id"),)

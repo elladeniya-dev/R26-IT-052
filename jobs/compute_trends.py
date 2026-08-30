@@ -1,12 +1,4 @@
-"""
-Runs the trend engine once and persists a snapshot. Called by GitHub Actions
-after jobs/ingest.py in the daily pipeline (architecture spec §5). Scoring
-never runs inside an API request — the API only ever reads what this job
-writes.
-
-    python jobs/compute_trends.py               # both horizons (3, 5)
-    python jobs/compute_trends.py --horizon 3    # just one
-"""
+"""Computes and persists a trend snapshot. Usage: python jobs/compute_trends.py [--horizon 3|5]."""
 import sys
 from pathlib import Path
 

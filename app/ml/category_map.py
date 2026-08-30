@@ -1,13 +1,4 @@
-"""
-Category normalization only — ported from the deleted local_taxonomy_mapper.py
-(git history: app/pipeline/local_taxonomy_mapper.py before this rewrite).
-Unlike color/fabric/style, category IS normalized onto a closed taxonomy
-(products.category — see architecture spec §2): retailers describe garment
-types fairly consistently, unlike color naming where "navy" vs "dark blue" is
-genuinely ambiguous and canonicalizing measurably hurt accuracy. Kept
-separate from app/ml/ proper (§7.1: ml/ takes DataFrames, this is a plain
-string mapper used by jobs/ingest.py, not by the scoring engine itself).
-"""
+"""Category-only normalization onto a closed taxonomy. Used by jobs/ingest.py. See docs/trend-engine-guide.html."""
 import difflib
 import re
 

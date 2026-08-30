@@ -1,21 +1,5 @@
-"""
-Reads the scraper's raw daily JSON output (trend-data-collector/output/run_*/
-*_garments.json) and upserts it into the normalized schema: brands, products,
-product_attributes, observations, scrape_runs, dropped_records.
-
-Run directly by GitHub Actions with DB access (architecture spec §5) — not
-through an HTTP endpoint.
-
-    python jobs/ingest.py                  # process every run folder
-    python jobs/ingest.py --latest-only    # process only the most recent one
-
-Attribute extraction here is the same fast, deterministic, regex/keyword
-matching this project already validated (ported from the pre-rewrite
-app/pipeline/ingest_garments_etl.py — see git history) — MINUS the NLP
-fallback (GLiNER) and MINUS taxonomy canonicalization for anything except
-category. Colors, fabrics, and style details are stored exactly as extracted,
-never merged onto a synonym list (architecture spec §2).
-"""
+"""Ingests trend-data-collector/output/run_*/*_garments.json into the normalized schema.
+Usage: python jobs/ingest.py [--latest-only]. See docs/trend-engine-guide.html."""
 from __future__ import annotations
 
 import glob
@@ -223,9 +207,7 @@ def extract_material(text: str) -> str | None:
 
 
 def extract_style_attrs(text: str) -> list[tuple[str, str]]:
-    """Returns [(attr_type, value), ...] split across sleeve_length/neckline/
-    style_detail — never invents a tag, a description can legitimately match
-    more than one vocabulary."""
+    """Returns [(attr_type, value), ...] across sleeve_length/neckline/style_detail."""
     if not text:
         return []
     value = text.lower()

@@ -1,11 +1,5 @@
 """create product_lifecycle view
 
-Derived aggregates (first/last seen, days observed, price range, best rank,
-still-listed) are never stored as columns — every scrape would have to
-rewrite them, and any bug would leave the table silently inconsistent with
-observations (architecture spec §1/§2.1). This view recomputes them on every
-read instead, so they can never drift out of sync.
-
 Revision ID: 0007
 Revises: 0006
 Create Date: 2026-08-30

@@ -1,23 +1,12 @@
-"""
-Panel construction — ported from research/trend_engine_original.py's
-TrendEngine._build(). Same math, adapted for the normalized schema: the
-original exploded ';'-joined attribute strings out of a flat CSV on every
-call; product_attributes is already one row per (product, attr_type, value),
-so that step is gone — the rest (share panel, restock/disappearance masked
-by brand-day validity, breadth) is unchanged.
-
-No imports from the rest of app/ — see architecture spec §7.1. Callers hand
-in plain DataFrames; see repositories/observation_repo.py for how the new
-schema's tables get joined into the shape this expects.
-"""
+"""Builds the weekly attribute-share panel and restock/disappearance masks. See docs/trend-engine-guide.html."""
 from __future__ import annotations
 
 import numpy as np
 import pandas as pd
 
-MIN_SUPPORT = 8  # mean products/day for an attribute to be scored
-WINDOW = 6  # observations; 4-8 is the validated range
-FULL_PRICE_ONLY = True  # disappearances while discounted carry ~no signal (IC -0.029 vs -0.316 full-price)
+MIN_SUPPORT = 8
+WINDOW = 6
+FULL_PRICE_ONLY = True
 
 
 def build_panel(
@@ -25,17 +14,8 @@ def build_panel(
     presence: pd.DataFrame,
     min_support: int = MIN_SUPPORT,
 ) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame, int, list]:
-    """
-    attrs_long: one row per (obs_date, product_id, brand, attr_type, attr) —
-        a product's static attributes joined against every day it was observed.
-        attr must already be lowercase/trimmed (product_attributes.attr_value).
-    presence: one row per (obs_date, product_id, brand, is_on_sale) — directly
-        from the observations table. This is the source of truth for "was this
-        product listed on this day," independent of which attributes it has.
-
-    Returns (S, N, RES, DIS, pb, T, days) — identical shape/meaning to the
-    original _build()'s return value.
-    """
+    """Returns (S, N, RES, DIS, pb, T, days). See docs/trend-engine-guide.html for the shape of
+    attrs_long/presence and what each return value means."""
     attrs = attrs_long.copy()
     attrs["date"] = pd.to_datetime(attrs["date"])
     pres_df = presence.copy()
@@ -65,9 +45,6 @@ def build_panel(
     S = agg.pivot(index="t", columns="key", values="share").reindex(range(T)).fillna(0)
     N = agg.pivot(index="t", columns="key", values="n").reindex(range(T)).fillna(0)
 
-    # Stock events, masked by brand-day validity: a brand missing from a
-    # scrape (see ScrapeRun) must not register as every one of its products
-    # disappearing.
     pres = pres_df.groupby(["product_id", "t"]).size().unstack(fill_value=0).gt(0)
     bd = pres_df.groupby(["brand", "t"]).size().unstack(fill_value=0).gt(0)
     p2b = pres_df.groupby("product_id").brand.first()

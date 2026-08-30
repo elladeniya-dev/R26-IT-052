@@ -15,7 +15,7 @@ configure_logging()
 
 app = FastAPI(
     title="OutfitIQ Trend Analysis Backend",
-    description="Layered FastAPI service — see architecture spec for design rationale.",
+    description="Sri Lankan fashion trend analysis API.",
     version="2.0.0",
 )
 
@@ -39,9 +39,7 @@ def health():
 
 @app.get("/health/ready")
 def health_ready():
-    """DB reachable, model loaded, data freshness. Must fail loudly if the
-    model file is missing — without it the engine silently degrades from
-    IC +0.240 to +0.077 (architecture spec §4.5)."""
+    """DB reachable, model loaded, snapshot freshness."""
     db_ok = True
     try:
         db = SessionLocal()

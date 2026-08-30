@@ -1,7 +1,7 @@
 """create brands
 
 Revision ID: 0001
-Revises:
+Revises: 0000
 Create Date: 2026-08-30
 """
 import sqlalchemy as sa

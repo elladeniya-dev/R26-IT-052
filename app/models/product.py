@@ -50,9 +50,7 @@ class Product(Base):
 
 
 class ProductAttribute(Base):
-    """One row per (product, attr_type, value). Never canonicalised — see the
-    accuracy ablation in the architecture spec (§2): merging synonyms like
-    navy/dark blue or spandex/lycra/elastane measurably lowered IC."""
+    """One row per (product, attr_type, value). Raw labels, never canonicalised."""
 
     __tablename__ = "product_attributes"
 
@@ -65,10 +63,7 @@ class ProductAttribute(Base):
 
 
 class ProductLifecycle(Base):
-    """Read-only mapping onto the product_lifecycle VIEW (see alembic migration
-    0006). Derived aggregates (first/last seen, price range, best rank,
-    still-listed) are never stored — they're recomputed from observations on
-    every read so they can never drift out of sync."""
+    """Read-only mapping onto the product_lifecycle view (alembic 0007)."""
 
     __tablename__ = "product_lifecycle"
     __table_args__ = {"info": {"is_view": True}}

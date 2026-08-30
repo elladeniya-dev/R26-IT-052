@@ -19,11 +19,7 @@ class ObservationRepository(BaseRepository):
     def build_ml_panel_inputs(
         self, since: date | None = None
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
-        """Builds the (attrs_long, presence) DataFrames app.ml.features.build_panel
-        expects: presence is exactly the observations table (+ brand slug);
-        attrs_long is every observation's product joined against that
-        product's static attributes — reproducing the old flat-CSV shape
-        without the ';'-explode step (product_attributes is already long)."""
+        """Returns (attrs_long, presence) — see app.ml.features.build_panel."""
         obs_stmt = (
             select(
                 Observation.obs_date.label("date"),

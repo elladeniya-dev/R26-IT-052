@@ -15,8 +15,6 @@ def get_trends(
     limit: int = Query(5, ge=1, le=50),
     db: Session = Depends(get_db),
 ):
-    """Straight indexed read from the latest trend_snapshots row — the model
-    never runs inside a request (architecture spec §4.1)."""
     by_type = TrendService(db).get_trends(horizon=horizon, min_confidence=min_confidence, limit=limit)
     data = {
         attr_type: [TrendScoreOut.model_validate(r, from_attributes=True) for r in rows]

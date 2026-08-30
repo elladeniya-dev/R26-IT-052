@@ -1,10 +1,5 @@
 """create product_attributes
 
-One row per (product, attribute type, value) — replaces ';'-joined multi-value
-strings. Raw labels are never canonicalised: merging synonyms (navy/dark blue,
-spandex/lycra/elastane) was tested and measurably lowered IC (architecture
-spec §2).
-
 Revision ID: 0003
 Revises: 0002
 Create Date: 2026-08-30
@@ -25,9 +20,8 @@ ATTR_TYPE_VALUES = (
 
 
 def upgrade() -> None:
-    # create_table's own before_create hook creates the enum type as part of
-    # creating this table — do not also create it explicitly beforehand,
-    # that hook always runs with checkfirst=False and errors on a duplicate.
+    # don't pre-create this type: create_table's before_create hook creates
+    # it with checkfirst=False and errors on a duplicate
     attr_type_enum = sa.Enum(*ATTR_TYPE_VALUES, name="attr_type")
 
     op.create_table(

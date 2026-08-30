@@ -1,9 +1,5 @@
 """create trend_snapshots and trend_scores
 
-Empty — the first snapshot is written by jobs/compute_trends.py, never by
-this migration. Scoring never runs inside a migration or a request
-(architecture spec §4.1/§5).
-
 Revision ID: 0006
 Revises: 0005
 Create Date: 2026-08-30

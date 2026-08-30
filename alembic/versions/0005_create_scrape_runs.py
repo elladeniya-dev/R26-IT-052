@@ -1,19 +1,5 @@
 """create scrape_runs and dropped_records
 
-THE CRITICAL TABLE (architecture spec §1/§5). Without scrape_runs, a brand
-that failed to scrape on a given day is indistinguishable from every one of
-its products having genuinely disappeared — the trend engine's restock/
-disappearance signal depends on this table to mask brand-day validity (see
-app/ml/features.py build_panel()).
-
-Includes a backfill: status='success' for every (run_date, brand_id) pair
-already present in observations, since real per-brand failure history wasn't
-recorded before this table existed. On a fresh database this is a no-op
-(observations is empty at this point in the migration chain) — it only does
-real work if ever run against a database where observations was already
-populated by some other means. Flagged here, not hidden, per spec §6: this
-backfill is an assumption, not a real record of what actually failed.
-
 Revision ID: 0005
 Revises: 0004
 Create Date: 2026-08-30
@@ -56,7 +42,7 @@ def upgrade() -> None:
     )
     op.create_index("ix_dropped_records_run_date_reason", "dropped_records", ["run_date", "reason"])
 
-    # ASSUMPTION BACKFILL — see module docstring.
+    # backfill: assume success for every (date, brand) already in observations
     op.execute(
         """
         INSERT INTO scrape_runs (run_date, brand_id, status, products_seen, products_kept)

@@ -19,9 +19,7 @@ from app.models.product import AttrType
 
 
 class TrendSnapshot(Base):
-    """Precomputed once per day by jobs/compute_trends.py. The API only ever
-    reads trend_scores for the latest snapshot — scoring never runs inside a
-    request (architecture spec §4.1/§5)."""
+    """One row per computed run of jobs/compute_trends.py."""
 
     __tablename__ = "trend_snapshots"
     __table_args__ = (UniqueConstraint("as_of_date", "horizon_days", "model_name"),)

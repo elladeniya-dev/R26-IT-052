@@ -13,20 +13,11 @@ HORIZONS = (3, 5)
 
 
 class TrendService:
-    """Owns the trend business rules. The API never scores inside a request
-    (architecture spec §4.1) — compute_snapshot() is called only from
-    jobs/compute_trends.py; every read-path method here is a plain indexed
-    query against the last persisted snapshot."""
-
     def __init__(self, db: Session, engine: TrendEngine | None = None):
         self.db = db
         self.trend_repo = TrendRepository(db)
         self.obs_repo = ObservationRepository(db)
-        self._engine = engine  # lazy — only compute_snapshot() needs it, and
-        # constructing TrendEngine() loads torch + the model file. Every
-        # other method here is a plain read against the last snapshot, so
-        # the deployed web service never needs torch installed at all
-        # unless something actually calls compute_snapshot().
+        self._engine = engine  # lazy — see engine property below
 
     @property
     def engine(self) -> TrendEngine:
@@ -40,9 +31,6 @@ class TrendService:
             raise StaleSnapshotError("No observations to score yet")
 
         results = self.engine.rank(attrs_long, presence, top_k=None, horizon=horizon_days)
-        # pd.read_sql returns raw datetime.date objects from Postgres (no
-        # .date() method), not pandas Timestamps — normalize explicitly
-        # rather than assume the dtype pd.read_sql happens to produce.
         as_of_date = as_of or pd.to_datetime(presence.date).max().date()
         snapshot = self.trend_repo.save_snapshot(
             as_of_date=as_of_date,
