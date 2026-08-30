@@ -9,7 +9,6 @@ from app.models import (
     UserOnboardingPreference,
     UserLearnedPreference,
     UserInteraction,
-    UserMLPreference,
 )
 
 from app.schemas import (
@@ -133,14 +132,6 @@ def delete_current_user_account(
 
     try:
 
-        db.query(
-            UserMLPreference
-        ).filter(
-            UserMLPreference.user_id
-            == user_id
-        ).delete(
-            synchronize_session=False
-        )
 
         db.query(
             UserLearnedPreference
