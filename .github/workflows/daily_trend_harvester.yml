@@ -1,0 +1,114 @@
+name: OutfitIQ Daily Trend Data Collector
+
+on:
+  # 1. Automated Cron Schedule: Executes daily at midnight (00:00 UTC / 5:30 AM Sri Lanka Time)
+  schedule:
+    - cron: '0 0 * * *'
+  
+  # 2. Manual Workflow Dispatch: Allows triggering extraction directly via a button click on GitHub
+  workflow_dispatch:
+
+permissions:
+  contents: write  # Required for committing updated JSON output snapshots back to the repository
+
+jobs:
+  harvest:
+    name: Run Sri Lankan E-Commerce Harvester
+    runs-on: ubuntu-latest
+    timeout-minutes: 90  # Extended to 90 minutes to accommodate heavy Playwright/Gemini AI browser extraction loops over 20+ stores
+
+    steps:
+      - name: Checkout Repository Code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+
+      - name: Free Up GitHub Runner Disk Space
+        run: |
+          echo "Freeing up disk space by removing unused bulky software..."
+          sudo rm -rf /usr/share/dotnet
+          sudo rm -rf /usr/local/lib/android
+          sudo rm -rf /opt/ghc
+          sudo rm -rf /usr/local/share/powershell
+          sudo rm -rf /usr/share/swift
+          sudo apt-get clean
+
+      - name: Configure Python 3.11 Environment
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: |
+            trend-data-collector/requirements.txt
+            requirements.txt
+
+      - name: Install Harvester & Playwright Browser Dependencies
+        working-directory: ./trend-data-collector
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          python -m playwright install --with-deps chromium
+
+      # requirements.txt is the single unified dependency set (architecture
+      # spec: "one service... this is small, don't over-engineer") — the same
+      # file render.yaml installs for the deployed API. Installed here too so
+      # jobs/ingest.py and jobs/compute_trends.py can import app.database,
+      # app.models, and app.ml.
+      - name: Install Backend Dependencies
+        working-directory: ./
+        run: |
+          pip install -r requirements.txt
+
+      - name: Execute Multi-Tier Harvester Pipeline
+        working-directory: ./trend-data-collector
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          PYTHONUNBUFFERED: "1"
+        run: |
+          python main.py
+
+      - name: Ingest Scrape Output Into the Database
+        working-directory: ./
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "[Notice] DATABASE_URL secret not provided. Skipping DB ingestion."
+          else
+            alembic upgrade head
+            python jobs/ingest.py --latest-only
+          fi
+
+      # Without this step, observations accumulate daily but trend_snapshots
+      # never refreshes — the API would keep serving a stale/empty snapshot
+      # forever even though new data is being collected every day. Scoring
+      # never runs inside an API request (architecture spec §4.1) — this is
+      # the only place it runs.
+      - name: Compute Trend Snapshot
+        working-directory: ./
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          if [ -z "$DATABASE_URL" ]; then
+            echo "[Notice] DATABASE_URL secret not provided. Skipping trend computation."
+          else
+            python jobs/compute_trends.py
+          fi
+
+      # NOTE: an "Auto-Commit Updated JSON Datasets to Repository" step used
+      # to live here (git add output/ + commit + push). It never actually
+      # committed anything — .gitignore's blanket `*.json` rule silently
+      # dropped everything under output/ from every `git add`, so the step
+      # always hit the "No changes in extracted data to commit" branch. Since
+      # that data is real and needed elsewhere, it's kept two other ways:
+      # this 90-day artifact upload, and Postgres itself (the actual system
+      # of record via app/pipeline/ingest_garments_etl.py below). Making the
+      # commit step actually work would mean committing several MB of raw
+      # scrape JSON to git every single day — not something worth doing just
+      # because the step existed; removed instead of "fixed" for that reason.
+      - name: Upload Downloadable Backup Artifact (ZIP Bundle)
+        uses: actions/upload-artifact@v4
+        with:
+          name: outfitiq-trend-data-${{ github.run_id }}
+          path: trend-data-collector/output/
+          retention-days: 90

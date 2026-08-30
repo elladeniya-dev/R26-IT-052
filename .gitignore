@@ -40,13 +40,6 @@ htmlcov/
 # Jupyter
 .ipynb_checkpoints/
 
-# ML model files
-*.pkl
-*.joblib
-*.h5
-*.pt
-*.pth
-*.onnx
 
 # Local datasets / generated data
 *.csv
@@ -62,6 +55,11 @@ htmlcov/
 !sample_*.csv
 !example_*.json
 !example_*.csv
+# Golden-file test fixtures (tests/test_ml_engine.py) — must be committed or
+# the test fails with FileNotFoundError for anyone who clones fresh. Found
+# by checking git status directly rather than assuming git add worked; the
+# daily-workflow JSON-commit step earlier this session broke the same way.
+!tests/fixtures/*.csv
 
 
 # =========================
@@ -144,3 +142,6 @@ docker-data/
 *.tmp
 *.bak
 *.swp
+
+# Personal reference doc, not for the public repo
+docs/trend-engine-guide.html
