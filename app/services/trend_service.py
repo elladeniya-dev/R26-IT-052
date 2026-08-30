@@ -1,5 +1,6 @@
 from datetime import date
 
+import pandas as pd
 from sqlalchemy.orm import Session
 
 from app.core.exceptions import StaleSnapshotError
@@ -21,7 +22,17 @@ class TrendService:
         self.db = db
         self.trend_repo = TrendRepository(db)
         self.obs_repo = ObservationRepository(db)
-        self.engine = engine or TrendEngine()
+        self._engine = engine  # lazy — only compute_snapshot() needs it, and
+        # constructing TrendEngine() loads torch + the model file. Every
+        # other method here is a plain read against the last snapshot, so
+        # the deployed web service never needs torch installed at all
+        # unless something actually calls compute_snapshot().
+
+    @property
+    def engine(self) -> TrendEngine:
+        if self._engine is None:
+            self._engine = TrendEngine()
+        return self._engine
 
     def compute_snapshot(self, horizon_days: int, as_of: date | None = None) -> dict:
         attrs_long, presence = self.obs_repo.build_ml_panel_inputs()
@@ -29,7 +40,10 @@ class TrendService:
             raise StaleSnapshotError("No observations to score yet")
 
         results = self.engine.rank(attrs_long, presence, top_k=None, horizon=horizon_days)
-        as_of_date = as_of or presence.date.max().date()
+        # pd.read_sql returns raw datetime.date objects from Postgres (no
+        # .date() method), not pandas Timestamps — normalize explicitly
+        # rather than assume the dtype pd.read_sql happens to produce.
+        as_of_date = as_of or pd.to_datetime(presence.date).max().date()
         snapshot = self.trend_repo.save_snapshot(
             as_of_date=as_of_date,
             horizon_days=horizon_days,

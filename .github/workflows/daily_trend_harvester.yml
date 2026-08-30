@@ -38,29 +38,26 @@ jobs:
         with:
           python-version: '3.11'
           cache: 'pip'
-          # Cache covers BOTH requirements files so neither crawler nor ETL reinstalls every day
           cache-dependency-path: |
             trend-data-collector/requirements.txt
-            requirements-pipeline.txt
+            requirements.txt
 
       - name: Install Harvester & Playwright Browser Dependencies
         working-directory: ./trend-data-collector
         run: |
           python -m pip install --upgrade pip
-          pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
           pip install -r requirements.txt
           python -m playwright install --with-deps chromium
 
-      # Install the root backend + pipeline requirements separately so the ETL
-      # script can import from app.core.database and app.models without a
-      # ModuleNotFoundError. Uses requirements-pipeline.txt (GLiNER, LightGBM,
-      # etc.) — the deployed API itself never needs these; see that file's
-      # header comment.
-      - name: Install Backend & ETL Dependencies
+      # requirements.txt is the single unified dependency set (architecture
+      # spec: "one service... this is small, don't over-engineer") — the same
+      # file render.yaml installs for the deployed API. Installed here too so
+      # jobs/ingest.py and jobs/compute_trends.py can import app.database,
+      # app.models, and app.ml.
+      - name: Install Backend Dependencies
         working-directory: ./
         run: |
-          pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
-          pip install -r requirements-pipeline.txt
+          pip install -r requirements.txt
 
       - name: Execute Multi-Tier Harvester Pipeline
         working-directory: ./trend-data-collector
@@ -70,34 +67,32 @@ jobs:
         run: |
           python main.py
 
-      - name: ETL Standardization & Database Ingestion
+      - name: Ingest Scrape Output Into the Database
         working-directory: ./
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
-          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
-          # Suppress Hugging Face symlink warning on Linux runners
-          HF_HUB_DISABLE_SYMLINKS_WARNING: "1"
         run: |
           if [ -z "$DATABASE_URL" ]; then
             echo "[Notice] DATABASE_URL secret not provided. Skipping DB ingestion."
           else
-            python app/pipeline/ingest_garments_etl.py --latest-only
+            alembic upgrade head
+            python jobs/ingest.py --latest-only
           fi
 
-      # Without this step, Products accumulates daily but TrendObservation/
-      # TrendSignal never refresh — the API would keep serving stale trends
-      # forever even though new data is being collected every day.
-      - name: Rebuild Trend Observations & Signals
+      # Without this step, observations accumulate daily but trend_snapshots
+      # never refreshes — the API would keep serving a stale/empty snapshot
+      # forever even though new data is being collected every day. Scoring
+      # never runs inside an API request (architecture spec §4.1) — this is
+      # the only place it runs.
+      - name: Compute Trend Snapshot
         working-directory: ./
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
           if [ -z "$DATABASE_URL" ]; then
-            echo "[Notice] DATABASE_URL secret not provided. Skipping trend recomputation."
+            echo "[Notice] DATABASE_URL secret not provided. Skipping trend computation."
           else
-            python app/pipeline/generate_trend_observations.py
-            python app/pipeline/compute_trend_signals.py
-            python app/pipeline/joint_trend_forecast.py
+            python jobs/compute_trends.py
           fi
 
       # NOTE: an "Auto-Commit Updated JSON Datasets to Repository" step used
