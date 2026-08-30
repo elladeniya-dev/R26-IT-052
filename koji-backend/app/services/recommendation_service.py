@@ -1,3 +1,7 @@
+import math
+import re
+from collections import defaultdict
+
 from app.models.product import Product
 from app.services.ml_similarity_service import calculate_ml_similarity_score
 
@@ -13,7 +17,17 @@ FAKE_URL_DOMAIN = "example.com"
 
 
 def normalize_text_list(values):
-    return [value.lower() for value in values or []]
+    if values is None:
+        return []
+
+    if isinstance(values, str):
+        return [values.strip().lower()]
+
+    return [
+        str(value).strip().lower()
+        for value in values
+        if value is not None and str(value).strip()
+    ]
 
 
 def has_overlap(product_values, preferred_values):
@@ -87,6 +101,9 @@ def calculate_user_match_score(product: Product, request):
             score += 0.25
             reason_tags.append("matches your preferred style")
 
+    # Brand is a soft preference only.
+    # Matching brands get a boost, but non-matching brands are still allowed
+    # if category, color, style, or ML semantic similarity are strong.
     if preferred_brands:
         total_weight += 0.15
         if product.brand and product.brand.lower() in preferred_brands:
@@ -186,12 +203,114 @@ def calculate_recommendation_score(product: Product, request):
     )
 
 
+def normalize_group_key(value):
+    if not value:
+        return "unknown"
+
+    return str(value).strip().lower()
+
+
+def build_product_family_key(item):
+    """
+    Prevents many color/variant rows from the same product dominating the list.
+
+    Example:
+    - 90's Bootcut Jeans mid wash
+    - 90's Bootcut Jeans dark wash
+
+    These are still allowed, but limited so the user sees more variety.
+    """
+
+    source = normalize_group_key(item.get("source"))
+    title = normalize_group_key(item.get("title"))
+
+    cleaned_title = re.sub(r"[^a-z0-9]+", "_", title).strip("_")
+
+    return f"{source}_{cleaned_title}"
+
+
+def diversify_recommendations(scored_products, max_results):
+    """
+    Re-ranks recommendations to keep the list realistic and diverse.
+
+    Main idea:
+    - Keep high scoring products first.
+    - Do not allow one brand/source to dominate the whole result list.
+    - Do not allow too many variants of the same product title.
+    - If not enough diverse products exist, fill remaining slots using the
+      next best scored products.
+    """
+
+    if not scored_products:
+        return []
+
+    max_results = max_results or 5
+
+    # Example:
+    # max_results = 10 -> max 4 products from same source/brand
+    # max_results = 15 -> max 6 products from same source/brand
+    max_per_source = max(2, math.ceil(max_results * 0.40))
+
+    # Allows a maximum of 2 variants from same product title.
+    # Example: same jeans in dark wash and mid wash.
+    max_per_product_family = 2
+
+    selected = []
+    selected_item_ids = set()
+
+    source_counts = defaultdict(int)
+    product_family_counts = defaultdict(int)
+
+    # First pass: strict diversity.
+    for item in scored_products:
+        if len(selected) >= max_results:
+            break
+
+        item_id = item.get("item_id")
+        source_key = normalize_group_key(item.get("source") or item.get("brand"))
+        product_family_key = build_product_family_key(item)
+
+        if item_id in selected_item_ids:
+            continue
+
+        if source_counts[source_key] >= max_per_source:
+            continue
+
+        if product_family_counts[product_family_key] >= max_per_product_family:
+            continue
+
+        selected.append(item)
+        selected_item_ids.add(item_id)
+        source_counts[source_key] += 1
+        product_family_counts[product_family_key] += 1
+
+    # Second pass: if there are not enough diverse products,
+    # fill the remaining slots using the next best scored products.
+    # This prevents returning only 4 products when the DB has limited matches.
+    for item in scored_products:
+        if len(selected) >= max_results:
+            break
+
+        item_id = item.get("item_id")
+
+        if item_id in selected_item_ids:
+            continue
+
+        selected.append(item)
+        selected_item_ids.add(item_id)
+
+    return selected[:max_results]
+
+
 def generate_recommendations(db, request):
     """
     Generates recommendations only from currently available products.
 
     This prevents old, hidden, sample, placeholder, and out-of-stock
     products from being recommended to the user.
+
+    Final output is score-ranked first, then diversity re-ranked so that
+    preferred brands get a boost without dominating the whole list.
     """
 
     products = (
@@ -214,6 +333,8 @@ def generate_recommendations(db, request):
             reason_tags,
         ) = calculate_recommendation_score(product, request)
 
+        # Allow products if they have either explicit preference match
+        # or strong semantic ML similarity.
         if user_match_score > 0 or ml_similarity_score >= 0.60:
             scored_products.append(
                 {
@@ -235,6 +356,12 @@ def generate_recommendations(db, request):
                 }
             )
 
-    scored_products.sort(key=lambda item: item["final_score"], reverse=True)
+    scored_products.sort(
+        key=lambda item: item["final_score"],
+        reverse=True,
+    )
 
-    return scored_products[: request.max_results]
+    return diversify_recommendations(
+        scored_products=scored_products,
+        max_results=request.max_results,
+    )

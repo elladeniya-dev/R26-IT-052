@@ -19,6 +19,66 @@ class RecommendationApiService {
   */
   static const String baseUrl = 'http://127.0.0.1:8000';
 
+  /*
+    New integrated endpoint.
+
+    This sends only user_id, price range, and max_results.
+    Koji backend will call Chala backend internally and get enriched preferences.
+  */
+  Future<List<RecommendationProduct>> getRecommendationsFromChala({
+    required int userId,
+    required double priceMin,
+    required double priceMax,
+    required int maxResults,
+  }) async {
+    final Uri url = Uri.parse('$baseUrl/recommendations/from-chala');
+
+    final Map<String, dynamic> requestBody = {
+      'user_id': userId,
+      'price_min': priceMin,
+      'price_max': priceMax,
+      'max_results': maxResults,
+    };
+
+    final http.Response response = await http
+        .post(
+          url,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: jsonEncode(requestBody),
+        )
+        .timeout(
+          const Duration(seconds: 20),
+        );
+
+    if (response.statusCode != 200) {
+      throw Exception(
+        'Failed to load Chala integrated recommendations. '
+        'Status code: ${response.statusCode}. '
+        'Response: ${response.body}',
+      );
+    }
+
+    final Map<String, dynamic> decodedBody = jsonDecode(response.body);
+
+    final List<dynamic> recommendations =
+        decodedBody['recommendations'] as List<dynamic>? ?? [];
+
+    return recommendations
+        .map(
+          (item) => RecommendationProduct.fromJson(
+            item as Map<String, dynamic>,
+          ),
+        )
+        .toList();
+  }
+
+  /*
+    Existing manual recommendation endpoint.
+
+    Keep this for testing your recommendation engine manually from Flutter.
+  */
   Future<List<RecommendationProduct>> getRecommendations({
     required String userId,
     required List<String> preferredCategories,
@@ -59,7 +119,9 @@ class RecommendationApiService {
 
     if (response.statusCode != 200) {
       throw Exception(
-        'Failed to load recommendations. Status code: ${response.statusCode}',
+        'Failed to load recommendations. '
+        'Status code: ${response.statusCode}. '
+        'Response: ${response.body}',
       );
     }
 
@@ -86,6 +148,11 @@ class RecommendationApiService {
 
     if (normalized.contains('dress')) return 'dress';
     if (normalized.contains('top')) return 'top';
+    if (normalized.contains('jean')) return 'jeans';
+    if (normalized.contains('blazer')) return 'blazer';
+    if (normalized.contains('jacket')) return 'jacket';
+    if (normalized.contains('skirt')) return 'skirt';
+    if (normalized.contains('trouser')) return 'pants';
 
     return normalized;
   }
@@ -94,6 +161,7 @@ class RecommendationApiService {
     final String normalized = value.trim().toLowerCase();
 
     if (normalized == 'party wear') return 'party';
+    if (normalized == 'comfort wear') return 'comfort';
 
     return normalized;
   }

@@ -54,7 +54,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     _loadRecommendations();
   }
 
-  Future<void> _loadRecommendations() async {
+    Future<void> _loadRecommendations() async {
     setState(() {
       isLoading = true;
       errorMessage = null;
@@ -62,12 +62,8 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
 
     try {
       final List<RecommendationProduct> products =
-          await _apiService.getRecommendations(
-        userId: 'U001',
-        preferredCategories: widget.selectedCategories,
-        preferredColors: widget.selectedColors,
-        preferredStyles: widget.selectedStyles,
-        preferredBrands: widget.selectedBrands,
+          await _apiService.getRecommendationsFromChala(
+        userId: 20,
         priceMin: isPriceFilterEnabled ? minPrice : 0,
         priceMax: isPriceFilterEnabled ? maxPrice : 999999,
         maxResults: 50,
@@ -80,47 +76,35 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
         isLoading = false;
       });
 
-      _showFeedbackMessage('Recommendations loaded successfully.');
+      _showFeedbackMessage('Chala integrated recommendations loaded.');
     } catch (error) {
       if (!mounted) return;
 
       setState(() {
         isLoading = false;
         errorMessage =
-            'Could not load recommendations. Please check backend connection.';
+            'Could not load Chala integrated recommendations. Please check backend connection.';
       });
     }
   }
 
   List<Map<String, dynamic>> get filteredProducts {
-    final bool hasSpecificBrand =
-        !widget.selectedBrands.contains('No specific brand');
+  final List<RecommendationProduct> matchedProducts =
+      apiProducts.where((product) {
+    final bool matchesPrice = isPriceFilterEnabled
+        ? product.price >= minPrice && product.price <= maxPrice
+        : true;
 
-    final List<RecommendationProduct> matchedProducts =
-        apiProducts.where((product) {
-      final bool matchesPrice = isPriceFilterEnabled
-          ? product.price >= minPrice && product.price <= maxPrice
-          : true;
+    final bool matchesQuickStyle = _matchesQuickStyle(product);
 
-      final bool matchesCategory = _matchesSelectedCategory(product.category);
+    return matchesPrice && matchesQuickStyle;
+  }).toList();
 
-      final bool matchesBrand = hasSpecificBrand
-          ? widget.selectedBrands
-              .map((brand) => brand.toLowerCase().trim())
-              .contains(product.brand.toLowerCase().trim())
-          : true;
-
-      final bool matchesQuickStyle = _matchesQuickStyle(product);
-
-      return matchesPrice && matchesCategory && matchesBrand && matchesQuickStyle;
-    }).toList();
-
-    return matchedProducts
-        .take(maxResults)
-        .map((product) => product.toProductDetailMap())
-        .toList();
-  }
-
+  return matchedProducts
+      .take(maxResults)
+      .map((product) => product.toProductDetailMap())
+      .toList();
+}
   bool _matchesSelectedCategory(String productCategory) {
     final String normalizedProductCategory = _normalizeCategory(productCategory);
 

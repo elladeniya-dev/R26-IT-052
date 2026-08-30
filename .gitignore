@@ -86,3 +86,10 @@ Pods/
 .idea/
 .vscode/
 *.iml
+# Local database backups
+db_backups/
+
+# Local environment backups
+*.env.local.backup
+.env.local.backup
+koji-backend/.env.local.backup

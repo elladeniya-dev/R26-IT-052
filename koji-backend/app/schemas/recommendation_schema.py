@@ -1,13 +1,20 @@
 from pydantic import BaseModel
-from typing import List, Optional
+from typing import List, Optional, Union
 
 
 class RecommendationRequest(BaseModel):
-    user_id: str
+    user_id: Union[str, int]
     preferred_categories: List[str]
     preferred_colors: List[str]
     preferred_styles: List[str]
     preferred_brands: Optional[List[str]] = []
+    price_min: Optional[float] = None
+    price_max: Optional[float] = None
+    max_results: Optional[int] = 5
+
+
+class ChalaRecommendationRequest(BaseModel):
+    user_id: int
     price_min: Optional[float] = None
     price_max: Optional[float] = None
     max_results: Optional[int] = 5
@@ -34,5 +41,5 @@ class RecommendedProduct(BaseModel):
 
 
 class RecommendationResponse(BaseModel):
-    user_id: str
+    user_id: Union[str, int]
     recommendations: List[RecommendedProduct]
