@@ -1,0 +1,17 @@
+# CPU-only torch wheel — the default PyPI wheel pulls ~2GB of CUDA deps and
+# blows Render's free-tier build size limit. This index is tried first for
+# torch specifically; every other package still resolves from PyPI.
+--extra-index-url https://download.pytorch.org/whl/cpu
+
+fastapi>=0.115
+uvicorn[standard]>=0.32
+sqlalchemy>=2.0
+alembic>=1.13
+psycopg[binary]>=3.2
+pydantic>=2.9
+pydantic-settings>=2.6
+pandas>=2.2
+numpy>=1.26,<2.0
+pymannkendall>=1.4.3
+structlog>=24.4
+torch==2.*
