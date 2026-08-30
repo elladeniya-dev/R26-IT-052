@@ -44,6 +44,7 @@ app.add_middleware(
     allow_origins=[
         "http://localhost:5000",
         "http://127.0.0.1:5000",
+        "https://r26-it-052.onrender.com",
     ],
     allow_credentials=True,
     allow_methods=["*"],
