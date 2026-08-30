@@ -12,7 +12,7 @@ PLACEHOLDER_IMAGE_URLS = {
     "https://example.com/kelly-felder-placeholder.jpg",
 }
 
-EXCLUDED_SOURCES = {"sample_data", "sample_crawler"}
+EXCLUDED_SOURCES = {"sample_data", "sample_crawler","chenara_dodge",}
 FAKE_URL_DOMAIN = "example.com"
 
 

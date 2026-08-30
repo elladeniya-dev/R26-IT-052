@@ -70,6 +70,9 @@ class RecommendationApiService {
 
     Flutter sends only user_id, price range, and max_results.
     Koji backend calls Chala backend internally and gets enriched preferences.
+
+    Retry logic is added because Chala backend is hosted on Render Free.
+    The first request may wake the service and fail. The second request usually works.
   */
   Future<List<RecommendationProduct>> getRecommendationsFromChala({
     required int userId,
@@ -86,23 +89,48 @@ class RecommendationApiService {
       'max_results': maxResults,
     };
 
-    final http.Response response = await http
-        .post(
-          url,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: jsonEncode(requestBody),
-        )
-        .timeout(
-          const Duration(seconds: 120),
-        );
+    http.Response? response;
+    Object? lastError;
 
-    if (response.statusCode != 200) {
+    for (int attempt = 1; attempt <= 2; attempt++) {
+      try {
+        response = await http
+            .post(
+              url,
+              headers: {
+                'Content-Type': 'application/json',
+              },
+              body: jsonEncode(requestBody),
+            )
+            .timeout(
+              const Duration(seconds: 120),
+            );
+
+        if (response.statusCode == 200) {
+          break;
+        }
+
+        lastError =
+            'Status code: ${response.statusCode}. Response: ${response.body}';
+
+        if (attempt == 1) {
+          await Future.delayed(const Duration(seconds: 5));
+          continue;
+        }
+      } catch (error) {
+        lastError = error;
+
+        if (attempt == 1) {
+          await Future.delayed(const Duration(seconds: 5));
+          continue;
+        }
+      }
+    }
+
+    if (response == null || response.statusCode != 200) {
       throw Exception(
-        'Failed to load Chala integrated recommendations. '
-        'Status code: ${response.statusCode}. '
-        'Response: ${response.body}',
+        'Failed to load Chala integrated recommendations after retry. '
+        'Last error: $lastError',
       );
     }
 

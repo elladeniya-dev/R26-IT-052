@@ -59,7 +59,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   double minPrice = 1000;
   double maxPrice = 20000;
 
-  int maxResults = 15;
+  int maxResults = 20;
   String selectedQuickStyle = 'All';
 
   AppliedPreferences? appliedPreferences;
@@ -131,25 +131,71 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
         .toList();
   }
 
-  bool _matchesSearchQuery(RecommendationProduct product) {
-    final String query = searchQuery.trim().toLowerCase();
+bool _matchesSearchQuery(RecommendationProduct product) {
+  final String query = searchQuery.trim().toLowerCase();
 
-    if (query.isEmpty) {
-      return true;
-    }
-
-    final String combinedText = [
-      product.title,
-      product.category,
-      product.brand,
-      product.source,
-      ...product.color,
-      ...product.style,
-      ...product.reasonTags,
-    ].join(' ').toLowerCase();
-
-    return combinedText.contains(query);
+  if (query.isEmpty) {
+    return true;
   }
+
+  final List<String> queryTerms = query
+      .split(RegExp(r'[^a-zA-Z0-9]+'))
+      .map(_normalizeSearchTerm)
+      .where((term) => term.isNotEmpty)
+      .toList();
+
+  if (queryTerms.isEmpty) {
+    return true;
+  }
+
+  final List<String> productTexts = [
+    product.title,
+    product.category,
+    product.brand ?? '',
+    product.source,
+    ...product.color,
+    ...product.style,
+    ...product.reasonTags,
+  ];
+
+  final Set<String> productTerms = {};
+
+  for (final String text in productTexts) {
+    final List<String> terms = text
+        .toLowerCase()
+        .split(RegExp(r'[^a-zA-Z0-9]+'))
+        .map(_normalizeSearchTerm)
+        .where((term) => term.isNotEmpty)
+        .toList();
+
+    productTerms.addAll(terms);
+  }
+
+  return queryTerms.every(productTerms.contains);
+}
+
+String _normalizeSearchTerm(String value) {
+  final String normalized = value.trim().toLowerCase();
+
+  if (normalized.isEmpty) return '';
+
+  if (normalized == 'dresses') return 'dress';
+  if (normalized == 'tops') return 'top';
+  if (normalized == 'shirts') return 'shirt';
+  if (normalized == 'tshirts' || normalized == 'tees') return 'tshirt';
+  if (normalized == 'jean') return 'jeans';
+  if (normalized == 'trouser' || normalized == 'trousers') return 'pants';
+  if (normalized == 'pant') return 'pants';
+  if (normalized == 'skirts') return 'skirt';
+  if (normalized == 'jackets') return 'jacket';
+  if (normalized == 'blazers') return 'blazer';
+
+  if (normalized == 'partywear') return 'party';
+  if (normalized == 'workwear') return 'work';
+  if (normalized == 'casualwear') return 'casual';
+
+  return normalized;
+}
 
   bool _matchesQuickStyle(RecommendationProduct product) {
     if (selectedQuickStyle == 'All') {
@@ -938,7 +984,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
         ],
         const SizedBox(height: 18),
         Text(
-          'Maximum results',
+          'Number of recommendations',
           style: GoogleFonts.poppins(
             fontSize: 13,
             fontWeight: FontWeight.w800,
@@ -947,7 +993,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
         ),
         const SizedBox(height: 6),
         Text(
-          'The highest option is selected by default to show more recommended products.',
+          'Choose how many personalized products you want to view.',
           style: GoogleFonts.poppins(
             fontSize: 11.5,
             height: 1.4,
@@ -956,9 +1002,9 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
         ),
         const SizedBox(height: 12),
         Row(
-          children: [5, 10, 15].map((value) {
+          children: [10, 20, 30].map((value) {
             final bool isSelected = maxResults == value;
-            final bool isLast = value == 15;
+            final bool isLast = value == 30;
 
             return Expanded(
               child: Padding(
@@ -992,7 +1038,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                     ),
                     child: Center(
                       child: Text(
-                        value == 15 ? '15 Max' : value.toString(),
+                        value == 30 ? '30 Max' : value.toString(),
                         style: GoogleFonts.poppins(
                           fontSize: 14,
                           fontWeight: FontWeight.w800,

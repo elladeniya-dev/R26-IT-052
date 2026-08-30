@@ -2,18 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'recommendations/preference_filter_screen.dart';
+import 'recommendations/recommendation_screen.dart';
 
 class SplashScreen extends StatelessWidget {
   const SplashScreen({super.key});
 
-  void _goToPreferenceScreen(BuildContext context) {
+  void _goToRecommendationScreen(BuildContext context) {
     HapticFeedback.lightImpact();
 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => const PreferenceFilterScreen(),
+        builder: (context) => const RecommendationScreen(),
       ),
     );
   }
@@ -156,7 +156,7 @@ class SplashScreen extends StatelessWidget {
                   const SizedBox(height: 10),
 
                   Text(
-                    'Discover fashion products matched with your style, preferences, and current shopping needs.',
+                    'Discover fashion products matched with your enriched style profile, preferences, and latest shopping needs.',
                     style: GoogleFonts.poppins(
                       fontSize: 15,
                       height: 1.55,
@@ -173,7 +173,7 @@ class SplashScreen extends StatelessWidget {
                       const SizedBox(width: 8),
                       _buildFeaturePill('Style Match'),
                       const SizedBox(width: 8),
-                      _buildFeaturePill('Trend Aware'),
+                      _buildFeaturePill('Real Products'),
                     ],
                   ),
 
@@ -183,7 +183,7 @@ class SplashScreen extends StatelessWidget {
                     width: double.infinity,
                     height: 58,
                     child: ElevatedButton(
-                      onPressed: () => _goToPreferenceScreen(context),
+                      onPressed: () => _goToRecommendationScreen(context),
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         foregroundColor: const Color(0xFF063B5C),
@@ -196,7 +196,7 @@ class SplashScreen extends StatelessWidget {
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
                           Text(
-                            'Get Started',
+                            'View Recommendations',
                             style: GoogleFonts.poppins(
                               fontSize: 15,
                               fontWeight: FontWeight.w800,
@@ -208,6 +208,21 @@ class SplashScreen extends StatelessWidget {
                             size: 21,
                           ),
                         ],
+                      ),
+                    ),
+                  ),
+
+                  const SizedBox(height: 10),
+
+                  Center(
+                    child: Text(
+                      'Powered by enriched user preferences and Koji recommendation engine',
+                      textAlign: TextAlign.center,
+                      style: GoogleFonts.poppins(
+                        fontSize: 11,
+                        height: 1.4,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.white.withOpacity(0.72),
                       ),
                     ),
                   ),
