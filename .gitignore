@@ -142,3 +142,6 @@ docker-data/
 *.tmp
 *.bak
 *.swp
+
+# Personal reference doc, not for the public repo
+docs/trend-engine-guide.html
