@@ -20,6 +20,14 @@ class ChalaRecommendationRequest(BaseModel):
     max_results: Optional[int] = 5
 
 
+class AppliedPreferences(BaseModel):
+    categories: List[str] = []
+    colors: List[str] = []
+    styles: List[str] = []
+    occasions: List[str] = []
+    preferred_brands: List[str] = []
+
+
 class RecommendedProduct(BaseModel):
     item_id: str
     title: str
@@ -42,4 +50,5 @@ class RecommendedProduct(BaseModel):
 
 class RecommendationResponse(BaseModel):
     user_id: Union[str, int]
+    applied_preferences: Optional[AppliedPreferences] = None
     recommendations: List[RecommendedProduct]

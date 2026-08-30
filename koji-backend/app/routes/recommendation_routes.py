@@ -22,16 +22,17 @@ def recommend_products(
     db: Session = Depends(get_db),
 ):
     """
-    Existing recommendation endpoint.
+    Existing manual recommendation endpoint.
 
-    This endpoint still accepts preferences directly from the request body.
-    It is useful for testing and for the current Koji frontend.
+    This endpoint accepts preferences directly from the request body.
+    It is useful for testing the recommendation engine manually.
     """
 
     recommendations = generate_recommendations(db, request)
 
     return {
         "user_id": request.user_id,
+        "applied_preferences": None,
         "recommendations": recommendations,
     }
 
@@ -44,9 +45,8 @@ def recommend_products_from_chala(
     """
     Integrated recommendation endpoint.
 
-    This endpoint receives only user_id, gets the final enriched preference
-    profile from Chala's backend, and then generates Koji product
-    recommendations using the existing hybrid recommendation engine.
+    This endpoint receives only user_id, gets the enriched preference
+    profile from Chala's backend, and generates Koji product recommendations.
     """
 
     chala_preferences = get_chala_enriched_preferences(request.user_id)
@@ -66,5 +66,12 @@ def recommend_products_from_chala(
 
     return {
         "user_id": request.user_id,
+        "applied_preferences": {
+            "categories": chala_preferences["categories"],
+            "colors": chala_preferences["colors"],
+            "styles": chala_preferences["styles"],
+            "occasions": chala_preferences["occasions"],
+            "preferred_brands": chala_preferences["preferred_brands"],
+        },
         "recommendations": recommendations,
     }

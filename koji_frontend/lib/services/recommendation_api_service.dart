@@ -4,6 +4,50 @@ import 'package:http/http.dart' as http;
 
 import '../models/recommendation_product_model.dart';
 
+class AppliedPreferences {
+  final List<String> categories;
+  final List<String> colors;
+  final List<String> styles;
+  final List<String> occasions;
+  final List<String> preferredBrands;
+
+  AppliedPreferences({
+    required this.categories,
+    required this.colors,
+    required this.styles,
+    required this.occasions,
+    required this.preferredBrands,
+  });
+
+  factory AppliedPreferences.fromJson(Map<String, dynamic>? json) {
+    if (json == null) {
+      return AppliedPreferences(
+        categories: [],
+        colors: [],
+        styles: [],
+        occasions: [],
+        preferredBrands: [],
+      );
+    }
+
+    return AppliedPreferences(
+      categories: _toStringList(json['categories']),
+      colors: _toStringList(json['colors']),
+      styles: _toStringList(json['styles']),
+      occasions: _toStringList(json['occasions']),
+      preferredBrands: _toStringList(json['preferred_brands']),
+    );
+  }
+
+  static List<String> _toStringList(dynamic value) {
+    if (value is! List) {
+      return [];
+    }
+
+    return value.map((item) => item.toString()).toList();
+  }
+}
+
 class RecommendationApiService {
   /*
     For Chrome testing:
@@ -19,11 +63,13 @@ class RecommendationApiService {
   */
   static const String baseUrl = 'http://127.0.0.1:8000';
 
-  /*
-    New integrated endpoint.
+  AppliedPreferences? lastAppliedPreferences;
 
-    This sends only user_id, price range, and max_results.
-    Koji backend will call Chala backend internally and get enriched preferences.
+  /*
+    Integrated endpoint.
+
+    Flutter sends only user_id, price range, and max_results.
+    Koji backend calls Chala backend internally and gets enriched preferences.
   */
   Future<List<RecommendationProduct>> getRecommendationsFromChala({
     required int userId,
@@ -49,7 +95,7 @@ class RecommendationApiService {
           body: jsonEncode(requestBody),
         )
         .timeout(
-          const Duration(seconds: 20),
+          const Duration(seconds: 120),
         );
 
     if (response.statusCode != 200) {
@@ -61,6 +107,10 @@ class RecommendationApiService {
     }
 
     final Map<String, dynamic> decodedBody = jsonDecode(response.body);
+
+    lastAppliedPreferences = AppliedPreferences.fromJson(
+      decodedBody['applied_preferences'] as Map<String, dynamic>?,
+    );
 
     final List<dynamic> recommendations =
         decodedBody['recommendations'] as List<dynamic>? ?? [];
@@ -114,7 +164,7 @@ class RecommendationApiService {
           body: jsonEncode(requestBody),
         )
         .timeout(
-          const Duration(seconds: 15),
+          const Duration(seconds: 30),
         );
 
     if (response.statusCode != 200) {

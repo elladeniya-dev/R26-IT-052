@@ -9,6 +9,18 @@ import '../splash_screen.dart';
 import 'product_detail_screen.dart';
 
 class RecommendationScreen extends StatefulWidget {
+  /*
+    userId is hardcoded for local integration testing now.
+
+    Later, after Chala's Google login integration is connected,
+    this userId should come from the logged-in user session.
+  */
+  final int userId;
+
+  /*
+    These old fields are kept for backward compatibility only.
+    The new integrated flow uses Chala's enriched preferences from backend.
+  */
   final List<String> selectedCategories;
   final List<String> selectedColors;
   final List<String> selectedStyles;
@@ -18,12 +30,13 @@ class RecommendationScreen extends StatefulWidget {
 
   const RecommendationScreen({
     super.key,
-    this.selectedCategories = const ['Tops', 'Dresses'],
-    this.selectedColors = const ['Black', 'Red'],
-    this.selectedStyles = const ['Casual', 'Party wear'],
-    this.selectedOccasions = const ['Daily wear', 'Party'],
-    this.selectedPriorities = const ['Style', 'Quality'],
-    this.selectedBrands = const ['Gflock', 'Carnage'],
+    this.userId = 20,
+    this.selectedCategories = const [],
+    this.selectedColors = const [],
+    this.selectedStyles = const [],
+    this.selectedOccasions = const [],
+    this.selectedPriorities = const [],
+    this.selectedBrands = const [],
   });
 
   @override
@@ -32,13 +45,16 @@ class RecommendationScreen extends StatefulWidget {
 
 class _RecommendationScreenState extends State<RecommendationScreen> {
   final RecommendationApiService _apiService = RecommendationApiService();
+  final TextEditingController _searchController = TextEditingController();
 
   bool isLoading = true;
   bool isAppliedPreferencesExpanded = false;
   bool isSearchFiltersExpanded = false;
   bool isPriceFilterEnabled = false;
+  bool isSearchExpanded = false;
 
   String? errorMessage;
+  String searchQuery = '';
 
   double minPrice = 1000;
   double maxPrice = 20000;
@@ -46,6 +62,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   int maxResults = 15;
   String selectedQuickStyle = 'All';
 
+  AppliedPreferences? appliedPreferences;
   List<RecommendationProduct> apiProducts = [];
 
   @override
@@ -54,7 +71,13 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     _loadRecommendations();
   }
 
-    Future<void> _loadRecommendations() async {
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _loadRecommendations() async {
     setState(() {
       isLoading = true;
       errorMessage = null;
@@ -63,7 +86,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     try {
       final List<RecommendationProduct> products =
           await _apiService.getRecommendationsFromChala(
-        userId: 20,
+        userId: widget.userId,
         priceMin: isPriceFilterEnabled ? minPrice : 0,
         priceMax: isPriceFilterEnabled ? maxPrice : 999999,
         maxResults: 50,
@@ -73,66 +96,59 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
 
       setState(() {
         apiProducts = products;
+        appliedPreferences = _apiService.lastAppliedPreferences;
         isLoading = false;
       });
 
-      _showFeedbackMessage('Chala integrated recommendations loaded.');
+      _showFeedbackMessage('Personalized recommendations loaded.');
     } catch (error) {
       if (!mounted) return;
 
       setState(() {
         isLoading = false;
         errorMessage =
-            'Could not load Chala integrated recommendations. Please check backend connection.';
+            'Could not load recommendations. Please check Koji backend, Chala API, and network connection.';
       });
     }
   }
 
   List<Map<String, dynamic>> get filteredProducts {
-  final List<RecommendationProduct> matchedProducts =
-      apiProducts.where((product) {
-    final bool matchesPrice = isPriceFilterEnabled
-        ? product.price >= minPrice && product.price <= maxPrice
-        : true;
+    final List<RecommendationProduct> matchedProducts =
+        apiProducts.where((product) {
+      final bool matchesPrice = isPriceFilterEnabled
+          ? product.price >= minPrice && product.price <= maxPrice
+          : true;
 
-    final bool matchesQuickStyle = _matchesQuickStyle(product);
+      final bool matchesQuickStyle = _matchesQuickStyle(product);
+      final bool matchesSearch = _matchesSearchQuery(product);
 
-    return matchesPrice && matchesQuickStyle;
-  }).toList();
+      return matchesPrice && matchesQuickStyle && matchesSearch;
+    }).toList();
 
-  return matchedProducts
-      .take(maxResults)
-      .map((product) => product.toProductDetailMap())
-      .toList();
-}
-  bool _matchesSelectedCategory(String productCategory) {
-    final String normalizedProductCategory = _normalizeCategory(productCategory);
-
-    final List<String> selected = widget.selectedCategories
-        .map((category) => _normalizeCategory(category))
+    return matchedProducts
+        .take(maxResults)
+        .map((product) => product.toProductDetailMap())
         .toList();
-
-    return selected.contains(normalizedProductCategory);
   }
 
-  String _normalizeCategory(String value) {
-    final String normalized = value.trim().toLowerCase();
+  bool _matchesSearchQuery(RecommendationProduct product) {
+    final String query = searchQuery.trim().toLowerCase();
 
-    if (normalized.contains('dress')) return 'dress';
-    if (normalized.contains('top')) return 'top';
-    if (normalized.contains('shirt')) return 'top';
-    if (normalized.contains('blouse')) return 'top';
-    if (normalized.contains('tee')) return 'top';
-    if (normalized.contains('blazer')) return 'top';
-    if (normalized.contains('jean')) return 'jeans';
-    if (normalized.contains('pant')) return 'pants';
-    if (normalized.contains('trouser')) return 'pants';
-    if (normalized.contains('short')) return 'shorts';
-    if (normalized.contains('skirt')) return 'skirt';
-    if (normalized.contains('jumpsuit')) return 'jumpsuit';
-    if (normalized.contains('legging')) return 'leggings';
+    if (query.isEmpty) {
+      return true;
+    }
 
-    return normalized;
+    final String combinedText = [
+      product.title,
+      product.category,
+      product.brand,
+      product.source,
+      ...product.color,
+      ...product.style,
+      ...product.reasonTags,
+    ].join(' ').toLowerCase();
+
+    return combinedText.contains(query);
   }
 
   bool _matchesQuickStyle(RecommendationProduct product) {
@@ -176,6 +192,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     }
 
     if (combinedText.contains('casual')) tokens.add('casual');
+    if (combinedText.contains('comfort')) tokens.add('comfort');
     if (combinedText.contains('party')) tokens.add('party');
     if (combinedText.contains('evening')) tokens.add('evening');
     if (combinedText.contains('trendy')) tokens.add('trendy');
@@ -213,6 +230,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     if (normalized == 'casual') {
       return {
         'casual',
+        'comfort',
         'smart_casual',
         'athleisure',
         'lifestyle',
@@ -265,6 +283,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   String _normalizeStyleToken(String value) {
     final String normalized = value.trim().toLowerCase().replaceAll('-', '_');
 
+    if (normalized.contains('comfort')) return 'comfort';
     if (normalized.contains('party')) return 'party';
     if (normalized.contains('evening')) return 'evening';
     if (normalized.contains('formal')) return 'formal';
@@ -347,6 +366,28 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     );
   }
 
+  void _toggleSearchPanel() {
+    HapticFeedback.selectionClick();
+
+    setState(() {
+      isSearchExpanded = !isSearchExpanded;
+
+      if (!isSearchExpanded) {
+        searchQuery = '';
+        _searchController.clear();
+      }
+    });
+  }
+
+  void _clearSearch() {
+    HapticFeedback.selectionClick();
+
+    setState(() {
+      searchQuery = '';
+      _searchController.clear();
+    });
+  }
+
   void _goToSplashScreen() {
     HapticFeedback.lightImpact();
 
@@ -389,6 +430,40 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
     );
   }
 
+  String _formatList(List<String> values) {
+    if (values.isEmpty) {
+      return 'Not available';
+    }
+
+    return values.join(', ');
+  }
+
+  String _buildPreferenceSummary() {
+    if (appliedPreferences == null) {
+      return 'Loading enriched profile from Chala component...';
+    }
+
+    final List<String> parts = [];
+
+    if (appliedPreferences!.categories.isNotEmpty) {
+      parts.add(appliedPreferences!.categories.take(3).join(', '));
+    }
+
+    if (appliedPreferences!.colors.isNotEmpty) {
+      parts.add(appliedPreferences!.colors.take(3).join(', '));
+    }
+
+    if (appliedPreferences!.styles.isNotEmpty) {
+      parts.add(appliedPreferences!.styles.take(3).join(', '));
+    }
+
+    if (parts.isEmpty) {
+      return 'No enriched preferences available yet.';
+    }
+
+    return parts.join(' • ');
+  }
+
   @override
   Widget build(BuildContext context) {
     final List<Map<String, dynamic>> visibleProducts = filteredProducts;
@@ -403,6 +478,10 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
             padding: const EdgeInsets.fromLTRB(18, 14, 18, 24),
             children: [
               _buildHeader(),
+              if (isSearchExpanded) ...[
+                const SizedBox(height: 14),
+                _buildSearchBar(),
+              ],
               const SizedBox(height: 18),
               _buildStatusCard(),
               const SizedBox(height: 18),
@@ -465,14 +544,73 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
         ),
         const Spacer(),
         InkWell(
-          onTap: () {
-            HapticFeedback.lightImpact();
-            Navigator.pop(context);
-          },
+          onTap: _toggleSearchPanel,
           borderRadius: BorderRadius.circular(16),
-          child: _circleIcon(Icons.tune_rounded),
+          child: _circleIcon(
+            isSearchExpanded ? Icons.close_rounded : Icons.search_rounded,
+          ),
         ),
       ],
+    );
+  }
+
+  Widget _buildSearchBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: const Color(0xFFE5E7EB),
+        ),
+      ),
+      child: Row(
+        children: [
+          const Icon(
+            Icons.search_rounded,
+            color: Color(0xFF0B5D85),
+            size: 22,
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: TextField(
+              controller: _searchController,
+              textInputAction: TextInputAction.search,
+              onChanged: (value) {
+                setState(() {
+                  searchQuery = value;
+                });
+              },
+              decoration: InputDecoration(
+                hintText: 'Search by product, brand, category, color...',
+                hintStyle: GoogleFonts.poppins(
+                  fontSize: 13,
+                  color: const Color(0xFF9CA3AF),
+                ),
+                border: InputBorder.none,
+              ),
+              style: GoogleFonts.poppins(
+                fontSize: 13,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF111827),
+              ),
+            ),
+          ),
+          if (searchQuery.trim().isNotEmpty)
+            InkWell(
+              onTap: _clearSearch,
+              borderRadius: BorderRadius.circular(16),
+              child: const Padding(
+                padding: EdgeInsets.all(6),
+                child: Icon(
+                  Icons.cancel_rounded,
+                  color: Color(0xFF9CA3AF),
+                  size: 20,
+                ),
+              ),
+            ),
+        ],
+      ),
     );
   }
 
@@ -526,7 +664,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
               children: [
                 Text(
                   isLoading
-                      ? 'Generating recommendations...'
+                      ? 'Generating personalized recommendations...'
                       : 'Smart recommendations generated',
                   style: GoogleFonts.poppins(
                     fontSize: 16,
@@ -536,7 +674,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
                 ),
                 const SizedBox(height: 5),
                 Text(
-                  'Results are loaded from your FastAPI recommendation backend.',
+                  'Personalized results based on your enriched fashion profile and latest product catalogue.',
                   style: GoogleFonts.poppins(
                     fontSize: 11.5,
                     height: 1.4,
@@ -552,8 +690,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   }
 
   Widget _buildAppliedPreferencesCard() {
-    final String summaryText =
-        '${widget.selectedCategories.join(', ')} • ${widget.selectedColors.join(', ')} • ${widget.selectedStyles.join(', ')}';
+    final String summaryText = _buildPreferenceSummary();
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
@@ -571,14 +708,14 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
             child: Row(
               children: [
                 const Icon(
-                  Icons.fact_check_rounded,
+                  Icons.auto_awesome_motion_rounded,
                   size: 20,
                   color: Color(0xFF0B5D85),
                 ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
-                    'Applied style preferences',
+                    'Your enriched fashion profile',
                     style: GoogleFonts.poppins(
                       fontSize: 16,
                       fontWeight: FontWeight.w800,
@@ -623,21 +760,30 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   }
 
   Widget _buildExpandedAppliedPreferences() {
+    final AppliedPreferences? preferences = appliedPreferences;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         const SizedBox(height: 14),
-        _summaryRow('Categories', widget.selectedCategories),
-        _summaryRow('Colors', widget.selectedColors),
-        _summaryRow('Styles', widget.selectedStyles),
-        _summaryRow('Occasions', widget.selectedOccasions),
-        _summaryRow('Priority', widget.selectedPriorities),
-        _summaryRow('Brands', widget.selectedBrands),
+        _summaryRow('Categories', preferences?.categories ?? []),
+        _summaryRow('Colors', preferences?.colors ?? []),
+        _summaryRow('Styles', preferences?.styles ?? []),
+        _summaryRow('Occasions', preferences?.occasions ?? []),
+        _summaryRow('Brands', preferences?.preferredBrands ?? []),
       ],
     );
   }
 
   Widget _buildSearchFiltersCard() {
+    final String priceText = isPriceFilterEnabled
+        ? 'LKR ${minPrice.round()} - LKR ${maxPrice.round()}'
+        : 'Any price';
+
+    final String searchText = searchQuery.trim().isEmpty
+        ? 'No keyword search'
+        : 'Search: "$searchQuery"';
+
     return AnimatedContainer(
       duration: const Duration(milliseconds: 220),
       padding: const EdgeInsets.all(18),
@@ -683,9 +829,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
           ),
           const SizedBox(height: 8),
           Text(
-            isPriceFilterEnabled
-                ? 'LKR ${minPrice.round()} - LKR ${maxPrice.round()} • $maxResults maximum results'
-                : 'Any price • $maxResults maximum results',
+            '$priceText • $maxResults maximum results • $searchText',
             style: GoogleFonts.poppins(
               fontSize: 12,
               fontWeight: FontWeight.w600,
@@ -711,7 +855,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
       children: [
         const SizedBox(height: 18),
         Text(
-          'Price range is optional and only used for the current search. It is not saved as a permanent onboarding preference.',
+          'Price range and keyword search are temporary filters for the current recommendation list.',
           style: GoogleFonts.poppins(
             fontSize: 12,
             height: 1.4,
@@ -938,10 +1082,13 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   }
 
   Widget _buildSectionTitle(int count) {
+    final String title =
+        searchQuery.trim().isEmpty ? 'Recommended For You' : 'Search Results';
+
     return Row(
       children: [
         Text(
-          'Recommended For You',
+          title,
           style: GoogleFonts.poppins(
             fontSize: 18,
             fontWeight: FontWeight.w800,
@@ -1104,7 +1251,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
           ),
           const SizedBox(height: 16),
           Text(
-            'Loading recommendations from backend...',
+            'Loading personalized recommendations...',
             textAlign: TextAlign.center,
             style: GoogleFonts.poppins(
               fontSize: 13,
@@ -1133,7 +1280,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
           ),
           const SizedBox(height: 12),
           Text(
-            'Backend connection failed',
+            'Recommendation connection failed',
             style: GoogleFonts.poppins(
               fontSize: 16,
               fontWeight: FontWeight.w800,
@@ -1178,6 +1325,10 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
   }
 
   Widget _buildEmptyState() {
+    final String message = searchQuery.trim().isEmpty
+        ? 'Try changing the price range or quick style filter.'
+        : 'No products matched "$searchQuery". Try a different keyword.';
+
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
@@ -1202,7 +1353,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
           ),
           const SizedBox(height: 6),
           Text(
-            'Try changing the price range, brand, category, or quick style filter.',
+            message,
             textAlign: TextAlign.center,
             style: GoogleFonts.poppins(
               fontSize: 12,
@@ -1212,30 +1363,6 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
           ),
         ],
       ),
-    );
-  }
-
-  Widget cardTitle({
-    required IconData icon,
-    required String title,
-  }) {
-    return Row(
-      children: [
-        Icon(
-          icon,
-          size: 20,
-          color: const Color(0xFF0B5D85),
-        ),
-        const SizedBox(width: 8),
-        Text(
-          title,
-          style: GoogleFonts.poppins(
-            fontSize: 16,
-            fontWeight: FontWeight.w800,
-            color: const Color(0xFF111827),
-          ),
-        ),
-      ],
     );
   }
 
@@ -1257,7 +1384,7 @@ class _RecommendationScreenState extends State<RecommendationScreen> {
           ),
           Expanded(
             child: Text(
-              values.join(', '),
+              _formatList(values),
               style: GoogleFonts.poppins(
                 fontSize: 12,
                 fontWeight: FontWeight.w700,
