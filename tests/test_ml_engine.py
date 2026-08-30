@@ -1,12 +1,5 @@
-"""
-Golden-file test for the engine (architecture spec §7.6): fixed input panel,
-asserted ranking. Any refactor that changes app/ml/engine.py's or
-app/ml/features.py's output fails this test — that's the point. The fixture
-(tests/fixtures/golden_*.csv) is synthetic and deterministically generated
-(seed=42), not real scraped data; it exists to pin behavior, not to validate
-accuracy (that's research/validate_engine_original.py's job, against real SL
-data — see DEVELOPMENT.md for those numbers).
-"""
+"""Golden-file test: fixed synthetic input panel (seed=42), asserted exact ranking.
+See docs/trend-engine-guide.html for the validation-against-real-data numbers."""
 from pathlib import Path
 
 import pandas as pd

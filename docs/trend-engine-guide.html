@@ -451,10 +451,10 @@ FastAPI (app/api/) — reads trend_scores, never computes</code></pre>
 
       <div class="qa">
         <p class="q">Why 0.60 / −0.40 / 0.70 specifically — did you tune these?</p>
-        <p class="a">No — and that's the honest answer. They're set once from the measured ICs in
-        <code>research/trend_engine_original.py</code>'s own testing, not fit to this project's serving
-        data. The temporal weight (0.70) was reported as "flat across 0.2–0.6," meaning the exact value
-        barely matters within that range — it isn't a knob that was cranked until a number looked good.</p>
+        <p class="a">No — and that's the honest answer. They're set once from measured ICs during the
+        model's own original testing, not fit to this project's serving data. The temporal weight (0.70)
+        was reported as "flat across 0.2–0.6," meaning the exact value barely matters within that range —
+        it isn't a knob that was cranked until a number looked good.</p>
       </div>
     </section>
 
@@ -475,7 +475,7 @@ FastAPI (app/api/) — reads trend_scores, never computes</code></pre>
 
       <h3>Why window = 4</h3>
       <div class="example">
-        <p class="label">Window-size ablation (research/trendnet_training.ipynb)</p>
+        <p class="label">Window-size ablation, from training</p>
         <table>
           <tr><th>Observations in window</th><th>IC</th></tr>
           <tr><td>4</td><td>+0.422</td></tr>
@@ -563,9 +563,8 @@ FastAPI (app/api/) — reads trend_scores, never computes</code></pre>
 
     <section id="validation">
       <h2>Validation methodology</h2>
-      <p>From <code>research/validate_engine_original.py</code>, run against real Sri Lankan scrape data
-      (23 days × 56 attributes at the time it was run) — three separate tests, deliberately independent of
-      each other.</p>
+      <p>Run against real Sri Lankan scrape data (23 days × 56 attributes at the time it was run) — three
+      separate tests, deliberately independent of each other.</p>
 
       <h3>Test 1 — rolling-origin backtest</h3>
       <p>Score every attribute using <em>only</em> data available up to day <em>t</em>, then check what
