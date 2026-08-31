@@ -2,10 +2,21 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.schemas.trend import TrendHistoryPoint, TrendMetaResponse, TrendScoreOut
+from app.schemas.trend import TrendHistoryPoint, TrendingProductOut, TrendMetaResponse, TrendScoreOut
 from app.services.trend_service import TrendService
 
 router = APIRouter(prefix="/trends", tags=["Trends"])
+
+
+@router.get("/products")
+def get_trending_products(
+    horizon: int = Query(3, description="3 | 5"),
+    limit: int = Query(20, ge=1, le=50),
+    db: Session = Depends(get_db),
+):
+    rows = TrendService(db).get_trending_products(horizon=horizon, limit=limit)
+    products = [TrendingProductOut.model_validate(r) for r in rows]
+    return {"products": products, "meta": {"total": len(products)}}
 
 
 @router.get("")

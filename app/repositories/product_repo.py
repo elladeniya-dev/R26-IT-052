@@ -62,6 +62,52 @@ class ProductRepository(BaseRepository):
     def get_lifecycle(self, product_id: str) -> ProductLifecycle | None:
         return self.db.get(ProductLifecycle, product_id)
 
+    # ---------------------------------------------------- bulk product lookups
+    def get_product_ids_for_attribute(self, attr_type: str, attr_value: str, limit: int) -> list[str]:
+        stmt = (
+            select(ProductAttribute.product_id)
+            .join(ProductLifecycle, ProductLifecycle.product_id == ProductAttribute.product_id)
+            .where(
+                ProductAttribute.attr_type == attr_type,
+                ProductAttribute.attr_value == attr_value,
+                ProductLifecycle.is_still_listed.is_(True),
+            )
+            .order_by(ProductLifecycle.rank_best.asc().nulls_last())
+            .limit(limit)
+        )
+        return list(self.db.scalars(stmt).all())
+
+    def get_products_bulk(self, product_ids: list[str]) -> dict[str, Product]:
+        if not product_ids:
+            return {}
+        stmt = select(Product).where(Product.product_id.in_(product_ids))
+        return {p.product_id: p for p in self.db.scalars(stmt).all()}
+
+    def get_lifecycles_bulk(self, product_ids: list[str]) -> dict[str, ProductLifecycle]:
+        if not product_ids:
+            return {}
+        stmt = select(ProductLifecycle).where(ProductLifecycle.product_id.in_(product_ids))
+        return {lc.product_id: lc for lc in self.db.scalars(stmt).all()}
+
+    def get_attributes_bulk(
+        self, product_ids: list[str], attr_types: tuple[str, ...]
+    ) -> dict[str, dict[str, list[str]]]:
+        if not product_ids:
+            return {}
+        stmt = select(ProductAttribute).where(
+            ProductAttribute.product_id.in_(product_ids), ProductAttribute.attr_type.in_(attr_types)
+        )
+        out: dict[str, dict[str, list[str]]] = {}
+        for attr in self.db.scalars(stmt).all():
+            out.setdefault(attr.product_id, {}).setdefault(attr.attr_type.value, []).append(attr.attr_value)
+        return out
+
+    def get_brands_bulk(self, brand_ids: set[int]) -> dict[int, Brand]:
+        if not brand_ids:
+            return {}
+        stmt = select(Brand).where(Brand.brand_id.in_(brand_ids))
+        return {b.brand_id: b for b in self.db.scalars(stmt).all()}
+
     # -------------------------------------------------------------- brands
     def get_brand_by_slug(self, slug: str) -> Brand | None:
         return self.db.scalar(select(Brand).where(Brand.slug == slug))

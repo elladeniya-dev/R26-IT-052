@@ -37,6 +37,21 @@ class TrendHistoryPoint(BaseModel):
     rank_in_type: int
 
 
+class TrendingProductOut(BaseModel):
+    item_id: str
+    title: str
+    category: str
+    color: list[str]
+    style: list[str]
+    brand: str
+    source: str
+    price: float
+    image_url: str
+    product_url: str
+    trend_score: float
+    trend_reason: str
+
+
 class TrendMetaResponse(BaseModel):
     model_name: str
     model_ic: float | None

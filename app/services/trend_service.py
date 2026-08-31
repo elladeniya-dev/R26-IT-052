@@ -7,9 +7,11 @@ from app.core.exceptions import StaleSnapshotError
 from app.ml.engine import TrendEngine
 from app.models import TrendSnapshot
 from app.repositories.observation_repo import ObservationRepository
+from app.repositories.product_repo import ProductRepository
 from app.repositories.trend_repo import TrendRepository
 
 HORIZONS = (3, 5)
+PRODUCT_FEED_ATTR_TYPES = ("category", "color")
 
 
 class TrendService:
@@ -17,6 +19,7 @@ class TrendService:
         self.db = db
         self.trend_repo = TrendRepository(db)
         self.obs_repo = ObservationRepository(db)
+        self.product_repo = ProductRepository(db)
         self._engine = engine  # lazy — see engine property below
 
     @property
@@ -68,3 +71,58 @@ class TrendService:
 
     def get_meta(self, horizon: int = 3) -> TrendSnapshot | None:
         return self.trend_repo.get_latest_snapshot(horizon)
+
+    def get_trending_products(self, horizon: int = 3, limit: int = 20) -> list[dict]:
+        """Attribute trend scores, resolved to real still-listed products for the app's feed."""
+        snapshot = self.trend_repo.get_latest_snapshot(horizon)
+        if not snapshot:
+            raise StaleSnapshotError("No trend snapshot computed yet — run jobs/compute_trends.py")
+
+        scores = self.trend_repo.get_scores(snapshot.snapshot_id)
+        rising = sorted(
+            (s for s in scores if s.attr_type.value in PRODUCT_FEED_ATTR_TYPES and s.score > 0),
+            key=lambda s: s.score, reverse=True,
+        )
+
+        best_score = {}  # product_id -> TrendScore row that earned it a spot
+        for s in rising:
+            if len(best_score) >= limit * 2:
+                break
+            for product_id in self.product_repo.get_product_ids_for_attribute(
+                s.attr_type.value, s.attr_value, limit=6
+            ):
+                if product_id not in best_score or s.score > best_score[product_id].score:
+                    best_score[product_id] = s
+
+        top_ids = sorted(best_score, key=lambda pid: best_score[pid].score, reverse=True)[:limit]
+        if not top_ids:
+            return []
+
+        products = self.product_repo.get_products_bulk(top_ids)
+        lifecycles = self.product_repo.get_lifecycles_bulk(top_ids)
+        attrs = self.product_repo.get_attributes_bulk(top_ids, ("color", "style_detail"))
+        brands = self.product_repo.get_brands_bulk({p.brand_id for p in products.values()})
+
+        out = []
+        for pid in top_ids:
+            product = products.get(pid)
+            if not product:
+                continue
+            lifecycle = lifecycles.get(pid)
+            brand = brands.get(product.brand_id)
+            score = best_score[pid]
+            out.append({
+                "item_id": pid,
+                "title": product.title,
+                "category": product.category,
+                "color": attrs.get(pid, {}).get("color", []),
+                "style": attrs.get(pid, {}).get("style_detail", []),
+                "brand": brand.display_name if brand else "",
+                "source": brand.slug if brand else "",
+                "price": float(lifecycle.price_last_lkr) if lifecycle and lifecycle.price_last_lkr else 0.0,
+                "image_url": product.image_url or "",
+                "product_url": product.product_url or "",
+                "trend_score": float(score.score),
+                "trend_reason": f"{score.attr_value.title()} {score.attr_type.value} is trending up",
+            })
+        return out
