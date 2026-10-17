@@ -16,14 +16,14 @@ COLOR_SYNONYMS = {
     "gray": "grey", "charcoal": "grey",
     "navy blue": "navy",
     "off-white": "off white", "offwhite": "off white", "ivory": "off white",
-    "ecru": "off white", "cream": "off white",
+    "ecru": "off white",
     "wine": "burgundy", "maroon": "burgundy",
     "sand": "beige", "stone": "beige",
     "olive green": "olive", "cobalt": "blue", "indigo": "blue",
 }
 
 BASE_COLORS = {
-    "black", "white", "off white", "grey", "red", "blue", "navy", "green",
+    "black", "white", "off white", "cream", "grey", "red", "blue", "navy", "green",
     "yellow", "orange", "pink", "purple", "brown", "beige", "burgundy", "teal",
     "mustard", "olive", "khaki", "coral", "lavender", "lilac", "turquoise",
     "gold", "silver", "nude", "blush", "rust", "camel", "mint", "sage", "peach",
