@@ -5,7 +5,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from app.ml.engine import TrendEngine
+from app.ml.engine import TrendEngine, confidence_label
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
@@ -50,3 +50,11 @@ def test_rank_by_type_groups_correctly(golden_panel):
     for rows in by_type.values():
         scores = [r["score"] for r in rows]
         assert scores == sorted(scores, reverse=True)
+
+
+def test_confidence_follows_score_strength_not_store_count():
+    assert confidence_label(1.5, stores=12) == "high"
+    assert confidence_label(-1.5, stores=12) == "high"
+    assert confidence_label(1.5, stores=2) == "medium"  # too few stores to be "high"
+    assert confidence_label(0.6, stores=19) == "medium"
+    assert confidence_label(0.1, stores=19) == "low"  # many stores, weak signal
