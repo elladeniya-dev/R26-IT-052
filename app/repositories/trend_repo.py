@@ -50,6 +50,17 @@ class TrendRepository(BaseRepository):
         self, *, as_of_date, horizon_days: int, model_name: str, model_ic: float | None,
         window_days: int, scores: list[dict],
     ) -> TrendSnapshot:
+        existing = self.db.scalar(
+            select(TrendSnapshot).where(
+                TrendSnapshot.as_of_date == as_of_date,
+                TrendSnapshot.horizon_days == horizon_days,
+                TrendSnapshot.model_name == model_name,
+            )
+        )
+        if existing:
+            self.db.delete(existing)  # scores cascade; a same-day recompute replaces it
+            self.db.flush()
+
         snapshot = TrendSnapshot(
             as_of_date=as_of_date, horizon_days=horizon_days, model_name=model_name,
             model_ic=model_ic, window_days=window_days,

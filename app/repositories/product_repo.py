@@ -67,10 +67,16 @@ class ProductRepository(BaseRepository):
         stmt = (
             select(ProductAttribute.product_id)
             .join(ProductLifecycle, ProductLifecycle.product_id == ProductAttribute.product_id)
+            .join(
+                Observation,
+                (Observation.product_id == ProductLifecycle.product_id)
+                & (Observation.obs_date == ProductLifecycle.last_seen),
+            )
             .where(
                 ProductAttribute.attr_type == attr_type,
                 ProductAttribute.attr_value == attr_value,
                 ProductLifecycle.is_still_listed.is_(True),
+                Observation.in_stock.is_not(False),
             )
             .order_by(ProductLifecycle.rank_best.asc().nulls_last())
             .limit(limit)
