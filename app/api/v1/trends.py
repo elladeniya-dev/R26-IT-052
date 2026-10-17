@@ -3,10 +3,21 @@ from sqlalchemy.orm import Session
 
 from app.database import get_db
 from app.models import AttrType
-from app.schemas.trend import TrendHistoryPoint, TrendingProductOut, TrendMetaResponse, TrendScoreOut
+from app.schemas.trend import (
+    ProductTrendOut, ScoreProductsRequest, TrendHistoryPoint, TrendingProductOut, TrendMetaResponse, TrendScoreOut,
+)
 from app.services.trend_service import TrendService
 
 router = APIRouter(prefix="/trends", tags=["Trends"])
+
+
+@router.post("/score-products")
+def score_products_endpoint(body: ScoreProductsRequest, db: Session = Depends(get_db)):
+    """Trend score for products the caller owns. Stateless: nothing from the request is stored."""
+    results, meta = TrendService(db).score_partner_products(
+        [p.model_dump() for p in body.products], horizon=body.horizon
+    )
+    return {"data": [ProductTrendOut.model_validate(r) for r in results], "meta": meta}
 
 
 @router.get("/products")

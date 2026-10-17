@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.core.exceptions import StaleSnapshotError
 from app.ml.engine import TrendEngine
+from app.ml.product_scoring import score_products
 from app.models import TrendSnapshot
 from app.repositories.observation_repo import ObservationRepository
 from app.repositories.product_repo import ProductRepository
@@ -141,3 +142,17 @@ class TrendService:
                 "trend_reason": f"{score.attr_value.title()} {score.attr_type.value} is trending up",
             })
         return out
+
+    def score_partner_products(self, products: list[dict], horizon: int = 3) -> tuple[list[dict], dict]:
+        """Trend score for products supplied by the caller; the trend database is never queried for products."""
+        snapshot = self.trend_repo.get_latest_snapshot(horizon)
+        if not snapshot:
+            raise StaleSnapshotError("No trend snapshot computed yet — run jobs/compute_trends.py")
+        rows = self.trend_repo.get_scores(snapshot.snapshot_id)
+        trends = [
+            {"attr_type": r.attr_type.value, "attr_value": r.attr_value, "score": r.score, "confidence": r.confidence}
+            for r in rows
+        ]
+        results, meta = score_products(products, trends)
+        meta.update({"as_of_date": str(snapshot.as_of_date), "horizon_days": snapshot.horizon_days})
+        return results, meta

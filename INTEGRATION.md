@@ -75,3 +75,24 @@ Full request/response shapes are in `app/schemas/*.py` — every route's return 
 - **`product_id` format** is `"{brand_slug}:{native_id}"` (e.g. `"gflock:mid-blue-wide-leg-jean-..."`) — stable, safe to use as a foreign key from another component.
 - **Attribute values are mostly raw/unnormalized** (lowercase, trimmed, but as scraped) except `category`, which is canonicalized to a fixed H&M-style taxonomy (`app/ml/category_map.py`). Don't assume color/style/fabric values are a clean fixed enum.
 - If you need something this API doesn't expose yet, ask Gividu rather than querying the database directly — the schema (`app/models/`) is expected to keep evolving.
+
+## Scoring another catalogue's products (stateless)
+
+A partner service that owns its own product catalogue can ask this service how strongly each product
+matches the current rising trends. Nothing sent is stored, and this service never returns products of its own.
+
+```
+POST /api/v1/trends/score-products
+{ "horizon": 3,
+  "products": [ { "id": "p1", "title": "...", "description": "...", "category": "dress",
+                  "subcategory": "dress", "colors": ["beige"], "tags": ["floral"] } ] }   // max 500
+```
+
+Response: `data[]` of `{ id, trend_score, matches[] }` and `meta` with `taxonomy_version`, `as_of_date`,
+`products_matched`, `trending_attributes` and `trending_attributes_matched` (use the last two as a coverage check).
+
+- Only rising, medium/high-confidence trends count. A match is exact (same value) or family (close substitute, half weight).
+- Attributes carried by most of the batch are discounted, so generic ones ("top") cannot dominate.
+- `trend_score` is the sum of a product's three strongest contributions; `matches` explains each one.
+- Vocabulary lives in `app/ml/taxonomy.py` (versioned); `tests/test_product_scoring.py` is the contract.
+- Suggested caller behaviour: short timeout, cache for the day (trends refresh daily), and fall back to no trend boost if the call fails.

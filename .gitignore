@@ -60,6 +60,7 @@ htmlcov/
 # by checking git status directly rather than assuming git add worked; the
 # daily-workflow JSON-commit step earlier this session broke the same way.
 !tests/fixtures/*.csv
+!tests/fixtures/*.json
 
 
 # =========================

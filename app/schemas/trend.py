@@ -1,6 +1,6 @@
 from datetime import date, datetime
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class TrendScoreOut(BaseModel):
@@ -59,3 +59,34 @@ class TrendMetaResponse(BaseModel):
     horizon_days: int
     window_days: int
     computed_at: datetime
+
+
+class ProductDescriptor(BaseModel):
+    """A partner product, reduced to the fields needed to describe it. Nothing is stored."""
+    id: str
+    title: str = ""
+    description: str = ""
+    category: str = ""
+    subcategory: str = ""
+    colors: list[str] = []
+    tags: list[str] = []
+
+
+class ScoreProductsRequest(BaseModel):
+    products: list[ProductDescriptor] = Field(max_length=500)
+    horizon: int = 3
+
+
+class ProductTrendMatch(BaseModel):
+    attr_type: str
+    attr_value: str
+    match: str
+    trend_score: float
+    confidence: str
+    contribution: float
+
+
+class ProductTrendOut(BaseModel):
+    id: str
+    trend_score: float
+    matches: list[ProductTrendMatch]
