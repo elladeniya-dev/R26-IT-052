@@ -76,6 +76,27 @@ KNOWN_SILHOUETTES = sorted([
     "fit and flare", "asymmetric",
 ], key=len, reverse=True)
 
+PATTERN_VOCAB = [
+    ("floral", r"floral|flower|botanical|blossom"),
+    ("striped", r"stripe|striped|pinstripe"),
+    ("check", r"check|checked|plaid|gingham|tartan"),
+    ("polka dot", r"polka|dots?|spotted"),
+    ("animal print", r"leopard|zebra|animal|snake|cheetah"),
+    ("tie dye", r"tie[\s-]?dye"),
+    ("geometric", r"geometric"),
+    ("paisley", r"paisley"),
+    ("printed", r"printed|print"),
+]
+
+GARMENT_LENGTH_VOCAB = [
+    ("mini", r"mini"),
+    ("midi", r"midi"),
+    ("maxi", r"maxi"),
+    ("cropped", r"cropped|crop"),
+    ("knee length", r"knee[\s-]?length"),
+    ("ankle length", r"ankle[\s-]?length|ankle"),
+]
+
 SOURCE_TIER = {
     "tier1_shopify_json": 1,
     "tier2_json_ld": 2,
@@ -206,8 +227,15 @@ def extract_material(text: str) -> str | None:
     return best_material
 
 
+def _first_match(text: str, vocab: list[tuple[str, str]]) -> str | None:
+    for label, pattern in vocab:
+        if re.search(rf"\b(?:{pattern})\b", text):
+            return label
+    return None
+
+
 def extract_style_attrs(text: str) -> list[tuple[str, str]]:
-    """Returns [(attr_type, value), ...] across sleeve_length/neckline/style_detail."""
+    """Returns [(attr_type, value), ...] across sleeve_length/neckline/style_detail/pattern/garment_length."""
     if not text:
         return []
     value = text.lower()
@@ -218,9 +246,13 @@ def extract_style_attrs(text: str) -> list[tuple[str, str]]:
         ("style_detail", KNOWN_SILHOUETTES),
     ):
         for term in vocab:
-            if term in value:
+            if re.search(rf"\b{re.escape(term)}\b", value):
                 found.append((attr_type, term))
                 break  # only the first/longest match per vocabulary
+    for attr_type, vocab in (("pattern", PATTERN_VOCAB), ("garment_length", GARMENT_LENGTH_VOCAB)):
+        label = _first_match(value, vocab)
+        if label:
+            found.append((attr_type, label))
     return found
 
 
@@ -363,7 +395,12 @@ def ingest_run(run_dir: str) -> None:
                     garment.get("description", ""),
                 ])
                 fabric = extract_material(str(garment.get("desc_material", "")).strip()) or extract_material(material_text)
-                style_attrs = extract_style_attrs(str(garment.get("desc_style", "")).strip())
+                style_text = " ".join([
+                    str(garment.get("desc_style", "")),
+                    clean_title(garment.get("title", "")),
+                    " ".join(str(t) for t in garment.get("shopify_tags", [])),
+                ])
+                style_attrs = extract_style_attrs(style_text.strip())
 
                 upsert_product(db, product_id, brand.brand_id, garment, category, run_date)
                 db.flush()
