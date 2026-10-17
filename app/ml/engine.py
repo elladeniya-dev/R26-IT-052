@@ -21,7 +21,7 @@ from app.ml.trendnet import load_trendnet
 
 W_RESTOCK = 0.60
 W_DISAPPEAR = -0.40
-W_TEMPORAL = 0.70
+W_TEMPORAL = 0.90
 TRENDNET_WINDOW = 4
 
 
@@ -110,7 +110,17 @@ class TrendEngine:
                 share_now=float(S[k].iloc[-3:].mean()),
                 share_before=float(S[k].iloc[a:a + 3].mean()),
                 breadth=breadth,
-                n_brands=len(j),
+                # Distinct brands observed carrying this attribute anywhere
+                # in the window — corroboration count for confidence.
+                # Deliberately NOT len(j): j only keeps brands with valid
+                # data in BOTH the early and late half of the window
+                # (needed for breadth's trend-direction comparison), which
+                # is a much stricter bar than "did we see this attribute
+                # from this brand at all." On a young dataset (window
+                # shorter than ~2x a brand's crawl cadence) that requirement
+                # is almost never met, so confidence was always "low"
+                # regardless of how well-supported a signal actually was.
+                n_brands=d.brand.nunique(),
                 mk_z=mkz,
                 mk_p=pval,
                 stage=(

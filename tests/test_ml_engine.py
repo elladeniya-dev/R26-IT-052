@@ -11,12 +11,12 @@ FIXTURES = Path(__file__).parent / "fixtures"
 
 # Captured from a real run against the fixture panel — see the header above.
 EXPECTED_RANKING = [
-    ("color|white", 0.6173),
-    ("category|top", 0.6003),
-    ("category|dress", 0.2729),
-    ("color|black", 0.2538),
-    ("color|red", -0.8711),
-    ("category|trousers", -0.8732),
+    ("color|white", 0.6617),
+    ("category|top", 0.6399),
+    ("category|dress", 0.4182),
+    ("color|black", 0.3938),
+    ("color|red", -1.0555),
+    ("category|trousers", -1.0581),
 ]
 
 
