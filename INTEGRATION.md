@@ -1,6 +1,6 @@
 # Trend Analysis Component — Integration Summary
 
-Owner: Gividu (branch `trend-analysis-gividu` on the group repo). This is one of 5 components in the OutfitIQ project. This file is what another component's agent/dev needs to read to call into this service — it is not the full internal design doc.
+Owner: Gividu (branch `trend-analysis-gividu` on the group repo). This is one of 5 components in the OutfitIQ project. This file is what a teammate on another component needs to read to call into this service — it is not the full internal design doc.
 
 ## What this component does
 
