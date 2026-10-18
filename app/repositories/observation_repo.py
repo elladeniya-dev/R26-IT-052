@@ -3,6 +3,7 @@ from datetime import date
 import pandas as pd
 from sqlalchemy import select
 
+from app.ml.attr_clean import clean_attributes
 from app.models import Brand, Observation, Product, ProductAttribute
 from app.repositories.base import BaseRepository
 
@@ -17,7 +18,7 @@ class ObservationRepository(BaseRepository):
         return list(self.db.scalars(stmt).all())
 
     def build_ml_panel_inputs(
-        self, since: date | None = None
+        self, since: date | None = None, clean: bool = True
     ) -> tuple[pd.DataFrame, pd.DataFrame]:
         """Returns (attrs_long, presence) — see app.ml.features.build_panel."""
         obs_stmt = (
@@ -49,5 +50,7 @@ class ObservationRepository(BaseRepository):
         if since:
             attrs_stmt = attrs_stmt.where(Observation.obs_date >= since)
         attrs_long = pd.read_sql(attrs_stmt, self.db.bind)
+        if clean:
+            attrs_long = clean_attributes(attrs_long)
 
         return attrs_long, presence

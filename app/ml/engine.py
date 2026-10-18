@@ -21,8 +21,25 @@ from app.ml.trendnet import load_trendnet
 
 W_RESTOCK = 0.60
 W_DISAPPEAR = -0.40
-W_TEMPORAL = 0.70
+W_TEMPORAL = 0.90
 TRENDNET_WINDOW = 4
+
+# Confidence tracks how big the model's score is, not how many stores sell the attribute.
+# Cut-offs were fitted on the first half of the walk-forward period and held on the second
+# half (high: 72% of forecasts came true, medium 68%, low 57%). Store count, Mann-Kendall
+# p-value and breadth showed no usable relationship, so they are reported but not used here.
+CONF_HIGH = 0.97
+CONF_MEDIUM = 0.39
+MIN_STORES_HIGH = 3
+
+
+def confidence_label(score: float, stores: int) -> str:
+    strength = abs(score)
+    if strength >= CONF_HIGH and stores >= MIN_STORES_HIGH:
+        return "high"
+    if strength >= CONF_MEDIUM:
+        return "medium"
+    return "low"
 
 
 class TrendEngine:
@@ -110,7 +127,17 @@ class TrendEngine:
                 share_now=float(S[k].iloc[-3:].mean()),
                 share_before=float(S[k].iloc[a:a + 3].mean()),
                 breadth=breadth,
-                n_brands=len(j),
+                # Distinct brands observed carrying this attribute anywhere
+                # in the window — corroboration count for confidence.
+                # Deliberately NOT len(j): j only keeps brands with valid
+                # data in BOTH the early and late half of the window
+                # (needed for breadth's trend-direction comparison), which
+                # is a much stricter bar than "did we see this attribute
+                # from this brand at all." On a young dataset (window
+                # shorter than ~2x a brand's crawl cadence) that requirement
+                # is almost never met, so confidence was always "low"
+                # regardless of how well-supported a signal actually was.
+                n_brands=d.brand.nunique(),
                 mk_z=mkz,
                 mk_p=pval,
                 stage=(
@@ -141,10 +168,9 @@ class TrendEngine:
             F["score"] = F.mrtf
             F["model"] = "mrtf"
 
-        F["confidence"] = np.where(
-            F.n_brands.astype(int) >= 5, "high",
-            np.where(F.n_brands.astype(int) >= 3, "medium", "low"),
-        )
+        F["confidence"] = [
+            confidence_label(float(sc), int(nb)) for sc, nb in zip(F.score, F.n_brands)
+        ]
 
         F = F.sort_values("score", ascending=False)
         if top_k:

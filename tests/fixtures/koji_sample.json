@@ -1,0 +1,786 @@
+[
+ {
+  "item_id": "BELLINI_jenny_floral_dress_multi",
+  "title": "Jenny Floral Dress",
+  "description": "Model Wears: UK 8 (S) Fabric: Rayon / Polyester Please bear in mind that the photo may be slightly different from the actual item in terms of color due to lighting conditions or the display used to view",
+  "category": "dress",
+  "subcategory": "dress",
+  "color": [
+   "multi"
+  ],
+  "style": [
+   "casual",
+   "floral",
+   "elegant"
+  ]
+ },
+ {
+  "item_id": "BELLINI_pant_3_off_white",
+  "title": "Avery Pant",
+  "description": "Model Wears: UK 8 (S) Fabric: Rayon Lycra Blend Please bear in mind that the photo may be slightly different from the actual item in terms of color due to lighting conditions or the display used to view",
+  "category": "pants",
+  "subcategory": "pants",
+  "color": [
+   "white"
+  ],
+  "style": [
+   "casual"
+  ]
+ },
+ {
+  "item_id": "BELLINI_pant_3_black",
+  "title": "Avery Pant",
+  "description": "Model Wears: UK 8 (S) Fabric: Rayon Lycra Blend Please bear in mind that the photo may be slightly different from the actual item in terms of color due to lighting conditions or the display used to view",
+  "category": "pants",
+  "subcategory": "pants",
+  "color": [
+   "black"
+  ],
+  "style": [
+   "casual"
+  ]
+ },
+ {
+  "item_id": "BELLINI_pant_3_brown",
+  "title": "Avery Pant",
+  "description": "Model Wears: UK 8 (S) Fabric: Rayon Lycra Blend Please bear in mind that the photo may be slightly different from the actual item in terms of color due to lighting conditions or the display used to view",
+  "category": "pants",
+  "subcategory": "pants",
+  "color": [
+   "brown"
+  ],
+  "style": [
+   "casual"
+  ]
+ },
+ {
+  "item_id": "BELLINI_classic_short_shadow",
+  "title": "Classic Short",
+  "description": "Model Wears : UK 8 (S) and UK 10 (M) Model Height : 5'5 Fabric : Rib Please bear in mind that the photo may be slightly different from the actual item in terms of color due to lighting conditions or t he display used to view",
+  "category": "shorts",
+  "subcategory": "shorts",
+  "color": [
+   "unknown"
+  ],
+  "style": [
+   "casual",
+   "minimal",
+   "summer"
+  ]
+ },
+ {
+  "item_id": "BELLINI_calla_skirt_black",
+  "title": "Calla Skirt",
+  "description": "Model Wears: UK 10 (M) Fabric: Rayon / Polyester Please bear in mind that the photo may be slightly different from the actual item in terms of color due to lighting conditions or the display used to view",
+  "category": "skirt",
+  "subcategory": "skirt",
+  "color": [
+   "black"
+  ],
+  "style": [
+   "casual"
+  ]
+ },
+ {
+  "item_id": "BELLINI_calla_skirt_grey",
+  "title": "Calla Skirt",
+  "description": "Model Wears: UK 10 (M) Fabric: Rayon / Polyester Please bear in mind that the photo may be slightly different from the actual item in terms of color due to lighting conditions or the display used to view",
+  "category": "skirt",
+  "subcategory": "skirt",
+  "color": [
+   "grey"
+  ],
+  "style": [
+   "casual"
+  ]
+ },
+ {
+  "item_id": "BELLINI_solane_wrap_top_off_white",
+  "title": "Solane Wrap Top",
+  "description": "Model Wears: UK 8 (S) Fabric: Rayon Lycra Blend Please bear in mind that the photo may be slightly different from the actual item in terms of color due to lighting conditions or the display used to view",
+  "category": "top",
+  "subcategory": "top",
+  "color": [
+   "white"
+  ],
+  "style": [
+   "casual",
+   "elegant"
+  ]
+ },
+ {
+  "item_id": "BELLINI_solane_wrap_top_dark_purple",
+  "title": "Solane Wrap Top",
+  "description": "Model Wears: UK 8 (S) Fabric: Rayon Lycra Blend Please bear in mind that the photo may be slightly different from the actual item in terms of color due to lighting conditions or the display used to view",
+  "category": "top",
+  "subcategory": "top",
+  "color": [
+   "purple"
+  ],
+  "style": [
+   "casual",
+   "elegant"
+  ]
+ },
+ {
+  "item_id": "BELLINI_solane_wrap_top_brown",
+  "title": "Solane Wrap Top",
+  "description": "Model Wears: UK 8 (S) Fabric: Rayon Lycra Blend Please bear in mind that the photo may be slightly different from the actual item in terms of color due to lighting conditions or the display used to view",
+  "category": "top",
+  "subcategory": "top",
+  "color": [
+   "brown"
+  ],
+  "style": [
+   "casual",
+   "elegant"
+  ]
+ },
+ {
+  "item_id": "CARNAGE_90s_bootcut_jeans_dark_wash",
+  "title": "90's Bootcut Jeans",
+  "description": "Designed to flatter through the hips and thighs before falling into a soft flare, this style is finished in a timeless washed blue with subtle fading. Polished and versatile, it instantly elevates everyday dressing. Key Features: Mid-rise fit with a secure button and zip closure Slim through the hip",
+  "category": "jeans",
+  "subcategory": "jeans",
+  "color": [
+   "blue"
+  ],
+  "style": [
+   "casual",
+   "lifestyle",
+   "fitted",
+   "smart_casual",
+   "denim"
+  ]
+ },
+ {
+  "item_id": "CARNAGE_90s_bootcut_jeans_mid_wash",
+  "title": "90's Bootcut Jeans",
+  "description": "Designed to flatter through the hips and thighs before falling into a soft flare, this style is finished in a timeless washed blue with subtle fading. Polished and versatile, it instantly elevates everyday dressing. Key Features: Mid-rise fit with a secure button and zip closure Slim through the hip",
+  "category": "jeans",
+  "subcategory": "jeans",
+  "color": [
+   "blue"
+  ],
+  "style": [
+   "casual",
+   "lifestyle",
+   "fitted",
+   "smart_casual",
+   "denim"
+  ]
+ },
+ {
+  "item_id": "CARNAGE_classic_mom_jeans_mid_wash",
+  "title": "Classic Mom Jeans",
+  "description": "A flattering mom-jean silhouette with a soft washed finish, designed to bring effortless shape and everyday ease. Relaxed yet refined, it’s the perfect denim staple for a cool, confident look. Key Features: Relaxed fit with a gently tapered leg for a modern silhouette Mid-rise waist with button and ",
+  "category": "jeans",
+  "subcategory": "jeans",
+  "color": [
+   "blue"
+  ],
+  "style": [
+   "casual",
+   "lifestyle",
+   "relaxed",
+   "smart_casual",
+   "denim"
+  ]
+ },
+ {
+  "item_id": "CARNAGE_airsculpt_e2_84_a2_ankle_legging_jet_black",
+  "title": "AirSculpt Ankle Legging",
+  "description": "A sleek performance legging made to feel secure, flexible, and easy to wear from training sessions to daily styling. Key Features: High-Rise waistband Soft, smooth hand feel Stretch-enhanced performance fabric Body-contouring panel lines Comfortable for movement Fabric: Interlock 245GSM Material Com",
+  "category": "leggings",
+  "subcategory": "leggings",
+  "color": [
+   "black"
+  ],
+  "style": [
+   "casual",
+   "activewear",
+   "athleisure",
+   "fitted"
+  ]
+ },
+ {
+  "item_id": "CARNAGE_classic_bell_bottom_legging_burgundy",
+  "title": "Classic Bell Bottom Jeggings",
+  "description": "Classic Bell Bottom Jeggings The perfect blend of comfort and style. Snug, Flared Fit designed to hug your curves at the top while offering a trendy flare at the bottom for a stylish silhouette. Minimalist Design featuring two functional back pockets and a high-waisted cut for a sleek look. Versatil",
+  "category": "leggings",
+  "subcategory": "leggings",
+  "color": [
+   "red"
+  ],
+  "style": [
+   "casual",
+   "activewear",
+   "lifestyle",
+   "fitted",
+   "high_waist",
+   "athleisure"
+  ]
+ },
+ {
+  "item_id": "CARNAGE_classic_bell_bottom_legging_jet_black",
+  "title": "Classic Bell Bottom Jeggings",
+  "description": "Classic Bell Bottom Jeggings The perfect blend of comfort and style. Snug, Flared Fit designed to hug your curves at the top while offering a trendy flare at the bottom for a stylish silhouette. Minimalist Design featuring two functional back pockets and a high-waisted cut for a sleek look. Versatil",
+  "category": "leggings",
+  "subcategory": "leggings",
+  "color": [
+   "black"
+  ],
+  "style": [
+   "casual",
+   "activewear",
+   "lifestyle",
+   "fitted",
+   "high_waist",
+   "athleisure"
+  ]
+ },
+ {
+  "item_id": "CARNAGE_paneltrack_wide_jogger_jet_black",
+  "title": "Paneltrack Wide Jogger",
+  "description": "A statement wide-leg jogger with an easy flow and a refined athletic edge. The kind of piece that instantly upgrades a simple tee-and-sneaker look. Key Features: Wide-leg jogger fit for an elevated, relaxed silhouette Panelled side detailing (contrast track panels) for a sport-led look Elasticated w",
+  "category": "pants",
+  "subcategory": "joggers",
+  "color": [
+   "black"
+  ],
+  "style": [
+   "casual",
+   "athleisure",
+   "lifestyle",
+   "relaxed",
+   "activewear"
+  ]
+ },
+ {
+  "item_id": "CARNAGE_paneltrack_wide_jogger_cobalt_blue",
+  "title": "Paneltrack Wide Jogger",
+  "description": "A statement wide-leg jogger with an easy flow and a refined athletic edge. The kind of piece that instantly upgrades a simple tee-and-sneaker look. Key Features: Wide-leg jogger fit for an elevated, relaxed silhouette Panelled side detailing (contrast track panels) for a sport-led look Elasticated w",
+  "category": "pants",
+  "subcategory": "joggers",
+  "color": [
+   "blue"
+  ],
+  "style": [
+   "casual",
+   "athleisure",
+   "lifestyle",
+   "relaxed",
+   "activewear"
+  ]
+ },
+ {
+  "item_id": "CARNAGE_paneltrack_wide_jogger_sheer_white",
+  "title": "Paneltrack Wide Jogger",
+  "description": "A statement wide-leg jogger with an easy flow and a refined athletic edge. The kind of piece that instantly upgrades a simple tee-and-sneaker look. Key Features: Wide-leg jogger fit for an elevated, relaxed silhouette Panelled side detailing (contrast track panels) for a sport-led look Elasticated w",
+  "category": "pants",
+  "subcategory": "joggers",
+  "color": [
+   "white"
+  ],
+  "style": [
+   "casual",
+   "athleisure",
+   "lifestyle",
+   "relaxed",
+   "activewear"
+  ]
+ },
+ {
+  "item_id": "CARNAGE_airsculpt_e2_84_a2_6_biker_short_jet_black",
+  "title": "AirSculpt Midi 6 Short",
+  "description": "A sleek performance biker short made to feel secure, flexible, and easy to wear from training sessions to daily styling. Key Features: High-Rise waistband Soft, smooth hand feel Stretch-enhanced performance fabric Body-contouring panel lines Comfortable for movement Fabric: Interlock 245GSM Material",
+  "category": "shorts",
+  "subcategory": "shorts",
+  "color": [
+   "black"
+  ],
+  "style": [
+   "casual",
+   "activewear",
+   "fitted"
+  ]
+ },
+ {
+  "item_id": "CARNAGE_shorts_jet_black",
+  "title": "AirSculpt Mini 4 Short",
+  "description": "A sleek performance biker short made to feel secure, flexible, and easy to wear from training sessions to daily styling. Key Features: High-Rise waistband Soft, smooth hand feel Stretch-enhanced performance fabric Body-contouring panel lines Comfortable for movement Fabric: Interlock 245GSM Material",
+  "category": "shorts",
+  "subcategory": "shorts",
+  "color": [
+   "black"
+  ],
+  "style": [
+   "casual",
+   "activewear",
+   "fitted"
+  ]
+ },
+ {
+  "item_id": "CARNAGE_aeris_skort_blue_frost",
+  "title": "Aeris Skort",
+  "description": "Lightweight, flattering, and built for movement - this keeps up with your pace while keeping you cool and supported. A must-have for any active wardrobe. Key Features: Lightweight butter-soft fabric for all-day comfort. Built-in anti-exposure lining for confident movement. Breathable, moisture-wicki",
+  "category": "skirt",
+  "subcategory": "skirt",
+  "color": [
+   "blue"
+  ],
+  "style": [
+   "casual",
+   "activewear",
+   "lifestyle"
+  ]
+ },
+ {
+  "item_id": "CARNAGE_365_zip_up_crop_jet_black_sheer_white",
+  "title": "365 Zip Up Crop Jacket",
+  "description": "365 ZIP UP CROP Where performance meet lifestyle in the form of True Athleisure Composition - Fabric: 78% nylon/ 22% spandex Here is a Why you need to own an Essential Quarter zip up Crop top Dense fabric ( Keeps the garment study) Moisture-absorbing Sweat-wicking Breathable Quick drying Four-way st",
+  "category": "top",
+  "subcategory": "crop_top",
+  "color": [
+   "white"
+  ],
+  "style": [
+   "casual",
+   "activewear",
+   "athleisure",
+   "lifestyle",
+   "fitted",
+   "relaxed",
+   "crop"
+  ]
+ },
+ {
+  "item_id": "CARNAGE_365_zip_up_crop_jet_black_olive_green",
+  "title": "365 Zip Up Crop Jacket",
+  "description": "365 ZIP UP CROP Where performance meet lifestyle in the form of True Athleisure Composition - Fabric: 78% nylon/ 22% spandex Here is a Why you need to own an Essential Quarter zip up Crop top Dense fabric ( Keeps the garment study) Moisture-absorbing Sweat-wicking Breathable Quick drying Four-way st",
+  "category": "top",
+  "subcategory": "crop_top",
+  "color": [
+   "green"
+  ],
+  "style": [
+   "casual",
+   "activewear",
+   "athleisure",
+   "lifestyle",
+   "fitted",
+   "relaxed",
+   "crop"
+  ]
+ },
+ {
+  "item_id": "CARNAGE_365_zip_up_crop_jet_black_jet_black",
+  "title": "365 Zip Up Crop Jacket",
+  "description": "365 ZIP UP CROP Where performance meet lifestyle in the form of True Athleisure Composition - Fabric: 78% nylon/ 22% spandex Here is a Why you need to own an Essential Quarter zip up Crop top Dense fabric ( Keeps the garment study) Moisture-absorbing Sweat-wicking Breathable Quick drying Four-way st",
+  "category": "top",
+  "subcategory": "crop_top",
+  "color": [
+   "black"
+  ],
+  "style": [
+   "casual",
+   "activewear",
+   "athleisure",
+   "lifestyle",
+   "fitted",
+   "relaxed",
+   "crop"
+  ]
+ },
+ {
+  "item_id": "CHENARA_DODGE_althea_pleated_puff_sleeve_midi_dress_64200_white",
+  "title": "ALTHEA PLEATED PUFF SLEEVE MIDI DRESS",
+  "description": "Chenara Dodge fashion product: ALTHEA PLEATED PUFF SLEEVE MIDI DRESS. Collection: midi dresses.",
+  "category": "dress",
+  "subcategory": "midi_dress",
+  "color": [
+   "white",
+   "beige"
+  ],
+  "style": [
+   "casual",
+   "elegant",
+   "trendy",
+   "midi"
+  ]
+ },
+ {
+  "item_id": "CHENARA_DODGE_emma_v_neck_mini_dress_64225_white",
+  "title": "EMMA V NECK MINI DRESS",
+  "description": "Chenara Dodge fashion product: EMMA V NECK MINI DRESS. Collection: mini dresses.",
+  "category": "dress",
+  "subcategory": "mini_dress",
+  "color": [
+   "white",
+   "beige",
+   "grey"
+  ],
+  "style": [
+   "casual",
+   "trendy",
+   "mini",
+   "party"
+  ]
+ },
+ {
+  "item_id": "CHENARA_DODGE_kim_wrap_around_midi_dress_64235_beige",
+  "title": "KIM WRAP AROUND MIDI DRESS",
+  "description": "Chenara Dodge fashion product: KIM WRAP AROUND MIDI DRESS. Collection: midi dresses.",
+  "category": "dress",
+  "subcategory": "midi_dress",
+  "color": [
+   "beige",
+   "yellow"
+  ],
+  "style": [
+   "casual",
+   "trendy",
+   "midi"
+  ]
+ },
+ {
+  "item_id": "CHENARA_DODGE_nude_halter_neck_maxi_dress_64220_beige",
+  "title": "NUDE HALTER NECK MAXI DRESS",
+  "description": "Chenara Dodge fashion product: NUDE HALTER NECK MAXI DRESS. Collection: maxi dresses.",
+  "category": "dress",
+  "subcategory": "maxi_dress",
+  "color": [
+   "beige",
+   "brown"
+  ],
+  "style": [
+   "casual",
+   "trendy",
+   "summer",
+   "maxi",
+   "elegant"
+  ]
+ },
+ {
+  "item_id": "CHENARA_DODGE_ornella_round_neck_mini_dress_64195_white",
+  "title": "ORNELLA ROUND NECK MINI DRESS",
+  "description": "Chenara Dodge fashion product: ORNELLA ROUND NECK MINI DRESS. Collection: mini dresses.",
+  "category": "dress",
+  "subcategory": "mini_dress",
+  "color": [
+   "white",
+   "beige",
+   "grey"
+  ],
+  "style": [
+   "casual",
+   "trendy",
+   "mini",
+   "party"
+  ]
+ },
+ {
+  "item_id": "CHENARA_DODGE_tara_lace_maxi_dress_64170_beige",
+  "title": "TARA LACE MAXI DRESS",
+  "description": "Chenara Dodge fashion product: TARA LACE MAXI DRESS. Collection: maxi dresses.",
+  "category": "dress",
+  "subcategory": "maxi_dress",
+  "color": [
+   "beige"
+  ],
+  "style": [
+   "casual",
+   "party",
+   "elegant",
+   "trendy",
+   "maxi"
+  ]
+ },
+ {
+  "item_id": "CHENARA_DODGE_addy_sleeveless_jumpsuit_63833_white",
+  "title": "ADDY SLEEVELESS JUMPSUIT",
+  "description": "Chenara Dodge fashion product: ADDY SLEEVELESS JUMPSUIT. Collection: jumpsuits.",
+  "category": "jumpsuit",
+  "subcategory": "jumpsuit",
+  "color": [
+   "white",
+   "beige",
+   "brown"
+  ],
+  "style": [
+   "casual",
+   "trendy",
+   "summer"
+  ]
+ },
+ {
+  "item_id": "CHENARA_DODGE_daya_boho_holiday_two_piece_set_63221_green",
+  "title": "DAYA BOHO HOLIDAY TWO PIECE SET",
+  "description": "Chenara Dodge fashion product: DAYA BOHO HOLIDAY TWO PIECE SET. Collection: two piece sets.",
+  "category": "set",
+  "subcategory": "two_piece_set",
+  "color": [
+   "green",
+   "beige"
+  ],
+  "style": [
+   "casual",
+   "trendy"
+  ]
+ },
+ {
+  "item_id": "CHENARA_DODGE_lily_two_piece_set_61660_beige",
+  "title": "LILY TWO PIECE SET",
+  "description": "Chenara Dodge fashion product: LILY TWO PIECE SET. Collection: two piece sets.",
+  "category": "set",
+  "subcategory": "two_piece_set",
+  "color": [
+   "beige",
+   "brown"
+  ],
+  "style": [
+   "casual",
+   "trendy"
+  ]
+ },
+ {
+  "item_id": "CHENARA_DODGE_olivia_two_piece_set_63743_black",
+  "title": "OLIVIA TWO PIECE SET",
+  "description": "Chenara Dodge fashion product: OLIVIA TWO PIECE SET. Collection: kurtas.",
+  "category": "set",
+  "subcategory": "two_piece_set",
+  "color": [
+   "black",
+   "white",
+   "beige"
+  ],
+  "style": [
+   "casual",
+   "trendy",
+   "ethnic",
+   "elegant"
+  ]
+ },
+ {
+  "item_id": "GFLOCK_backless_tie_dress_19aug_jet_black",
+  "title": "Backless Tie Dress- 220826",
+  "description": "Material : Cotton Material Composition : 100% Cotton Model Height 5' 5\", wearing size UK 10 ( Size Guide ) Please bear in mind that the photo may be slightly different from the actual item in terms of color due to lighting conditions or the display used to view",
+  "category": "dress",
+  "subcategory": "dress",
+  "color": [
+   "black"
+  ],
+  "style": [
+   "casual",
+   "cotton",
+   "natural_blends"
+  ]
+ },
+ {
+  "item_id": "GFLOCK_belt_detail_dress_210826_light_olive",
+  "title": "Belt Detail Dress - 220826",
+  "description": "Material : Cotton Material Composition : 100% Cotton Model Height 5' 5\", wearing size UK 10 ( Size Guide ) Please bear in mind that the photo may be slightly different from the actual item in terms of color due to lighting conditions or the display used to view",
+  "category": "dress",
+  "subcategory": "dress",
+  "color": [
+   "green"
+  ],
+  "style": [
+   "casual",
+   "cotton",
+   "natural_blends"
+  ]
+ },
+ {
+  "item_id": "GFLOCK_printed_jumpsuit_21apr_printed",
+  "title": "Printed Jumpsuit",
+  "description": "Shop the Printed Jumpsuit at GFLOCK.LK, a women’s jumpsuit designed for holiday dressing, casual days and warm-weather styling in Sri Lanka. A printed cotton jumpsuit with an easy one-piece silhouette, making it easy to style with your existing wardrobe. Style: A printed cotton jumpsuit with an easy",
+  "category": "jumpsuit",
+  "subcategory": "jumpsuit",
+  "color": [
+   "multi"
+  ],
+  "style": [
+   "casual",
+   "floral",
+   "cotton",
+   "natural_blends"
+  ]
+ },
+ {
+  "item_id": "GFLOCK_printed_jumpsuit_31jan_printed",
+  "title": "Printed Jumpsuit - 060226",
+  "description": "Casual Wear Material : Polyester Material Composition : 100% Polyester Belt not included Model Height 5' 5\", wearing size UK 10 ( Size Guide ) Please bear in mind that the photo may be slightly different from the actual item in terms of color due to lighting conditions or the display used to view",
+  "category": "jumpsuit",
+  "subcategory": "jumpsuit",
+  "color": [
+   "multi"
+  ],
+  "style": [
+   "casual",
+   "floral"
+  ]
+ },
+ {
+  "item_id": "GFLOCK_bootleg_pant_240826_white",
+  "title": "Bootleg Pant - 240826",
+  "description": "Work Wear Material : Polyester Material Composition : 92% Polyester, 8% Spandex Model Height 5' 8\", wearing size UK 10 ( Size Guide ) Please bear in mind that the photo may be slightly different from the actual item in terms of color due to lighting conditions or the display used to view",
+  "category": "pants",
+  "subcategory": "trousers",
+  "color": [
+   "white"
+  ],
+  "style": [
+   "casual",
+   "formal",
+   "workwear",
+   "smart_casual"
+  ]
+ },
+ {
+  "item_id": "GFLOCK_high_waist_wide_leg_jean_long_length_220826d_white",
+  "title": "High Waist Wide Leg Jean - Long Length - 220826D",
+  "description": "Material : Cotton Material Composition : 100% Cotton Model Height 5' 8\", wearing size UK 8 ( Size Guide ) Please bear in mind that in the photo may be slightly different from the actual item in terms of color due to the lighting conditions or the display you view it from.",
+  "category": "pants",
+  "subcategory": "trousers",
+  "color": [
+   "white"
+  ],
+  "style": [
+   "casual",
+   "denim",
+   "cotton",
+   "natural_blends"
+  ]
+ },
+ {
+  "item_id": "GFLOCK_high_waist_wide_leg_jean_short_length_220826d_white",
+  "title": "High Waist Wide Leg Jean - Short Length - 220826D",
+  "description": "Material : Cotton Material Composition : 100% Cotton Model Height 5' 8\", wearing size UK 8 ( Size Guide ) Please bear in mind that in the photo may be slightly different from the actual item in terms of color due to the lighting conditions or the display you view it from.",
+  "category": "pants",
+  "subcategory": "trousers",
+  "color": [
+   "white"
+  ],
+  "style": [
+   "casual",
+   "denim",
+   "cotton",
+   "natural_blends"
+  ]
+ },
+ {
+  "item_id": "ZIGZAG_flared_leg_formal_pant_pastel_pink_pink",
+  "title": "Flared Leg Formal Pant- Pastel Pink",
+  "description": "Product Specific (Avg. Measurement - Inches) Waist: Xs - 25.5 , S - 27 , M - 29 , L - 31 , Xl - 33 , Xxl - 35 Length: Xs-41.625,S-42,M-42.5,L-43,Xl-43.5,Xxl-44 Material: Cotton/Polyester Color: Pink Fit Type: Regular Fit Stretch: No Stretch Style: Accessories: Zipper Model Size: S Wash & Care: Norma",
+  "category": "top",
+  "subcategory": "blazer",
+  "color": [
+   "pink"
+  ],
+  "style": [
+   "casual",
+   "formal",
+   "smart_casual",
+   "trendy",
+   "cotton",
+   "fitted"
+  ]
+ },
+ {
+  "item_id": "ZIGZAG_oversized_tshirt_green_green",
+  "title": "Green Oversized T-shirt",
+  "description": "Product specific (Avg. measurement - inches) Length: XS-27.5,S-28,M-28.5,L-39 Chest: XS - 40.5 , S - 42 , M - 45 , L - 47 Across Shoulders: XS - 19.625 , S - 20 , M - 20.5 , L - 21 Sleeve Length: XS - 9.25 , S - 9.5 , M - 10 , L - 10.25 Material: COTTON/SAPANDEX Color: GREEN Fit Type: OVER SIZED Str",
+  "category": "top",
+  "subcategory": "shirt",
+  "color": [
+   "green"
+  ],
+  "style": [
+   "casual",
+   "smart_casual",
+   "trendy",
+   "cotton",
+   "fitted",
+   "relaxed"
+  ]
+ },
+ {
+  "item_id": "ZIGZAG_oversized_tshirt_hot_pink_pink",
+  "title": "Hot Pink Oversized T-shirt",
+  "description": "Product specific (Avg. measurement - inches) Length: XS-27.5,S-28,M-28.5,L-39 Chest: XS - 40.5 , S - 42 , M - 45 , L - 47 Across Shoulders: XS - 19.625 , S - 20 , M - 20.5 , L - 21 Sleeve Length: XS - 9.25 , S - 9.5 , M - 10 , L - 10.25 Material: COTTON/SAPANDEX Color: HOT PINK Fit Type: OVER SIZED ",
+  "category": "top",
+  "subcategory": "shirt",
+  "color": [
+   "pink"
+  ],
+  "style": [
+   "casual",
+   "smart_casual",
+   "trendy",
+   "cotton",
+   "fitted",
+   "relaxed"
+  ]
+ },
+ {
+  "item_id": "ZIGZAG_pink_border_oversized_block_print_shirt_white",
+  "title": "Pink Border Oversized Block Print Shirt",
+  "description": "Product specific (Avg. measurement - inches) Length: XS-30, S-30.5, M-31, L-31.5, XL-32, XXL-32.5 Chest: XS - 44 , S - 45.5 , M - 47.5 , L - 49.5 , XL - 51.5 , XXL - 53.5 Across Shoulders: XS - 16.625 , S - 17 , M - 17.5 , L - 18 , XL - 18.5 , XXL - 19 Sleeve Length: XS - 22.5 , S - 23 , M - 23.5 , ",
+  "category": "top",
+  "subcategory": "shirt",
+  "color": [
+   "white",
+   "pink",
+   "multi"
+  ],
+  "style": [
+   "casual",
+   "smart_casual",
+   "trendy",
+   "floral",
+   "cotton",
+   "fitted",
+   "relaxed"
+  ]
+ },
+ {
+  "item_id": "ZIGZAG_pink_flared_leg_formal_pant_pink",
+  "title": "Pink Flared Leg Formal Pant",
+  "description": "Product Specific (Avg. Measurement - Inches) Waist: Xs - 28 , S - 29.5 , M - 31.5 , L - 33.5 , Xl - 35.5 , Xxl - 37.5 Length: Xs-41.625,S-42,M-42.5,L-43,Xl-43.5,Xxl-44 Material: Cotton/Polyester Color: Pink Fit Type: Flair Pant Stretch: No Stretch Style: Accessories: Button/Zipper Model Size: S Wash",
+  "category": "top",
+  "subcategory": "blazer",
+  "color": [
+   "pink"
+  ],
+  "style": [
+   "casual",
+   "formal",
+   "smart_casual",
+   "trendy",
+   "cotton",
+   "fitted",
+   "workwear"
+  ]
+ },
+ {
+  "item_id": "ZIGZAG_printed_black_and_white_trendy_blazer_black",
+  "title": "Printed Black And White Trendy Blazer",
+  "description": "Product specific (Avg. measurement - inches) Chest: XS - 35.5 , S - 37 , M - 39 , L - 41 , XL - 43 , XXL - 45 Length: XS-26.5,S-27,M-27.5,L-28,XL-28.5,XXL-29 Across Shoulders: XS - 15.625 , S - 16 , M - 16.5 , L - 17 , XL - 17.5 , XXL - 18 Sleeve Length: XS - 23 , S - 23.5 , M - 24 , L - 24.5 , XL -",
+  "category": "top",
+  "subcategory": "blazer",
+  "color": [
+   "black",
+   "white",
+   "multi"
+  ],
+  "style": [
+   "casual",
+   "formal",
+   "smart_casual",
+   "trendy",
+   "floral",
+   "fitted"
+  ]
+ }
+]

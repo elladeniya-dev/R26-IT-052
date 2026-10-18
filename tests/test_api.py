@@ -37,3 +37,19 @@ def test_product_not_found_returns_error_envelope(client):
 def test_admin_routes_require_api_key(client):
     r = client.get("/api/v1/admin/runs")
     assert r.status_code == 401
+
+
+def test_score_products_returns_scores_with_taxonomy_version(client):
+    body = {"products": [{"id": "a", "title": "Floral Midi Dress", "category": "dress", "colors": ["beige"]}]}
+    r = client.post("/api/v1/trends/score-products", json=body)
+    assert r.status_code in (200, 503)
+    if r.status_code == 200:
+        out = r.json()
+        assert out["data"][0]["id"] == "a"
+        assert "trend_score" in out["data"][0] and "matches" in out["data"][0]
+        assert out["meta"]["taxonomy_version"] and out["meta"]["products"] == 1
+
+
+def test_score_products_rejects_oversized_batches(client):
+    body = {"products": [{"id": str(i)} for i in range(501)]}
+    assert client.post("/api/v1/trends/score-products", json=body).status_code == 422

@@ -7,10 +7,10 @@ import '../models/trending_product_model.dart';
 class TrendingApiService {
   // Same backend, same host convention as RecommendationApiService — see the
   // comment block there for Chrome vs physical-device setup.
-  static const String baseUrl = 'http://127.0.0.1:8000';
+  static const String baseUrl = 'http://127.0.0.1:8000/api/v1';
 
   Future<List<TrendingProduct>> getTrendingProducts({int limit = 20}) async {
-    final Uri url = Uri.parse('$baseUrl/trending-products/?limit=$limit');
+    final Uri url = Uri.parse('$baseUrl/trends/products?limit=$limit');
 
     final http.Response response = await http.get(url).timeout(
           const Duration(seconds: 15),

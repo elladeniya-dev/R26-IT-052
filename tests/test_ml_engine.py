@@ -5,18 +5,18 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from app.ml.engine import TrendEngine
+from app.ml.engine import TrendEngine, confidence_label
 
 FIXTURES = Path(__file__).parent / "fixtures"
 
 # Captured from a real run against the fixture panel — see the header above.
 EXPECTED_RANKING = [
-    ("color|white", 0.6173),
-    ("category|top", 0.6003),
-    ("category|dress", 0.2729),
-    ("color|black", 0.2538),
-    ("color|red", -0.8711),
-    ("category|trousers", -0.8732),
+    ("color|white", 0.6617),
+    ("category|top", 0.6399),
+    ("category|dress", 0.4182),
+    ("color|black", 0.3938),
+    ("color|red", -1.0555),
+    ("category|trousers", -1.0581),
 ]
 
 
@@ -50,3 +50,11 @@ def test_rank_by_type_groups_correctly(golden_panel):
     for rows in by_type.values():
         scores = [r["score"] for r in rows]
         assert scores == sorted(scores, reverse=True)
+
+
+def test_confidence_follows_score_strength_not_store_count():
+    assert confidence_label(1.5, stores=12) == "high"
+    assert confidence_label(-1.5, stores=12) == "high"
+    assert confidence_label(1.5, stores=2) == "medium"  # too few stores to be "high"
+    assert confidence_label(0.6, stores=19) == "medium"
+    assert confidence_label(0.1, stores=19) == "low"  # many stores, weak signal

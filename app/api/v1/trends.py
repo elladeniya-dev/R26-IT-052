@@ -2,10 +2,33 @@ from fastapi import APIRouter, Depends, Query
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.schemas.trend import TrendHistoryPoint, TrendMetaResponse, TrendScoreOut
+from app.models import AttrType
+from app.schemas.trend import (
+    ProductTrendOut, ScoreProductsRequest, TrendHistoryPoint, TrendingProductOut, TrendMetaResponse, TrendScoreOut,
+)
 from app.services.trend_service import TrendService
 
 router = APIRouter(prefix="/trends", tags=["Trends"])
+
+
+@router.post("/score-products")
+def score_products_endpoint(body: ScoreProductsRequest, db: Session = Depends(get_db)):
+    """Trend score for products the caller owns. Stateless: nothing from the request is stored."""
+    results, meta = TrendService(db).score_partner_products(
+        [p.model_dump() for p in body.products], horizon=body.horizon
+    )
+    return {"data": [ProductTrendOut.model_validate(r) for r in results], "meta": meta}
+
+
+@router.get("/products")
+def get_trending_products(
+    horizon: int = Query(3, description="3 | 5"),
+    limit: int = Query(20, ge=1, le=50),
+    db: Session = Depends(get_db),
+):
+    rows = TrendService(db).get_trending_products(horizon=horizon, limit=limit)
+    products = [TrendingProductOut.model_validate(r) for r in rows]
+    return {"products": products, "meta": {"total": len(products)}}
 
 
 @router.get("")
@@ -33,11 +56,11 @@ def get_meta(horizon: int = Query(3), db: Session = Depends(get_db)):
 
 @router.get("/history/{attr_type}/{attr_value}")
 def get_history(
-    attr_type: str, attr_value: str,
+    attr_type: AttrType, attr_value: str,
     horizon: int = Query(3), days: int = Query(30, ge=1, le=365),
     db: Session = Depends(get_db),
 ):
-    rows = TrendService(db).get_history(attr_type, attr_value, horizon=horizon, days=days)
+    rows = TrendService(db).get_history(attr_type.value, attr_value, horizon=horizon, days=days)
     data = [
         TrendHistoryPoint(
             as_of_date=snap.as_of_date, score=score.score,
@@ -50,9 +73,9 @@ def get_history(
 
 @router.get("/{attr_type}")
 def get_trends_for_type(
-    attr_type: str, limit: int = Query(10, ge=1, le=100),
+    attr_type: AttrType, limit: int = Query(10, ge=1, le=100),
     horizon: int = Query(3), db: Session = Depends(get_db),
 ):
-    rows = TrendService(db).get_trends_for_type(attr_type, horizon=horizon, limit=limit)
+    rows = TrendService(db).get_trends_for_type(attr_type.value, horizon=horizon, limit=limit)
     data = [TrendScoreOut.model_validate(r, from_attributes=True) for r in rows]
     return {"data": data, "meta": {"total": len(data)}}

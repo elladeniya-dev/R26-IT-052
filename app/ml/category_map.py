@@ -36,6 +36,7 @@ CATEGORY_SYNONYMS = {
     "blouse": "Blouse",
     "dungaree": "Dungarees", "dungarees": "Dungarees", "overall": "Dungarees",
     "waistcoat": "Tailored Waistcoat", "vest": "Tailored Waistcoat",
+    "jogger": "Trousers", "joggers": "Trousers",
     "set": "Garment Set", "co-ord": "Garment Set", "coord": "Garment Set",
 }
 

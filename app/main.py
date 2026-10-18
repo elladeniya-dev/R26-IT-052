@@ -2,6 +2,7 @@ from datetime import date
 from pathlib import Path
 
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import text
 
@@ -17,6 +18,13 @@ app = FastAPI(
     title="OutfitIQ Trend Analysis Backend",
     description="Sri Lankan fashion trend analysis API.",
     version="2.0.0",
+)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 
