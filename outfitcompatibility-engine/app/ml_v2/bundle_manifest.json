@@ -1,0 +1,25 @@
+{
+  "bundle_name": "OutfitIQ V2 Deployment Bundle",
+  "bundle_version": "2.0",
+  "model_name": "production_outfit_transformer_v2",
+  "framework": "PyTorch",
+  "image_encoder": "patrickjohncyh/fashion-clip",
+  "embedding_size": 512,
+  "maximum_items": 8,
+  "classification_threshold": 0.5050000000000003,
+  "categories": [
+    "tops",
+    "bottoms",
+    "outerwear",
+    "all-body"
+  ],
+  "test_metrics": {
+    "accuracy": 0.6616,
+    "balanced_accuracy": 0.6616,
+    "precision": 0.6512,
+    "recall": 0.6961,
+    "f1_score": 0.6729,
+    "roc_auc": 0.7282,
+    "log_loss": 0.639
+  }
+}
