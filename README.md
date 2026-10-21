@@ -1,532 +1,228 @@
-# OutfitIQ - Smart Fashion Assistant
+# OutfitIQ — Smart Fashion Assistant
 
-## Project Title
+OutfitIQ is a fashion discovery application that combines personal preferences, interaction-based learning, product recommendations, trend analysis, and outfit compatibility. A Flutter client connects to four Python FastAPI services.
 
-**Smart Fashion Assistant: Intelligent Personalized and Trend-Aware Fashion Recommendation System**
+Developed as a university research project, OutfitIQ brings four complementary components together in a unified application: user preference modelling, personalized recommendation, fashion trend analysis, and outfit compatibility assessment.
 
-## Project Overview
+## Project objectives
 
-OutfitIQ is a mobile-based smart fashion assistant developed as a Final Year Research Project. The system provides personalized fashion recommendations and outfit suggestions based on user preferences, user behavior, fashion trends, and outfit compatibility.
+The project investigates how explicit preferences, behavioural interactions, semantic product representations, and fashion trend data can support personalized fashion discovery.
 
-The application does not directly sell products. Instead, it recommends suitable clothing items and redirects users to the original external fashion store through product links.
+Its objectives are to:
 
-The system is divided into four main research components. Each component focuses on a separate intelligent function of the complete fashion assistant system. All components are integrated using a shared backend and PostgreSQL database.
+1. Capture and model individual fashion preferences through onboarding and user interactions.
+2. Rank fashion products using a combination of preference matching, semantic similarity, and product information quality.
+3. Analyse product observations to identify changing fashion trends.
+4. Generate and evaluate coordinated outfits around a selected clothing item.
+5. Integrate these capabilities through a common application interface and modular backend services.
 
-## Group Members
+## Technology stack
 
-| Student ID | Name                |
-| ---------- | ------------------- |
-| IT22189608 | Kojitha Gunathilake |
-| IT22247636 | Chalani Ramanayake  |
-| IT22202840 | Givindu Elladeniya  |
-| IT22218476 | Senuja Rajapaksha   |
+| Layer | Technologies |
+| --- | --- |
+| Application | Flutter, Dart, Provider |
+| Backend APIs | Python, FastAPI, Pydantic, Uvicorn |
+| Data persistence | PostgreSQL, SQLAlchemy; Alembic for trend-service migrations |
+| Authentication | Google Sign-In, JWT, Flutter Secure Storage |
+| Machine learning | scikit-learn, SentenceTransformers, PyTorch, FashionCLIP, Outfit Transformer, TrendNet |
+| Data collection | Python-based product crawlers and collection utilities |
+| Testing | Python unittest, pytest, Flutter Test |
 
-## Main Components
+## Features
 
-The system consists of four main components:
+- Google sign-in and backend JWT authentication.
+- Onboarding for fashion preferences and profile management.
+- Preference learning from product interactions, with ML-assisted preference expansion.
+- Personalized product recommendations with weighted preferences, semantic similarity, quality checks, and diversity reranking.
+- Product discovery with price, style, and search controls.
+- Trend exploration using category and other attribute scores.
+- Complete-the-look outfit generation around a selected product.
+- Saved outfits, outfit ratings, and evaluation summaries.
+- Links to products at their original retailers.
 
-1. User Management and User Learning Engine
-2. Data Collection and Recommendation Engine
-3. Trend Analysis Engine
-4. Outfit Compatibility Engine
+## Architecture
 
-# 1. User Preference Analysis & Dynamic Modeling Engine (ML)
+| Component | Directory | Default local port | Responsibility |
+| --- | --- | --- | --- |
+| Flutter client | `outfitiq_app/` | Flutter-selected | User interface, authentication state, and API clients |
+| Chala | `auth-backend/` | 8001 | Authentication, onboarding, preferences, and interaction learning |
+| Koji | `recommendation-backend/` | 8002 | Product collection and personalized recommendations |
+| Givi | `trend-engine/` | 8003 | Product observations, trend computation, and trend APIs |
+| Senu | `outfitcompatibility-engine/` | 8004 | Outfit generation, compatibility scoring, saved outfits, and feedback |
 
-## Component Owner
+```mermaid
+flowchart TD
+    User[User] --> App[Flutter app]
+    App --> Auth[Chala: auth and preferences]
+    App --> Recommendations[Koji: recommendations]
+    App --> Trends[Givi: trend analysis]
+    App --> Outfits[Senu: outfit compatibility]
+    Recommendations -->|Fetch enriched preferences| Auth
+    Recommendations --> Catalog[Koji product catalog]
+    Trends --> Observations[Trend observations and snapshots]
+    Outfits --> OutfitData[Outfit products and saved results]
+```
 
-**IT22247636 | Chalani Ramanayake**
+Each service maintains its own database configuration. Catalog synchronization utilities support product-data exchange with the authentication and outfit compatibility components.
 
-## Component Overview
+The Flutter application consumes attribute-level trend information. The trend backend additionally provides product and observation APIs for catalog exploration and analysis.
 
-This component handles user authentication, onboarding, profile management, interaction tracking, and dynamic user preference learning.
+## Main user flow
 
-The main purpose of this component is to understand each user's fashion preferences and improve those preferences over time based on user behavior in the application.
+1. Sign in with Google and complete preference onboarding.
+2. Browse recommendations generated from the enriched preference profile.
+3. View products and record interactions that inform preference learning.
+4. Explore trending fashion attributes.
+5. Select a product to generate compatible outfit combinations.
+6. Save outfits and submit ratings or feedback.
 
-## Main Responsibilities
+## Recommendation and ML components
 
-- Manage user authentication using Google Sign-In.
-- Store user profile details.
-- Collect initial fashion preferences through onboarding.
-- Track user interactions with fashion items.
-- Dynamically update user preference weights.
-- Provide learned user preference data to the recommendation engine.
+### Personalized recommendations
 
-## Key Features
+The recommendation service combines three scores:
 
-### Google Sign-In Authentication
+```text
+final_score = 0.60 × user_match
+            + 0.25 × semantic_similarity
+            + 0.15 × product_quality
+```
 
-Users can log in to the system using their Google account. The frontend receives a Google ID token and sends it to the backend. The backend verifies the token and creates or retrieves the relevant user account.
+Preference weights distinguish explicit selections from inferred preferences. Candidate checks exclude unavailable and non-fashion products, and reranking encourages variety across sources and product families.
 
-### User Onboarding
+The semantic model is loaded from `ml_models/koji-fashion-sim-v1/`.
 
-After login, users answer onboarding questions related to their fashion preferences.
+### Preference expansion
 
-Example onboarding data includes:
+The auth service includes a logistic model and supporting feature metadata under `auth-backend/app/ml/models/`. Enriched preference responses include weighted metadata used by the recommendation service.
 
-- Preferred clothing categories
-- Favorite colors
-- Preferred fashion styles
-- Dressing occasions
-- Brand preferences
-- Important factors when choosing clothes
+### Trend analysis
 
-### User Profile Management
+The trend service contains observation processing, trend-scoring logic, and TrendNet weights under `trend-engine/app/ml/`. Ingestion and trend computation jobs in `trend-engine/jobs/` prepare the snapshots served by the API.
 
-The system stores and manages user details such as full name, email, onboarding preferences, and learned preferences.
+### Outfit compatibility
 
-### User Interaction Tracking
+The compatibility service combines outfit-generation logic with a FashionCLIP/Outfit Transformer inference path under `outfitcompatibility-engine/app/ml_v2/`. Cached product image embeddings provide the visual representations used in model-based outfit assessment. Generated outfits can be saved and rated through the application.
 
-The system records user behavior when users interact with recommended fashion items.
+## Repository layout
 
-Example interaction types:
+```text
+OutfitIQ-App/
+├── outfitiq_app/                 # Main Flutter application
+├── auth-backend/                 # Auth, preferences, and learning
+├── recommendation-backend/       # Crawling and recommendation ranking
+├── trend-engine/                 # Trends, ingestion, migrations, and collector
+├── outfitcompatibility-engine/   # Outfit generation and compatibility
+├── ml_models/                    # Recommendation model bundle
+├── References/                   # Integration notes and historical handoffs
+├── api-evidence/                 # Saved API specifications and test evidence
+├── start_all_backends.ps1        # Existing local launch helper
+├── stop_all_backends.ps1         # Existing shutdown helper
+└── connect_phone.ps1             # Android USB connection helper
+```
 
-| Interaction Type | Meaning |
-|---|---|
-| View | User viewed an item |
-| Click | User clicked an item |
-| Save | User saved an item |
-| Select | User selected an item |
-| Dislike | User disliked an item |
+## Installation and execution
 
-### Dynamic User Learning
+### Prerequisites
 
-The learning engine updates user preference weights based on interaction behavior.
+- Flutter with a Dart SDK satisfying `^3.11.5`, as declared in the app's `pubspec.yaml`.
+- Python compatible with each service's dependency requirements; the trend service specifies Python `>=3.11`.
+- PostgreSQL connections for the services.
+- Google OAuth configuration for the intended Flutter platform and backend token verification.
+- Required model bundles and populated product data.
+- Android tooling and ADB if running the USB phone demo.
 
-For example, if a user frequently views and saves black casual tops, the system increases the user's preference weights for:
+### 1. Prepare backend environments
 
-- Category: Tops
-- Color: Black
-- Style: Casual
+In each backend directory, create a separate virtual environment and install that directory's dependencies:
 
-This allows the system to provide more personalized recommendations over time.
+```powershell
+python -m venv venv
+.\venv\Scripts\python.exe -m pip install -r requirements.txt
+```
 
-## Related Database Tables
+Keep separate environments because the services have different dependency sets.
 
-- users
-- user_onboarding_preferences
-- user_interactions
-- user_learned_preferences
+### 2. Configure environment variables
 
-## Example Output
+Create service-local `.env` files with the following settings. Supply credentials through local configuration; never commit real secrets.
 
-Example learned user preference output:
+| Service | Required configuration | Additional settings |
+| --- | --- | --- |
+| Auth | `DATABASE_URL`, `GOOGLE_CLIENT_ID`, `JWT_SECRET_KEY` | `JWT_ALGORITHM` defaults to `HS256`; `JWT_ACCESS_TOKEN_EXPIRE_MINUTES` defaults to `60` |
+| Recommendations | `DATABASE_URL`, `CHALA_API_URL` | For the default local setup, use `CHALA_API_URL=http://127.0.0.1:8001` |
+| Trends | `DATABASE_URL`, `ADMIN_API_KEY` | See `trend-engine/.env.example` and `app/config.py` |
+| Outfit compatibility | `DATABASE_URL` | See `outfitcompatibility-engine/app/s_config.py` |
 
-- User ID: 1
-- Category preference: Tops = 0.9, Dresses = 0.4
-- Color preference: Black = 1.0, White = 0.7
-- Style preference: Casual = 0.8, Formal = 0.3
+Google sign-in also needs matching client/platform configuration in the Flutter application. Review `outfitiq_app/lib/services/auth_service.dart` and the relevant platform settings.
 
-# 2. Intelligent Web Crawling Module for Personalized Fashion Data (ML + Data Mining)
+For a new, dedicated development trend database, review and apply the Alembic migrations from `trend-engine/`. The initial migration replaces the legacy schema, so preserve any existing data before applying the migration history:
 
-## Component Owner
+```powershell
+.\venv\Scripts\python.exe -m alembic upgrade head
+```
 
-**IT22189608 | Kojitha Gunathilake**
+### 3. Start the services
 
-## Component Overview
+Run each command in a separate terminal from the corresponding service directory:
 
-This component is responsible for collecting fashion product data from online sources and generating personalized product recommendations for users.
+| Working directory | Command |
+| --- | --- |
+| `auth-backend/` | `.\venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8001` |
+| `recommendation-backend/` | `.\venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8002` |
+| `trend-engine/` | `.\venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8003` |
+| `outfitcompatibility-engine/` | `.\venv\Scripts\python.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8004` |
 
-The recommendation engine uses user preferences, learned behavior, trend signals, and product quality to rank fashion items.
+Open `/docs` on each service to inspect its generated API documentation. Trend application endpoints use the `/api/v1` prefix.
 
-## Main Responsibilities
+The commands above launch the services directly from this repository. If alternative ports are needed, update the backend commands, Flutter API configuration, service-to-service URLs, and ADB forwarding consistently.
 
-- Collect product data from online fashion websites.
-- Store product details in the shared database.
-- Read user preference data from the database.
-- Read trend signal data from the trend analysis component.
-- Calculate recommendation scores.
-- Return ranked fashion recommendations to the frontend.
+### 4. Start Flutter
 
-## Key Features
+From `outfitiq_app/`:
 
-### Product Data Collection
+```powershell
+flutter pub get
+flutter run -d chrome
+```
 
-The system collects clothing product information from external fashion stores.
+The client defaults to `http://127.0.0.1`, with ports configured in `lib/core/api_config.dart`. Profile > Server Connection supports a persisted host override; this does not independently change each service's port.
 
-Collected product details may include:
+For an Android phone, the included `connect_phone.ps1` helper is intended to configure ADB reverse forwarding. A LAN connection instead requires reachable backend bindings, firewall configuration, and the appropriate host override.
 
-- Product title
-- Category
-- Subcategory
-- Color
-- Style
-- Brand
-- Price
-- Currency
-- Image URL
-- Product URL
-- Source website
-- Availability
-- Collected date
+### 5. Prepare product data
 
-### Product Storage
+Available synchronization and embedding utilities include:
 
-Collected products are stored in the shared PostgreSQL database so that other components can also use them.
+- `auth-backend/sync_koji_products.py`
+- `outfitcompatibility-engine/scripts/s_sync_koji_products.py`
+- `outfitcompatibility-engine/scripts/s_generate_embeddings.py`
 
-### Personalized Recommendation
+Configure the target databases, synchronize the required product catalogs, and generate product embeddings before demonstrating the corresponding recommendation and outfit-generation flows.
 
-The recommendation engine recommends products based on:
+## Tests and validation
 
-- User onboarding preferences
-- Learned user preferences
-- User interaction behavior
-- Current trend scores
-- Product quality
+Run these commands from each listed directory after installing its development dependencies:
 
-### Recommendation Score Calculation
+| Directory | Command |
+| --- | --- |
+| `auth-backend/` | `.\venv\Scripts\python.exe -m unittest discover -s tests -q` |
+| `recommendation-backend/` | `.\venv\Scripts\python.exe -m unittest discover -s tests -q` |
+| `outfitcompatibility-engine/` | `.\venv\Scripts\python.exe -m pytest tests -q` |
+| `trend-engine/` | `.\venv\Scripts\python.exe -m pytest tests -q` |
+| `outfitiq_app/` | `flutter test` |
 
-The recommendation engine calculates a final score for each product.
+The trend service provides `requirements-dev.txt`. Its API test fixtures connect to the configured PostgreSQL database and use rollback transactions; select an appropriate test database before running them.
 
-Example scoring formula:
+The repository includes tests for preference metadata, recommendation weighting, product filtering, outfit generation and storage, trend processing, and Flutter response parsing. API specifications and recorded integration requests are provided in `api-evidence/` as supporting project material.
 
-final_score = 0.50 * user_match_score + 0.20 * behavior_score + 0.20 * trend_score + 0.10 * product_quality_score
+## Supporting material
 
-### User Match Score
+- `References/`: component references and integration documentation.
+- `api-evidence/`: saved OpenAPI specifications, source snapshots, and historical API results.
+- `auth-backend/API_DOCUMENTATION.md`: auth-component API documentation.
+- `outfitcompatibility-engine/app/ml_v2/README.md`: outfit model bundle documentation.
 
-The user match score checks how well a product matches the user's preferences.
+## Academic context
 
-Example checks:
-
-- Product category matches the user's preferred category.
-- Product color matches the user's preferred color.
-- Product style matches the user's preferred style.
-- Product brand matches the user's preferred brand.
-
-### Behavior Score
-
-The behavior score uses the user's past interactions to improve recommendation ranking.
-
-Example interaction weights:
-
-| Interaction Type | Example Weight |
-|---|---|
-| View | 1 |
-| Click | 2 |
-| Save | 4 |
-| Select | 5 |
-| Dislike | -3 |
-
-### Trend Score
-
-The trend score uses trend signals generated by the Trend Analysis Engine.
-
-For example, if oversized clothing is currently trending, products with the oversized style may receive a higher trend score.
-
-### Product Quality Score
-
-The product quality score checks whether product data is complete and useful.
-
-Example checks:
-
-- Product has an image.
-- Product has a valid product URL.
-- Product has a price.
-- Product is available.
-
-## Related Database Tables
-
-- products
-- users
-- user_onboarding_preferences
-- user_interactions
-- user_learned_preferences
-- trend_signals
-
-## Example Output
-
-Example recommendation output:
-
-- User ID: 1
-- Recommended item: Black Casual Shirt
-- Category: Tops
-- Color: Black
-- Style: Casual
-- Final score: 0.87
-- Product URL: External store product link
-
-# 3. Trend Analysis & Trend–Preference Fusion Engine (ML)
-
-## Component Owner
-
-**IT22202840 | Givindu Elladeniya**
-
-## Component Overview
-
-This component analyzes fashion product data and identifies current or growing fashion trends.
-
-The main purpose of this component is to make the recommendation system trend-aware. This helps users receive suggestions that are not only personalized but also relevant to current fashion trends.
-
-## Main Responsibilities
-
-- Analyze collected product data.
-- Identify trending fashion attributes.
-- Calculate trend scores.
-- Calculate growth rates over a selected time period.
-- Store trend signals in the shared database.
-- Provide trend data to the recommendation engine and frontend.
-
-## Key Features
-
-### Fashion Trend Detection
-
-The system checks product attributes to identify what is currently popular.
-
-Example trend attributes:
-
-- Category
-- Color
-- Style
-- Brand
-- Material
-- Pattern
-
-### Weekly Trend Analysis
-
-The trend engine can analyze changes over time, such as weekly growth in product availability or popularity.
-
-For example, if the number of products with the style "Oversized" increases this week compared to last week, the trend engine can identify it as a growing trend.
-
-### Trend Score Calculation
-
-A trend score is calculated to represent how strong a fashion trend is.
-
-The trend score can be based on:
-
-- Attribute frequency
-- Recent popularity
-- Growth rate
-- Time window
-
-### Growth Rate Calculation
-
-Growth rate measures how much a fashion attribute has increased or decreased over time.
-
-Example formula:
-
-growth_rate = (current_period_count - previous_period_count) / previous_period_count
-
-### ML-Based Trend Classification
-
-The component can use machine learning to classify or predict trend behavior.
-
-Example trend labels:
-
-- Rising trend
-- Stable trend
-- Declining trend
-
-### Trend Signal Storage
-
-Generated trend results are stored in the database as trend signals. These trend signals can then be used by the recommendation engine and frontend.
-
-## Related Database Tables
-
-- products
-- trend_signals
-
-## Example Output
-
-Example trend signal output:
-
-- Trend ID: 1
-- Attribute type: Style
-- Attribute value: Oversized
-- Trend score: 0.91
-- Growth rate: 0.35
-- Time window: Weekly
-- Status: Rising
-
-# 4. Outfit Matching & Clothing Style Compatibility Engine (ML)
-
-## Component Owner
-
-**IT22218476 | Senuja Rajapaksha**
-
-## Component Overview
-
-This component generates complete outfit suggestions based on a selected fashion item.
-
-The main purpose of this component is to help users create matching outfits instead of recommending only single clothing items.
-
-## Main Responsibilities
-
-- Accept a selected fashion item from the user.
-- Find compatible fashion items from the product database.
-- Check color compatibility.
-- Check style compatibility.
-- Check category compatibility.
-- Check occasion suitability.
-- Apply optional user filters.
-- Generate complete outfit combinations.
-- Allow users to save, remove, and reuse outfit combinations.
-
-## Key Features
-
-### Selected Item-Based Outfit Generation
-
-The user selects one fashion item, and the outfit compatibility engine generates matching outfit combinations around that item.
-
-For example, if the user selects a black casual top, the system may suggest:
-
-- Matching jeans
-- Matching shoes
-- Matching accessories
-
-### Color Compatibility
-
-The engine checks whether item colors match well together.
-
-Example:
-
-- Black can match with white, grey, blue, beige, and other neutral colors.
-- Neutral colors can match with many outfit combinations.
-
-### Style Compatibility
-
-The engine checks whether the styles of selected items are suitable together.
-
-Example:
-
-- Casual top + casual jeans + sneakers
-- Formal shirt + formal trousers + formal shoes
-
-### Category Compatibility
-
-The engine avoids unsuitable category combinations and builds proper outfit structures.
-
-Example outfit structure:
-
-- Top
-- Bottom
-### Occasion Suitability
-
-The engine checks whether the generated outfit is suitable for the selected occasion.
-
-Example occasions:
-
-- Casual
-- Formal
-- Party
-- Office
-
-### User Filters
-
-Users can apply filters when generating outfits.
-
-Example filters:
-
-- Minimum price
-- Maximum price
-- Preferred colors
-- Excluded categories
-- Maximum number of outfits
-- Maximum items per category
-
-### Saved Outfits
-
-Users can save outfit combinations they like and view them later.
-
-Saved outfit features include:
-
-- Save liked outfit
-- View saved outfit list
-- Remove saved outfit
-- Reuse saved outfit
-
-## Related Database Tables
-
-- products
-- saved_outfits
-
-## Example Output
-
-Example generated outfit output:
-
-- Selected item: Black Casual Top
-- Suggested bottom: Blue Denim Jeans
-- Outfit score: 0.89
-
-# Component Integration
-
-All four components are connected through the same backend and shared PostgreSQL database.
-
-System integration flow:
-
-1. User logs in using Google Sign-In.
-2. User completes onboarding preferences.
-3. Product data is collected from fashion websites.
-4. Trend Analysis Engine analyzes product data and generates trend signals.
-5. User interactions are tracked in the mobile app.
-6. User Learning Engine updates learned preference weights.
-7. Recommendation Engine reads user data, product data, interaction data, and trend signals.
-8. Recommendation Engine returns ranked product recommendations.
-9. User selects a fashion item.
-10. Outfit Compatibility Engine generates matching outfit combinations.
-11. User can save, remove, or reuse outfit combinations.
-
-# Shared Database
-
-The project uses a shared PostgreSQL database named:
-
-fashion_assistant
-
-## Main Shared Tables
-
-- users
-- user_onboarding_preferences
-- user_interactions
-- user_learned_preferences
-- products
-- trend_signals
-- saved_outfits
-
-# Technology Stack
-
-## Frontend Technologies
-
-- Flutter
-- Dart
-- Google Sign-In
-- REST API integration
-
-## Backend Technologies
-
-- Python
-- FastAPI
-- SQLAlchemy
-- PostgreSQL
-- Uvicorn
-
-## Machine Learning and Intelligence
-
-- Fashion embeddings
-- Similarity scoring
-- User preference weighting
-- Trend classification
-- Recommendation scoring
-- Rule-based outfit compatibility
-
-## Development Tools
-
-- Visual Studio Code
-- Postman
-- pgAdmin
-- GitHub
-- GitHub Desktop
-- Google Colab
-- Microsoft Planner
-
-# Final Output of the System
-
-The final system provides:
-
-- Personalized fashion recommendations
-- Trend-aware product suggestions
-- Behavior-based user learning
-- Compatible outfit generation
-- Saved outfit management
-- External product store redirection
-
-# Academic Purpose
-
-This project is developed as a Final Year Research Project for academic and research purposes.
+OutfitIQ combines multiple machine-learning and software-engineering approaches within an integrated fashion-assistance workflow. The repository contains the application source, backend services, model assets, and supporting integration material for the project. Detailed methodology, experimental results, and evaluation should be read alongside the accompanying academic report.
