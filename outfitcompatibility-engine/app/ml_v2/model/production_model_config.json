@@ -1,0 +1,26 @@
+{
+  "model_name": "production_outfit_transformer_v2",
+  "model_type": "FashionCLIP_ImprovedOutfitTransformer",
+  "fashionclip_model": "patrickjohncyh/fashion-clip",
+  "embedding_size": 512,
+  "model_size": 256,
+  "category_embedding_size": 32,
+  "transformer_layers": 2,
+  "attention_heads": 4,
+  "maximum_items": 8,
+  "category_to_id": {
+    "PAD": 0,
+    "tops": 1,
+    "bottoms": 2,
+    "outerwear": 3,
+    "all-body": 4,
+    "unknown": 5
+  },
+  "classification_threshold": 0.5050000000000003,
+  "best_epoch": 7,
+  "validation_roc_auc": 0.7513918143700684,
+  "training_dataset": "Polyvore Outfits disjoint clothing-only",
+  "objective": "general_visual_outfit_compatibility",
+  "uses_body_fit": false,
+  "uses_occasion": false
+}
