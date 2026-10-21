@@ -1,0 +1,148 @@
+# =========================
+# Python / FastAPI Backend
+# =========================
+
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Environment variables
+.env
+.env.*
+!.env.example
+
+# Python cache
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+
+# Python build files
+build/
+dist/
+*.egg-info/
+.eggs/
+
+# Logs
+*.log
+logs/
+
+# Testing / coverage
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+.nox/
+
+# Jupyter
+.ipynb_checkpoints/
+
+
+# Local datasets / generated data
+*.csv
+*.xlsx
+*.xls
+*.json
+*.parquet
+*.sqlite
+*.db
+
+# But allow useful sample/example files if needed
+!sample_*.json
+!sample_*.csv
+!example_*.json
+!example_*.csv
+# Golden-file test fixtures (tests/test_ml_engine.py) — must be committed or
+# the test fails with FileNotFoundError for anyone who clones fresh. Found
+# by checking git status directly rather than assuming git add worked; the
+# daily-workflow JSON-commit step earlier this session broke the same way.
+!tests/fixtures/*.csv
+!tests/fixtures/*.json
+
+
+# =========================
+# Flutter App
+# =========================
+
+# Flutter/Dart build output
+trend_analysis_app/build/
+trend_analysis_app/.dart_tool/
+trend_analysis_app/.flutter-plugins
+trend_analysis_app/.flutter-plugins-dependencies
+trend_analysis_app/.packages
+trend_analysis_app/pubspec.lock
+
+# Flutter generated files
+trend_analysis_app/android/.gradle/
+trend_analysis_app/android/local.properties
+trend_analysis_app/android/app/debug/
+trend_analysis_app/android/app/profile/
+trend_analysis_app/android/app/release/
+
+# iOS / macOS generated files if created later
+trend_analysis_app/ios/Pods/
+trend_analysis_app/ios/.symlinks/
+trend_analysis_app/ios/Flutter/Flutter.framework
+trend_analysis_app/ios/Flutter/Flutter.podspec
+trend_analysis_app/ios/Flutter/Generated.xcconfig
+trend_analysis_app/ios/Flutter/ephemeral/
+trend_analysis_app/macos/Flutter/ephemeral/
+
+# Web generated files
+trend_analysis_app/web/.dart_tool/
+
+# Android signing files
+*.jks
+*.keystore
+key.properties
+
+
+# =========================
+# IDE / Editor
+# =========================
+
+# VS Code
+.vscode/
+*.code-workspace
+
+# PyCharm / IntelliJ / Android Studio
+.idea/
+*.iml
+
+# But keep shared VS Code settings if you intentionally want them later
+!.vscode/settings.json
+!.vscode/extensions.json
+
+
+# =========================
+# OS Files
+# =========================
+
+.DS_Store
+Thumbs.db
+desktop.ini
+
+
+# =========================
+# Docker / Local Runtime
+# =========================
+
+# Docker volumes or local postgres data folders if created
+postgres_data/
+pgdata/
+docker-data/
+
+
+# =========================
+# Misc
+# =========================
+
+*.tmp
+*.bak
+*.swp
+
+# Personal reference doc, not for the public repo
+docs/trend-engine-guide.html

@@ -1,0 +1,19 @@
+services:
+  - type: web
+    name: outfitiq-backend
+    env: python
+    plan: free
+    # requirements.txt is the single, unified dependency set (architecture
+    # spec: "one service... this is small, don't over-engineer" — splitting
+    # API vs pipeline deps would be exactly the premature complexity the spec
+    # argues against). torch resolves from the CPU-only wheel index declared
+    # at the top of requirements.txt, avoiding the ~2GB CUDA default that
+    # would blow this plan's build size limit.
+    buildCommand: pip install -r requirements.txt && alembic upgrade head
+    startCommand: python -m uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: ADMIN_API_KEY
+        sync: false
